@@ -21,6 +21,7 @@
     "@tideforge/content": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^26.1.1",
     "typescript": "^5.8.2",
     "vitest": "^3.0.9"
   }
