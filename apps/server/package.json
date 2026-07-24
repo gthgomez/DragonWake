@@ -1,25 +1,29 @@
 {
   "name": "@tideforge/server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
+    "start": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "echo \"no server tests yet (A2+)\""
+    "test": "vitest run",
+    "migrate": "tsx src/migrate-cli.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.1",
     "@tideforge/combat": "workspace:*",
     "@tideforge/content": "workspace:*",
     "@tideforge/shared": "workspace:*",
-    "hono": "^4.7.5"
+    "hono": "^4.7.5",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
+    "@types/pg": "^8.15.5",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
   }
 }

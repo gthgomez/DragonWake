@@ -3,12 +3,10 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": ["node"],
+    "noEmit": true,
+    "composite": false
   },
   "include": ["src/**/*"],
-  "references": [
-    { "path": "../../packages/shared" },
-    { "path": "../../packages/content" },
-    { "path": "../../packages/combat" }
-  ]
+  "exclude": ["src/**/*.test.ts"]
 }
