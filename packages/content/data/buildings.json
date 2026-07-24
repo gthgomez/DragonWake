@@ -1,0 +1,86 @@
+[
+  {
+    "id": "forge_heart",
+    "name": "Forge-Heart",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "sovereign_cradle",
+    "name": "Sovereign Cradle",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "barracks",
+    "name": "Barracks",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "habitation",
+    "name": "Habitation",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "archive_spire",
+    "name": "Archive Spire",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "rally_quay",
+    "name": "Rally Quay",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "command_gallery",
+    "name": "Command Gallery",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "lookout",
+    "name": "Lookout",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "skyreost",
+    "name": "Skyreost",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "rivetworks",
+    "name": "Rivetworks",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "gearfoundry",
+    "name": "Gearfoundry",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "saltvault",
+    "name": "Saltvault",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "seawall",
+    "name": "Seawall",
+    "category": "capital",
+    "max_level": 10
+  },
+  {
+    "id": "training_camp",
+    "name": "Training Camp",
+    "category": "citadel",
+    "max_level": 10
+  }
+]

@@ -1,0 +1,82 @@
+[
+  {
+    "camp_level": 1,
+    "def_power_approx": 50,
+    "example_comp": "40 Levy",
+    "recommended_player_power": 80,
+    "loot_notes": "kelp, tiny scrap",
+    "harness_drop": "no"
+  },
+  {
+    "camp_level": 2,
+    "def_power_approx": 120,
+    "example_comp": "80 Levy + 20 Tidepike",
+    "recommended_player_power": 200,
+    "loot_notes": "kelp",
+    "harness_drop": "no"
+  },
+  {
+    "camp_level": 3,
+    "def_power_approx": 300,
+    "example_comp": "150 Tidepike",
+    "recommended_player_power": 500,
+    "loot_notes": "kelp, mats low",
+    "harness_drop": "no"
+  },
+  {
+    "camp_level": 4,
+    "def_power_approx": 700,
+    "example_comp": "200 Tidepike + 50 Reefbow",
+    "recommended_player_power": 1200,
+    "loot_notes": "mats",
+    "harness_drop": "rare shard"
+  },
+  {
+    "camp_level": 5,
+    "def_power_approx": 1500,
+    "example_comp": "300 Bullhorn + 100 Reefbow",
+    "recommended_player_power": 2500,
+    "loot_notes": "Harbinger harness piece chance",
+    "harness_drop": "yes low"
+  },
+  {
+    "camp_level": 6,
+    "def_power_approx": 3000,
+    "example_comp": "400 Bullhorn + 200 Reefbow",
+    "recommended_player_power": 5000,
+    "loot_notes": "harness",
+    "harness_drop": "yes"
+  },
+  {
+    "camp_level": 7,
+    "def_power_approx": 6000,
+    "example_comp": "300 Colossus + 300 Reefbow",
+    "recommended_player_power": 10000,
+    "loot_notes": "talismans if Sov present",
+    "harness_drop": "yes"
+  },
+  {
+    "camp_level": 8,
+    "def_power_approx": 12000,
+    "example_comp": "mixed mid elite",
+    "recommended_player_power": 20000,
+    "loot_notes": "talismans",
+    "harness_drop": "yes"
+  },
+  {
+    "camp_level": 9,
+    "def_power_approx": 22000,
+    "example_comp": "heavy mixed",
+    "recommended_player_power": 35000,
+    "loot_notes": "talismans high",
+    "harness_drop": "yes"
+  },
+  {
+    "camp_level": 10,
+    "def_power_approx": 40000,
+    "example_comp": "near player mid-game army",
+    "recommended_player_power": 60000,
+    "loot_notes": "best talisman rate",
+    "harness_drop": "yes"
+  }
+]

@@ -1,0 +1,93 @@
+[
+  {
+    "id": "tidefarming",
+    "name": "Tidefarming",
+    "per_level": 0.08,
+    "max_level": 10,
+    "group": "production"
+  },
+  {
+    "id": "timberwright",
+    "name": "Timberwright",
+    "per_level": 0.08,
+    "max_level": 10,
+    "group": "production"
+  },
+  {
+    "id": "stonecunning",
+    "name": "Stonecunning",
+    "per_level": 0.08,
+    "max_level": 10,
+    "group": "production"
+  },
+  {
+    "id": "alloywright",
+    "name": "Alloywright",
+    "per_level": 0.08,
+    "max_level": 10,
+    "group": "production"
+  },
+  {
+    "id": "forced_cadence",
+    "name": "Forced Cadence",
+    "per_level": 0.05,
+    "max_level": 10,
+    "group": "combat"
+  },
+  {
+    "id": "longmark",
+    "name": "Longmark",
+    "per_level": 0.05,
+    "max_level": 10,
+    "group": "combat"
+  },
+  {
+    "id": "hardening",
+    "name": "Hardening",
+    "per_level": 0.05,
+    "max_level": 10,
+    "group": "combat"
+  },
+  {
+    "id": "field_medicine",
+    "name": "Field Medicine",
+    "per_level": 0.05,
+    "max_level": 10,
+    "group": "combat"
+  },
+  {
+    "id": "leviathanry",
+    "name": "Leviathanry",
+    "per_level": 0.05,
+    "max_level": 10,
+    "group": "combat"
+  },
+  {
+    "id": "sky_duel",
+    "name": "Sky Duel",
+    "per_level": 0.05,
+    "max_level": 10,
+    "group": "combat"
+  },
+  {
+    "id": "buoyancy",
+    "name": "Buoyancy",
+    "per_level": 0.08,
+    "max_level": 10,
+    "group": "utility"
+  },
+  {
+    "id": "deep_sight",
+    "name": "Deep Sight",
+    "per_level": 1,
+    "max_level": 10,
+    "group": "utility"
+  },
+  {
+    "id": "rationing",
+    "name": "Rationing",
+    "per_level": 0.05,
+    "max_level": 10,
+    "group": "utility"
+  }
+]

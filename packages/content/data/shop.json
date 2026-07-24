@@ -1,0 +1,38 @@
+[
+  {
+    "id": "speedup_1m",
+    "name": "Blink",
+    "chronite": 1,
+    "effect": {
+      "type": "speedup_sec",
+      "seconds": 60
+    }
+  },
+  {
+    "id": "speedup_1h",
+    "name": "Jump",
+    "chronite": 10,
+    "effect": {
+      "type": "speedup_sec",
+      "seconds": 3600
+    }
+  },
+  {
+    "id": "shield_1h",
+    "name": "Momentary Truce",
+    "chronite": 3,
+    "effect": {
+      "type": "shield_sec",
+      "seconds": 3600
+    }
+  },
+  {
+    "id": "shield_12h",
+    "name": "Ceasefire",
+    "chronite": 25,
+    "effect": {
+      "type": "shield_sec",
+      "seconds": 43200
+    }
+  }
+]

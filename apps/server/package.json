@@ -1,0 +1,25 @@
+{
+  "name": "@tideforge/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "echo \"no server tests yet (A2+)\""
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.1",
+    "@tideforge/combat": "workspace:*",
+    "@tideforge/content": "workspace:*",
+    "@tideforge/shared": "workspace:*",
+    "hono": "^4.7.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

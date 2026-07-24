@@ -1,0 +1,137 @@
+[
+  {
+    "test_id": "M1",
+    "attacker": "5k Reefbow",
+    "defender": "5k Tidepike",
+    "expected_winner": "attacker",
+    "design_intent": "Range beats Melee in open field",
+    "pass_criteria": "attacker losses < 40%",
+    "status": "draft"
+  },
+  {
+    "test_id": "M2",
+    "attacker": "5k Skyshrike",
+    "defender": "5k Reefbow",
+    "expected_winner": "attacker",
+    "design_intent": "Speed beats Range",
+    "pass_criteria": "attacker losses < 45%",
+    "status": "draft"
+  },
+  {
+    "test_id": "M3",
+    "attacker": "5k Bullhorn",
+    "defender": "5k Skyshrike",
+    "expected_winner": "attacker",
+    "design_intent": "Melee beats Speed",
+    "pass_criteria": "attacker losses < 45%",
+    "status": "draft"
+  },
+  {
+    "test_id": "M4",
+    "attacker": "5k Reefbow",
+    "defender": "5k Skyshrike",
+    "expected_winner": "defender",
+    "design_intent": "Inverse of M2",
+    "pass_criteria": "defender wins",
+    "status": "draft"
+  },
+  {
+    "test_id": "M5",
+    "attacker": "3k Stormkeel + 2k Levy",
+    "defender": "5k Reefbow",
+    "expected_winner": "attacker",
+    "design_intent": "Speed + fluff buffer vs pure range",
+    "pass_criteria": "attacker wins",
+    "status": "draft"
+  },
+  {
+    "test_id": "M6",
+    "attacker": "5k Colossus",
+    "defender": "5k Sunmirror",
+    "expected_winner": "contested",
+    "design_intent": "Late melee vs late range \u2014 range favored if open",
+    "pass_criteria": "neither >70% losses both",
+    "status": "draft"
+  },
+  {
+    "test_id": "M7",
+    "attacker": "4k Gulper + 2k Coral Lance",
+    "defender": "5k Bullhorn",
+    "expected_winner": "attacker",
+    "design_intent": "Brinehold package vs mid melee",
+    "pass_criteria": "attacker wins",
+    "status": "draft"
+  },
+  {
+    "test_id": "M8",
+    "attacker": "10k Levy",
+    "defender": "1k Stormkeel",
+    "expected_winner": "defender",
+    "design_intent": "Fluff should not auto-win via pure count",
+    "pass_criteria": "Stormkeels win or trade up",
+    "status": "draft"
+  },
+  {
+    "test_id": "M9",
+    "attacker": "20k Reefbow",
+    "defender": "20k Reefbow",
+    "expected_winner": "drawish",
+    "design_intent": "Mirror \u2014 soft cap equal",
+    "pass_criteria": "losses within 10% of each other",
+    "status": "draft"
+  },
+  {
+    "test_id": "M10",
+    "attacker": "50k Reefbow",
+    "defender": "50k Reefbow",
+    "expected_winner": "drawish",
+    "design_intent": "Soft cap floor still allows war",
+    "pass_criteria": "battle completes < 40 rounds",
+    "status": "draft"
+  },
+  {
+    "test_id": "M11",
+    "attacker": "Harbinger alone",
+    "defender": "2k Tidepike",
+    "expected_winner": "attacker",
+    "design_intent": "Sovereign crushes small melee",
+    "pass_criteria": "Sov not wounded",
+    "status": "draft"
+  },
+  {
+    "test_id": "M12",
+    "attacker": "Harbinger + 1k Stormkeel",
+    "defender": "3k Colossus + 2k Reefbow",
+    "expected_winner": "contested",
+    "design_intent": "Mixed late army vs Sov package",
+    "pass_criteria": "report readable",
+    "status": "draft"
+  },
+  {
+    "test_id": "M13",
+    "attacker": "5k Ironbarge only",
+    "defender": "1k Levy",
+    "expected_winner": "defender",
+    "design_intent": "Logistics not combat",
+    "pass_criteria": "barges die or flee",
+    "status": "draft"
+  },
+  {
+    "test_id": "M14",
+    "attacker": "2k Whisper",
+    "defender": "1k Levy",
+    "expected_winner": "defender",
+    "design_intent": "Scouts not army",
+    "pass_criteria": "scouts die",
+    "status": "draft"
+  },
+  {
+    "test_id": "M15",
+    "attacker": "3k Stormkeel + 3k Bullhorn + 3k Reefbow",
+    "defender": "same",
+    "expected_winner": "drawish",
+    "design_intent": "Balanced tri-comp mirror",
+    "pass_criteria": "no single role 100% wiped turn 1",
+    "status": "draft"
+  }
+]

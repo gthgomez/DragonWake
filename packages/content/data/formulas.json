@@ -1,0 +1,7 @@
+{
+  "rulesVersion": "0.1.0",
+  "openDistanceFlat": 250,
+  "rngMin": 0.85,
+  "rngMax": 1.0,
+  "notes": "See GDD \u00a76.5 and TECH_SPEC combat contract"
+}

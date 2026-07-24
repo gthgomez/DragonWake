@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tideforge
+      POSTGRES_PASSWORD: tideforge
+      POSTGRES_DB: tideforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - tideforge_pg:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tideforge -d tideforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  tideforge_pg:

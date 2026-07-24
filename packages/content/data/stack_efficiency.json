@@ -1,0 +1,38 @@
+[
+  {
+    "count_min": 1,
+    "count_max": 5000,
+    "efficiency": 1.0,
+    "notes": "Full efficiency"
+  },
+  {
+    "count_min": 5001,
+    "count_max": 15000,
+    "efficiency": 0.9,
+    "notes": "Band 1 -10%"
+  },
+  {
+    "count_min": 15001,
+    "count_max": 40000,
+    "efficiency": 0.8,
+    "notes": "Band 2"
+  },
+  {
+    "count_min": 40001,
+    "count_max": 100000,
+    "efficiency": 0.7,
+    "notes": "Band 3"
+  },
+  {
+    "count_min": 100001,
+    "count_max": 250000,
+    "efficiency": 0.6,
+    "notes": "Band 4"
+  },
+  {
+    "count_min": 250001,
+    "count_max": 999999999,
+    "efficiency": 0.5,
+    "notes": "Floor 50% \u2014 infinite stacks never full power"
+  }
+]
