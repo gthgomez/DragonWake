@@ -75,8 +75,8 @@ Follow slices **A0 → A10** in:
 
 | Slice | Status |
 |-------|--------|
-| A0 Scaffold | In progress / this repo |
-| A1+ | Pending |
+| A0 Scaffold | **Done** (health API, web shell, content, combat stub) |
+| A1 Combat + matchups | Pending |
 
 ## License
 
