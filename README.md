@@ -11,17 +11,17 @@ Multiplayer web MMORTS MVP beta (async city builder + map combat).
 |-------|------|
 | Monorepo | pnpm workspaces + TypeScript |
 | Web | Vite + React |
-| Server | Hono (Node) |
-| DB | PostgreSQL 16 |
-| Combat | `packages/combat` (pure function; A1+) |
+| Server | Hono (Node) + in-process sim |
+| DB | PostgreSQL 16 (optional; schema in `schema.sql`) |
+| Combat | `packages/combat` pure `resolveBattle` |
 
 ## Packages
 
 ```text
-apps/web          — client
-apps/server       — API + future sim loop
+apps/web          — City / Grounds / Map / War / Alliance / Shop / Codex / Settings
+apps/server       — API + sim loop (queues, marches, combat, alliances)
 packages/shared   — shared types
-packages/combat   — resolveBattle (scaffold)
+packages/combat   — resolveBattle (deterministic)
 packages/content  — JSON game data
 ```
 
@@ -29,7 +29,7 @@ packages/content  — JSON game data
 
 - Node 20+
 - pnpm 10+
-- Docker (optional, for Postgres)
+- Docker (optional, for Postgres schema T7)
 
 ## Setup
 
@@ -39,44 +39,98 @@ copy .env.example .env
 pnpm install
 ```
 
-### Database (optional for A0 health check)
+### Database (optional)
 
 ```powershell
 docker compose up -d db
 # schema applies from schema.sql on first boot
+# or: pnpm --filter @tideforge/server migrate
 ```
+
+With `DATABASE_URL` reachable, the server **loads/saves the full realm to PostgreSQL** (players, cities, sessions, marches, reports, alliances, …). `/health` reports `db: "postgres"` only when the store is actually attached (not merely when the env var is set). If Postgres is unreachable, it falls back to an in-memory realm and `/health` reports `db: "memory"`.
 
 ### Dev
 
 ```powershell
-# API only
-pnpm dev:server
-# → http://localhost:3001/health
+# API + web
+pnpm dev
 
-# Web only
+# API only → http://localhost:3001/health
+pnpm dev:server
+
+# Web only → http://localhost:5173
 pnpm dev:web
-# → http://localhost:5173
 ```
 
-### Verify (A0)
+Env flags (`.env`):
+
+| Flag | Effect |
+|------|--------|
+| `DEV_FAST_TIME=1` | Queues/marches ~60× faster (default in `.env.example`) |
+| `DEV_SKIP_TUTORIAL=1` | Skip tutorial steps |
+| `DATABASE_URL` | Postgres URL for schema verify |
+| `VITE_API_URL` | Web → API base (default `http://localhost:3001`) |
+
+### Admin grant (dev)
+
+```http
+POST /api/v1/admin/grant
+Authorization: Bearer <token>
+{ "units": { "reefbow": 200 }, "harness": true, "brineholdUnlock": true, "chronite": 100, "skipProtection": true }
+```
+
+## ACCEPTANCE_MVP manual path (M1–M11)
+
+Environment: `pnpm dev` (or `docker compose up -d db` + server/web), two browser profiles or two guest logins.
+
+| Step | Action | Pass if |
+|------|--------|---------|
+| M1 | Create guest A (Brinecant) | City at map coords, resources > 0 |
+| M2 | Create guest B (Ashcoil) | Different city tile |
+| M3 | A builds Habitation + Barracks | Queues complete under fast time |
+| M4 | A researches Longmark 1, trains Reefbows | Stack increases after tick |
+| M5 | A Map → Attack Camp L1 | Report in War tab |
+| M6 | A occupies wilderness | Claim owned on map |
+| M7 | Admin grant harness | Harbinger harness complete on City |
+| M8 | Found Brinehold | Second city kind `brinehold` |
+| M9 | A creates Tideband; B joins via API or second client | Members + chat visible |
+| M10 | A attacks B (B Harbor posture) | Report; resources move on harbor |
+| M11 | Codex formulas page | Non-empty formulas JSON |
+
+Scripted equivalent (no browser): `pnpm --filter @tideforge/server test` includes the two-session API demo.
+
+## Automated exit gates (T1–T8)
 
 ```powershell
-pnpm install
-pnpm --filter @tideforge/web build
-# start server, then:
-curl http://localhost:3001/health
+pnpm install                                          # T1
+pnpm --filter @tideforge/combat test                  # T3–T4 (M1–M10)
+pnpm --filter @tideforge/server test                  # T5–T6 (+ API demo)
+# T7: docker compose up -d db; pnpm --filter @tideforge/server migrate
+pnpm --filter @tideforge/web build                    # web
+pnpm --filter @tideforge/combat typecheck
+pnpm --filter @tideforge/server typecheck
+pnpm --filter @tideforge/web typecheck                # T8
 ```
 
 ## Implementation board
 
-Follow slices **A0 → A10** in:
-
-`research/dragons-of-atlantis/pre-implementation/IMPLEMENTATION_BOARD.md`
-
 | Slice | Status |
 |-------|--------|
-| A0 Scaffold | **Done** (health API, web shell, content, combat stub) |
-| A1 Combat + matchups | Pending |
+| A0 Scaffold | Done |
+| A1 Combat + matchups M1–M10 | Done |
+| A2 Schema + guest/city | Done |
+| A3 Queues + DEV_FAST_TIME | Done |
+| A4 Map camps/wilderness | Done |
+| A5 Marches + reports | Done |
+| A6 PvP harbor/full + Saltvault + protection | Done |
+| A7 Harbinger harness + Brinehold | Done |
+| A8 Tideband + chat | Done |
+| A9 Web screens | Done |
+| A10 Shop stub + tutorial skip + README | Done |
+
+## OUT OF SCOPE (not required)
+
+Arena, world boss, citadels past Brinehold, Mnemolith/Echo, live market, native mobile, real IAP, Hardcore realms.
 
 ## License
 
