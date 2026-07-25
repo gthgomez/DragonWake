@@ -1,8 +1,12 @@
 /**
  * Restart-survival: create guest on World A → flush PG → load World B → session/city present.
  * Drives shipped PgStore + World paths (not a re-implementation).
+ *
+ * Honesty contract (B0.1):
+ * - When Postgres is unreachable: tests are **skipped** (never silent pass).
+ * - When REQUIRE_PG=1: suite **fails** if Postgres cannot connect.
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { PgStore } from "./pg-store.js";
 import { World } from "./world.js";
 
@@ -10,28 +14,40 @@ const DATABASE_URL =
   process.env.DATABASE_URL ??
   "postgres://tideforge:tideforge@127.0.0.1:5432/tideforge";
 
-describe("PG persistence (shipped PgStore + World)", () => {
-  let canRun = false;
+const REQUIRE_PG =
+  process.env.REQUIRE_PG === "1" || process.env.REQUIRE_PG === "true";
 
-  beforeAll(async () => {
-    const probe = await PgStore.connect(DATABASE_URL);
-    if (probe) {
-      canRun = true;
-      await probe.close();
+let canRun = false;
+let probeError: string | null = null;
+
+beforeAll(async () => {
+  const probe = await PgStore.connect(DATABASE_URL);
+  if (probe) {
+    canRun = true;
+    await probe.close();
+  } else {
+    probeError = `Postgres unreachable at ${DATABASE_URL.replace(/:\/\/[^@]+@/, "://***@")}`;
+    if (REQUIRE_PG) {
+      throw new Error(
+        `REQUIRE_PG=1 but ${probeError}. Start db (docker compose up -d db) or unset REQUIRE_PG.`,
+      );
     }
-  });
+  }
+});
 
-  afterAll(async () => {
-    // nothing global
-  });
-
-  it("survives World restart: guest + city + session still loadable", async () => {
+describe("PG persistence (shipped PgStore + World)", () => {
+  it("survives World restart: guest + city + session still loadable", async ({
+    skip,
+  }) => {
     if (!canRun) {
-      // Optional gate: requires local Postgres; skip cleanly when daemon is down.
+      skip(
+        probeError
+          ? `${probeError} (set REQUIRE_PG=1 to fail hard)`
+          : "Postgres not available",
+      );
       return;
     }
 
-    // Isolate test data with unique display name
     const name = `Persist_${Date.now()}`;
 
     const store1 = await PgStore.connect(DATABASE_URL);
@@ -45,7 +61,6 @@ describe("PG persistence (shipped PgStore + World)", () => {
     await world1.flush();
     await store1!.close();
 
-    // Simulate process restart: new World + new store connection
     const store2 = await PgStore.connect(DATABASE_URL);
     expect(store2).not.toBeNull();
     const world2 = new World({ devFastTime: true, skipTutorial: true });
@@ -63,26 +78,31 @@ describe("PG persistence (shipped PgStore + World)", () => {
     expect(loadedCity!.resources.kelp).toBeGreaterThan(0);
     expect(loadedCity!.stacks.reefbow).toBe(42);
 
-    // Session auth via token hash after reload
     const viaSession = world2.sessionPlayer(token);
     expect(viaSession).not.toBeNull();
     expect(viaSession!.id).toBe(player.id);
-
-    // Health-style mode
     expect(world2.dbMode).toBe("postgres");
 
     await store2!.close();
   });
 
-  it("march land report survives reload", async () => {
+  it("march land report survives reload", async ({ skip }) => {
     if (!canRun) {
+      skip(
+        probeError
+          ? `${probeError} (set REQUIRE_PG=1 to fail hard)`
+          : "Postgres not available",
+      );
       return;
     }
 
     const store1 = await PgStore.connect(DATABASE_URL);
     const world1 = new World({ devFastTime: true, skipTutorial: true });
     await world1.attachStore(store1!);
-    const { player, city } = world1.createGuest(`March_${Date.now()}`, "ashcoil");
+    const { player, city } = world1.createGuest(
+      `March_${Date.now()}`,
+      "ashcoil",
+    );
     world1.adminGrant(player.id, { units: { reefbow: 200, levy: 100 } });
     const camp = [...world1.camps.values()].find((c) => c.level === 1)!;
     const march = world1.createMarch(player.id, {

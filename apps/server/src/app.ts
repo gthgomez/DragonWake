@@ -21,8 +21,22 @@ import {
   PLOT_TYPES,
   TUTORIAL_STEPS,
 } from "./world.js";
+import { LIMITS, rateLimit } from "./rate-limit.js";
+import {
+  adminGrantSchema,
+  allianceCreateSchema,
+  allianceJoinSchema,
+  buildBodySchema,
+  chatBodySchema,
+  guestBodySchema,
+  marchBodySchema,
+  parseBody,
+  postureBodySchema,
+  researchBodySchema,
+  trainBodySchema,
+} from "./validate.js";
 
-export const VERSION = "0.2.2-exit-gate";
+export const VERSION = "0.2.3-p0-polish";
 
 export type AppEnv = {
   Variables: {
@@ -137,17 +151,25 @@ export function createApp(world: World) {
   api.get("/content/research", (c) => c.json({ research: getResearch() }));
 
   api.post("/auth/guest", async (c) => {
-    const body = (await c.req.json().catch(() => ({}))) as {
-      displayName?: string;
-      faction?: string;
-    };
-    const faction = (body.faction ?? "brinecant") as Faction;
+    const ip =
+      c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+      c.req.header("x-real-ip") ||
+      "local";
+    if (!rateLimit(`guest:${ip}`, LIMITS.guest.max, LIMITS.guest.windowMs)) {
+      return err(c, "RATE_LIMIT", "too many guest creates", 429);
+    }
+    const raw = await c.req.json().catch(() => ({}));
+    const parsed = parseBody(guestBodySchema, raw);
+    if (!parsed.ok) {
+      return err(c, parsed.code, parsed.message);
+    }
+    const faction = (parsed.data.faction ?? "brinecant") as Faction;
     if (!FACTIONS.includes(faction)) {
       return err(c, "BAD_FACTION", "invalid faction");
     }
     try {
       const { player, city, token } = world.createGuest(
-        body.displayName ?? `Guest${world.players.size + 1}`,
+        parsed.data.displayName ?? `Guest${world.players.size + 1}`,
         faction,
       );
       setCookie(c, "tideforge_session", token, {
@@ -171,6 +193,67 @@ export function createApp(world: World) {
   api.post("/auth/logout", (c) => {
     deleteCookie(c, "tideforge_session", { path: "/" });
     return c.body(null, 204);
+  });
+
+  /** Polling events (P0.2) — prefer this from browser; SSE also available. */
+  api.get("/events", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const since = Number(c.req.query("since") ?? 0);
+    const events = world.eventsSince(player.id, Number.isFinite(since) ? since : 0);
+    return c.json({
+      events,
+      serverNow: world.now(),
+      latestSeq: events.length
+        ? events[events.length - 1]!.seq
+        : since,
+    });
+  });
+
+  /** SSE stream of the same events (cookie session works with credentials). */
+  api.get("/events/stream", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    let lastSeq = Number(c.req.query("since") ?? 0);
+    if (!Number.isFinite(lastSeq)) lastSeq = 0;
+    const playerId = player.id;
+    const stream = new ReadableStream({
+      start(controller) {
+        const enc = new TextEncoder();
+        const send = (payload: unknown) => {
+          controller.enqueue(enc.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        };
+        send({ type: "hello", serverNow: world.now(), since: lastSeq });
+        const iv = setInterval(() => {
+          try {
+            world.tick();
+            const batch = world.eventsSince(playerId, lastSeq);
+            for (const e of batch) {
+              lastSeq = e.seq;
+              send(e);
+            }
+          } catch {
+            // keep stream alive
+          }
+        }, 1000);
+        const close = () => {
+          clearInterval(iv);
+          try {
+            controller.close();
+          } catch {
+            /* already closed */
+          }
+        };
+        c.req.raw.signal.addEventListener("abort", close);
+      },
+    });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
   });
 
   api.get("/me", (c) => {
@@ -230,16 +313,14 @@ export function createApp(world: World) {
   api.post("/cities/:id/buildings", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const body = (await c.req.json()) as {
-      slotIndex: number;
-      buildingType: string;
-    };
+    const parsed = parseBody(buildBodySchema, await c.req.json().catch(() => ({})));
+    if (!parsed.ok) return err(c, parsed.code, parsed.message);
     try {
       const job = world.startBuild(
         c.req.param("id"),
         player.id,
-        Number(body.slotIndex),
-        String(body.buildingType),
+        parsed.data.slotIndex,
+        parsed.data.buildingType,
       );
       return c.json({ job });
     } catch (e) {
@@ -254,12 +335,13 @@ export function createApp(world: World) {
   api.post("/cities/:id/research", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const body = (await c.req.json()) as { techId: string };
+    const parsed = parseBody(researchBodySchema, await c.req.json().catch(() => ({})));
+    if (!parsed.ok) return err(c, parsed.code, parsed.message);
     try {
       const job = world.startResearch(
         c.req.param("id"),
         player.id,
-        String(body.techId),
+        parsed.data.techId,
       );
       return c.json({ job });
     } catch (e) {
@@ -274,13 +356,14 @@ export function createApp(world: World) {
   api.post("/cities/:id/train", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const body = (await c.req.json()) as { unitId: string; count: number };
+    const parsed = parseBody(trainBodySchema, await c.req.json().catch(() => ({})));
+    if (!parsed.ok) return err(c, parsed.code, parsed.message);
     try {
       const job = world.startTrain(
         c.req.param("id"),
         player.id,
-        String(body.unitId),
-        Number(body.count),
+        parsed.data.unitId,
+        parsed.data.count,
       );
       return c.json({ job });
     } catch (e) {
@@ -295,12 +378,13 @@ export function createApp(world: World) {
   api.post("/cities/:id/posture", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const body = (await c.req.json()) as { posture: "harbor" | "partial" | "full" };
+    const parsed = parseBody(postureBodySchema, await c.req.json().catch(() => ({})));
+    if (!parsed.ok) return err(c, parsed.code, parsed.message);
     try {
       const city = world.setPosture(
         c.req.param("id"),
         player.id,
-        body.posture,
+        parsed.data.posture,
       );
       return c.json({ city: publicCity(city, world) });
     } catch (e) {
@@ -400,18 +484,12 @@ export function createApp(world: World) {
   api.post("/marches", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const body = (await c.req.json()) as {
-      fromCityId: string;
-      intent: "scout" | "attack" | "occupy" | "reinforce" | "haul";
-      target: {
-        type: "camp" | "wilderness" | "city" | "coords";
-        id?: string;
-        x: number;
-        y: number;
-      };
-      composition: Record<string, number>;
-      sovereignId?: string;
-    };
+    if (!rateLimit(`march:${player.id}`, LIMITS.march.max, LIMITS.march.windowMs)) {
+      return err(c, "RATE_LIMIT", "too many marches", 429);
+    }
+    const parsed = parseBody(marchBodySchema, await c.req.json().catch(() => ({})));
+    if (!parsed.ok) return err(c, parsed.code, parsed.message);
+    const body = parsed.data;
     try {
       const march = world.createMarch(player.id, {
         fromCityId: body.fromCityId,
@@ -421,6 +499,7 @@ export function createApp(world: World) {
         targetX: body.target.x,
         targetY: body.target.y,
         composition: body.composition ?? {},
+        cargo: body.cargo,
         sovereignId: body.sovereignId ?? null,
       });
       return c.json({ march });
@@ -487,12 +566,13 @@ export function createApp(world: World) {
   api.post("/alliances", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const body = (await c.req.json()) as { name: string; tag: string };
+    const parsed = parseBody(allianceCreateSchema, await c.req.json().catch(() => ({})));
+    if (!parsed.ok) return err(c, parsed.code, parsed.message);
     try {
       const alliance = world.createAlliance(
         player.id,
-        body.name,
-        body.tag,
+        parsed.data.name,
+        parsed.data.tag,
       );
       return c.json({ alliance });
     } catch (e) {
@@ -507,10 +587,9 @@ export function createApp(world: World) {
   api.post("/alliances/join", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const body = (await c.req.json().catch(() => ({}))) as {
-      allianceId?: string;
-      tag?: string;
-    };
+    const parsed = parseBody(allianceJoinSchema, await c.req.json().catch(() => ({})));
+    if (!parsed.ok) return err(c, parsed.code, parsed.message);
+    const body = parsed.data;
     try {
       if (body.tag) {
         const alliance = world.joinAllianceByTag(player.id, body.tag);
@@ -565,12 +644,16 @@ export function createApp(world: World) {
   api.post("/alliances/:id/chat", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const body = (await c.req.json()) as { body: string };
+    if (!rateLimit(`chat:${player.id}`, LIMITS.chat.max, LIMITS.chat.windowMs)) {
+      return err(c, "RATE_LIMIT", "too many chat messages", 429);
+    }
+    const parsed = parseBody(chatBodySchema, await c.req.json().catch(() => ({})));
+    if (!parsed.ok) return err(c, parsed.code, parsed.message);
     try {
       const msg = world.postChat(
         player.id,
         c.req.param("id"),
-        body.body ?? "",
+        parsed.data.body,
       );
       return c.json({ message: msg });
     } catch (e) {
@@ -621,8 +704,12 @@ export function createApp(world: World) {
     }
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const body = await c.req.json();
-    world.adminGrant(player.id, body);
+    if (!rateLimit(`admin:${player.id}`, LIMITS.admin.max, LIMITS.admin.windowMs)) {
+      return err(c, "RATE_LIMIT", "too many admin grants", 429);
+    }
+    const parsed = parseBody(adminGrantSchema, await c.req.json().catch(() => ({})));
+    if (!parsed.ok) return err(c, parsed.code, parsed.message);
+    world.adminGrant(player.id, parsed.data);
     return c.json({ ok: true, me: publicPlayer(world.players.get(player.id)!) });
   });
 

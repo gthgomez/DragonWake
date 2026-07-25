@@ -83,6 +83,8 @@ export type March = {
   targetX: number;
   targetY: number;
   composition: Record<string, number>;
+  /** Resources deducted at create for haul; delivered on land. */
+  cargo: Partial<ResourceBag>;
   departAt: number;
   arriveAt: number;
   returnAt: number | null;
@@ -98,6 +100,21 @@ export type BattleReport = {
   defenderPlayerId: string | null;
   result: Record<string, unknown>;
   createdAt: number;
+};
+
+/** Player-facing sim notifications (poll or SSE). */
+export type WorldEvent = {
+  seq: number;
+  at: number;
+  playerId: string | null;
+  type:
+    | "queue_complete"
+    | "march_land"
+    | "march_return"
+    | "report"
+    | "info";
+  message: string;
+  data?: Record<string, unknown>;
 };
 export type Camp = {
   id: string;
@@ -341,6 +358,9 @@ export class World {
   skipTutorial: boolean;
   /** Live persistence backend; null = memory-only. */
   store: WorldStore | null = null;
+  /** Ring buffer of player-facing events for poll/SSE (P0.2). */
+  private eventLog: WorldEvent[] = [];
+  private eventSeq = 0;
   private cityCounter = 0;
   private persistChain: Promise<void> = Promise.resolve();
 
@@ -350,6 +370,36 @@ export class World {
     this.skipTutorial =
       opts?.skipTutorial ?? process.env.DEV_SKIP_TUTORIAL === "1";
     this.seedMap();
+  }
+
+  /** Push a UI-facing event (capped ring buffer). */
+  pushEvent(
+    playerId: string | null,
+    type: WorldEvent["type"],
+    message: string,
+    data?: Record<string, unknown>,
+  ): WorldEvent {
+    this.eventSeq += 1;
+    const ev: WorldEvent = {
+      seq: this.eventSeq,
+      at: this.now(),
+      playerId,
+      type,
+      message,
+      data,
+    };
+    this.eventLog.push(ev);
+    if (this.eventLog.length > 300) {
+      this.eventLog.splice(0, this.eventLog.length - 300);
+    }
+    return ev;
+  }
+
+  /** Events for a player with seq > since (exclusive). */
+  eventsSince(playerId: string, since: number): WorldEvent[] {
+    return this.eventLog.filter(
+      (e) => e.seq > since && (e.playerId === null || e.playerId === playerId),
+    );
   }
 
   get dbMode(): "postgres" | "memory" {
@@ -614,6 +664,17 @@ export class World {
     }
     job.status = "completed";
     this.cities.set(city.id, city);
+    const label =
+      job.kind === "build"
+        ? `Build complete: ${String(job.payload.buildingType)}`
+        : job.kind === "research"
+          ? `Research complete: ${String(job.payload.techId)}`
+          : `Train complete: ${job.payload.count}× ${String(job.payload.unitId)}`;
+    this.pushEvent(job.playerId, "queue_complete", label, {
+      jobId: job.id,
+      kind: job.kind,
+      cityId: job.cityId,
+    });
   }
 
   startBuild(
@@ -826,6 +887,8 @@ export class World {
       targetY: number;
       composition: Record<string, number>;
       sovereignId?: string | null;
+      /** Resource cargo for haul intent (deducted from origin city now). */
+      cargo?: Partial<ResourceBag>;
     },
   ): March {
     const city = this.requireCityOwner(opts.fromCityId, playerId);
@@ -840,6 +903,34 @@ export class World {
     }
     for (const [uid, cnt] of Object.entries(opts.composition)) {
       city.stacks[uid] = (city.stacks[uid] ?? 0) - cnt;
+    }
+
+    // Haul: deduct cargo from origin now; deliver on land
+    const cargo: Partial<ResourceBag> = {};
+    if (opts.intent === "haul") {
+      const requested = opts.cargo ?? {};
+      for (const key of [
+        "kelp",
+        "driftwood",
+        "basalt",
+        "slagiron",
+        "tidegilt",
+      ] as const) {
+        const want = Math.max(0, Math.floor(Number(requested[key] ?? 0)));
+        if (want <= 0) continue;
+        if (city.resources[key] < want) {
+          throw Object.assign(new Error(`not enough ${key} for haul`), {
+            code: "NO_RES",
+          });
+        }
+        city.resources[key] -= want;
+        cargo[key] = want;
+      }
+      if (Object.keys(cargo).length === 0) {
+        throw Object.assign(new Error("haul requires cargo"), {
+          code: "NO_CARGO",
+        });
+      }
     }
     this.cities.set(city.id, city);
 
@@ -871,6 +962,7 @@ export class World {
       targetX: opts.targetX,
       targetY: opts.targetY,
       composition: { ...opts.composition },
+      cargo,
       departAt: now,
       arriveAt: now + durationMs(travelSec, this.devFastTime),
       returnAt: null,
@@ -908,7 +1000,7 @@ export class World {
       report = this.makeReport(march, {
         type: "scout",
         target: { x: march.targetX, y: march.targetY, type: march.targetType },
-        intel: "Scout report (MVP stub detail)",
+        intel: this.buildScoutIntel(march),
       });
       this.startReturn(march, now, march.composition);
     } else if (march.intent === "attack" || march.intent === "occupy") {
@@ -917,7 +1009,7 @@ export class World {
       this.applyReinforce(march);
       this.startReturn(march, now, {});
     } else if (march.intent === "haul") {
-      this.startReturn(march, now, march.composition);
+      report = this.applyHaul(march, now);
     } else {
       this.startReturn(march, now, march.composition);
     }
@@ -925,6 +1017,18 @@ export class World {
     if (report) {
       march.battleReportId = report.id;
     }
+    this.pushEvent(
+      march.playerId,
+      "march_land",
+      `March landed: ${march.intent} @ ${march.targetX},${march.targetY}`,
+      {
+        marchId: march.id,
+        intent: march.intent,
+        reportId: report?.id ?? null,
+        x: march.targetX,
+        y: march.targetY,
+      },
+    );
     if (march.status === "resolving") {
       // ensure transition if not already returning/completed
       if (!march.returnAt) {
@@ -959,6 +1063,12 @@ export class World {
     }
     march.status = "completed";
     this.marches.set(march.id, march);
+    this.pushEvent(
+      march.playerId,
+      "march_return",
+      `March returned (${march.intent})`,
+      { marchId: march.id, intent: march.intent },
+    );
   }
 
   private makeReport(
@@ -976,6 +1086,35 @@ export class World {
       createdAt: this.now(),
     };
     this.reports.set(report.id, report);
+    const type = String(result.type ?? "report");
+    const winner =
+      result.battle &&
+      typeof result.battle === "object" &&
+      "winner" in (result.battle as object)
+        ? String((result.battle as { winner?: string }).winner)
+        : null;
+    const msg = winner
+      ? `${type}: ${winner} wins`
+      : type === "scout"
+        ? "Scout report ready"
+        : type === "haul"
+          ? result.delivered
+            ? "Haul delivered"
+            : "Haul returned (undelivered)"
+          : `Report: ${type}`;
+    this.pushEvent(march.playerId, "report", msg, {
+      reportId: report.id,
+      type,
+      winner,
+    });
+    if (defenderPlayerId && defenderPlayerId !== march.playerId) {
+      this.pushEvent(
+        defenderPlayerId,
+        "report",
+        `Incoming: ${type}${winner ? ` (${winner} wins)` : ""}`,
+        { reportId: report.id, type, winner },
+      );
+    }
     return report;
   }
 
@@ -1203,6 +1342,171 @@ export class World {
     }
     this.cities.set(targetCity.id, targetCity);
     march.composition = {};
+  }
+
+  /** Structured scout intel (server-side; client only displays). */
+  buildScoutIntel(march: March): Record<string, unknown> {
+    const base = {
+      x: march.targetX,
+      y: march.targetY,
+      targetType: march.targetType,
+    };
+    if (march.targetType === "camp") {
+      const camp =
+        (march.targetId ? this.camps.get(march.targetId) : null) ??
+        [...this.camps.values()].find(
+          (c) => c.x === march.targetX && c.y === march.targetY,
+        ) ??
+        null;
+      if (!camp) {
+        return { ...base, kind: "empty", summary: "No camp at target tile" };
+      }
+      const def = getCamps().find(
+        (c: { camp_level: number }) => c.camp_level === camp.level,
+      );
+      return {
+        ...base,
+        kind: "camp",
+        campId: camp.id,
+        level: camp.level,
+        exampleComp: def?.example_comp ?? null,
+        threatBand: camp.level <= 3 ? "low" : camp.level <= 7 ? "mid" : "high",
+      };
+    }
+    if (march.targetType === "wilderness") {
+      const wild =
+        (march.targetId ? this.wilderness.get(march.targetId) : null) ??
+        [...this.wilderness.values()].find(
+          (w) => w.x === march.targetX && w.y === march.targetY,
+        ) ??
+        null;
+      if (!wild) {
+        return {
+          ...base,
+          kind: "empty",
+          summary: "No wilderness claim node at tile",
+        };
+      }
+      const owner = wild.ownerPlayerId
+        ? this.players.get(wild.ownerPlayerId)
+        : null;
+      return {
+        ...base,
+        kind: "wilderness",
+        wildernessId: wild.id,
+        level: wild.level,
+        resourceType: wild.resourceType,
+        ownerPlayerId: wild.ownerPlayerId,
+        ownerName: owner?.displayName ?? null,
+      };
+    }
+    if (march.targetType === "city") {
+      const city =
+        (march.targetId ? this.cities.get(march.targetId) : null) ??
+        [...this.cities.values()].find(
+          (c) => c.mapX === march.targetX && c.mapY === march.targetY,
+        ) ??
+        null;
+      if (!city) {
+        return { ...base, kind: "empty", summary: "No city at target tile" };
+      }
+      const owner = this.players.get(city.playerId);
+      const troopEstimate = Object.values(city.stacks).reduce(
+        (s, n) => s + n,
+        0,
+      );
+      // Fog of war lite: banded stack estimate, exact posture
+      let troopBand = "sparse";
+      if (troopEstimate >= 500) troopBand = "massed";
+      else if (troopEstimate >= 100) troopBand = "garrisoned";
+      else if (troopEstimate >= 20) troopBand = "light";
+      return {
+        ...base,
+        kind: "city",
+        cityId: city.id,
+        cityName: city.name,
+        cityKind: city.kind,
+        ownerName: owner?.displayName ?? null,
+        faction: owner?.faction ?? null,
+        defensePosture: city.defensePosture,
+        troopBand,
+        protected:
+          !!owner?.protectionUntil && owner.protectionUntil > this.now(),
+      };
+    }
+    return {
+      ...base,
+      kind: "coords",
+      summary: "Open water / unoccupied coords",
+    };
+  }
+
+  /**
+   * Deliver haul cargo to target city (own or alliance). Returns cargo to origin if undeliverable.
+   */
+  private applyHaul(march: March, now: number): BattleReport {
+    const cargo = { ...march.cargo };
+    let targetCity =
+      (march.targetId ? this.cities.get(march.targetId) : null) ??
+      [...this.cities.values()].find(
+        (c) => c.mapX === march.targetX && c.mapY === march.targetY,
+      ) ??
+      null;
+
+    let delivered = false;
+    let reason: string | null = null;
+    if (!targetCity) {
+      reason = "no_city_at_target";
+    } else if (targetCity.playerId === march.playerId) {
+      delivered = true;
+    } else {
+      const a = this.allianceMembers.get(march.playerId);
+      const b = this.allianceMembers.get(targetCity.playerId);
+      if (a && b && a.allianceId === b.allianceId) {
+        delivered = true;
+      } else {
+        reason = "not_own_or_alliance_city";
+        targetCity = null;
+      }
+    }
+
+    if (delivered && targetCity) {
+      for (const [k, v] of Object.entries(cargo)) {
+        const key = k as keyof ResourceBag;
+        targetCity.resources[key] =
+          (targetCity.resources[key] ?? 0) + (Number(v) || 0);
+      }
+      this.cities.set(targetCity.id, targetCity);
+      march.cargo = {};
+    } else {
+      // Bounce cargo back with returning troops
+      const origin = this.cities.get(march.fromCityId);
+      if (origin) {
+        for (const [k, v] of Object.entries(cargo)) {
+          const key = k as keyof ResourceBag;
+          origin.resources[key] =
+            (origin.resources[key] ?? 0) + (Number(v) || 0);
+        }
+        this.cities.set(origin.id, origin);
+      }
+      march.cargo = {};
+    }
+
+    const report = this.makeReport(march, {
+      type: "haul",
+      delivered,
+      reason,
+      cargo,
+      targetCityId: targetCity?.id ?? null,
+      target: {
+        type: march.targetType,
+        id: march.targetId,
+        x: march.targetX,
+        y: march.targetY,
+      },
+    });
+    this.startReturn(march, now, march.composition);
+    return report;
   }
 
   harnessComplete(sov: Sovereign): boolean {

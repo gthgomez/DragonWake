@@ -449,3 +449,95 @@ code {
   padding: 0;
   margin: 0.35rem 0 0;
 }
+
+/* P0 polish: toasts + map detail + badges */
+.toast-stack {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: min(360px, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-card) 92%, #000);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-size: 0.88rem;
+  animation: toast-in 160ms ease-out;
+}
+
+.toast-ok {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
+  color: var(--ok);
+}
+
+.toast-err {
+  border-color: color-mix(in srgb, var(--err) 45%, var(--border));
+  color: var(--err);
+}
+
+.toast-info {
+  color: var(--text);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  min-width: 1.1rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--accent-hot);
+  color: #081018;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+.tile-detail {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-card) 80%, #000);
+}
+
+.tile-detail h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.card-inset {
+  /* alias for nested card look */
+}
+
+.intel {
+  margin: 0.35rem 0;
+  padding: 0.4rem 0.5rem;
+  border-left: 3px solid var(--accent-hot);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -113,10 +113,12 @@ Alliance M9 in UI: guest A creates Tideband → share **tag** → guest B **Join
 pnpm install                                          # T1
 pnpm --filter @tideforge/combat test                  # T3–T4 (M1–M10)
 pnpm --filter @tideforge/server test                  # T5–T6 + M1–M11 + API demo
-# T7 (optional durability): start Postgres, set DATABASE_URL, then:
-#   pnpm --filter @tideforge/server migrate
-#   pnpm --filter @tideforge/server test   # pg-persist runs when DB reachable
-# Docker Desktop: docker compose up -d db   (daemon must be running)
+# T7 durability (honest): start Postgres, then REQUIRE_PG so missing DB fails hard:
+#   docker compose up -d db
+#   $env:DATABASE_URL="postgres://tideforge:tideforge@127.0.0.1:5432/tideforge"
+#   $env:REQUIRE_PG="1"
+#   pnpm --filter @tideforge/server test   # pg-persist must assert, not skip
+# Without REQUIRE_PG: pg-persist tests are skipped (not silent-pass) when DB is down
 pnpm --filter @tideforge/web build                    # web
 pnpm --filter @tideforge/combat typecheck
 pnpm --filter @tideforge/server typecheck
@@ -126,9 +128,9 @@ pnpm --filter @tideforge/web typecheck                # T8
 | Gate | Status (local) |
 |------|----------------|
 | T1–T6, T8 | Green via `pnpm test` + typecheck/build |
-| T7 PG apply + restart survival | Optional — runs when `DATABASE_URL` reachable; otherwise memory realm |
+| T7 PG apply + restart survival | **B0 proven** with `docker compose up -d db` + `REQUIRE_PG=1` (skip when DB down; never silent pass) |
 | M1–M11 | Green via `pnpm accept` |
-| Docker full stack | Optional — needs Docker Desktop engine |
+| Docker db smoke | **B0 proven** — compose `db` healthy; server `/health` `db:"postgres"` |
 
 ## Implementation board
 
@@ -145,9 +147,22 @@ pnpm --filter @tideforge/web typecheck                # T8
 | A8 Tideband + chat | Done |
 | A9 Web screens | Done |
 | A10 Shop stub + tutorial + dailies + README | Done |
-| Exit gate | M1–M11 automated; T7/Docker env-dependent residual |
+| Exit gate | M1–M11 automated; **B0 residual closeout done** (T7 honesty + full PvP + scout/haul) |
 
-## OUT OF SCOPE (not required)
+## Next campaign (post-MVP)
+
+Design plan (read-only authority):  
+`C:\Workspace\research\dragons-of-atlantis\pre-implementation\POST_MVP_ITERATION.md`
+
+| Phase | Focus | Status |
+|-------|--------|--------|
+| **B0** | Residual closeout (PG test honesty, live T7, full PvP test, compose smoke) | **Done** (2026-07-25) |
+| **P0** | Playable polish (events/toasts, report/map UX, rate limits, Zod, CI) | **Done** (2026-07-25) |
+| **S1** | Arena, Tidebeast, Mnemolith, citadel ladder, market, etc. | After freeze |
+
+P0 notes: `docs/P0_M1_M11_EVIDENCE.md` · events poll `GET /api/v1/events?since=` · SSE `/api/v1/events/stream` · CI `.github/workflows/ci.yml`
+
+## OUT OF SCOPE (MVP; S1 only with new freeze)
 
 Arena, world boss, citadels past Brinehold, Mnemolith/Echo, live market, native mobile, real IAP, Hardcore realms.
 

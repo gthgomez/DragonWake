@@ -259,4 +259,172 @@ describe("World queues + marches (shipped paths)", () => {
     expect(brine.kind).toBe("brinehold");
     expect(brine.stacks.gulper).toBeGreaterThan(0);
   });
+
+  it("full posture pvp runs resolveBattle and can reduce defender stacks", () => {
+    const world = new World({ devFastTime: true });
+    const a = world.createGuest("FullRaider", "brinecant");
+    const b = world.createGuest("FullWall", "ashcoil");
+    world.adminGrant(a.player.id, {
+      units: { reefbow: 400, levy: 200 },
+      skipProtection: true,
+    });
+    world.adminGrant(b.player.id, {
+      units: { levy: 80, tidepike: 40 },
+      skipProtection: true,
+    });
+    world.setPosture(b.city.id, b.player.id, "full");
+    const defBefore =
+      (world.getCity(b.city.id)!.stacks.levy ?? 0) +
+      (world.getCity(b.city.id)!.stacks.tidepike ?? 0);
+    const march = world.createMarch(a.player.id, {
+      fromCityId: a.city.id,
+      intent: "attack",
+      targetType: "city",
+      targetId: b.city.id,
+      targetX: b.city.mapX,
+      targetY: b.city.mapY,
+      composition: { reefbow: 300, levy: 100 },
+    });
+    march.arriveAt = 0;
+    const report = world.landMarch(march, world.now());
+    expect(report).not.toBeNull();
+    expect(report!.result.harborLoot).toBeFalsy();
+    expect(report!.result.type).toBe("pvp");
+    const battle = report!.result.battle as {
+      winner: string;
+      rounds: number;
+      losses: { defender: Record<string, number> };
+    };
+    expect(battle.winner).toBeTruthy();
+    expect(typeof battle.rounds).toBe("number");
+    // Full fight path: battle object present (not harbor free-loot note)
+    expect(battle.rounds >= 0).toBe(true);
+    const defAfter =
+      (world.getCity(b.city.id)!.stacks.levy ?? 0) +
+      (world.getCity(b.city.id)!.stacks.tidepike ?? 0);
+    // On attacker win, defender stacks should drop; on defender win still may take losses
+    const defLosses = Object.values(battle.losses.defender ?? {}).reduce(
+      (s, n) => s + (Number(n) || 0),
+      0,
+    );
+    if (defLosses > 0) {
+      expect(defAfter).toBeLessThan(defBefore);
+    }
+    expect(world.reports.get(report!.id)).toBeTruthy();
+  });
+
+  it("scout returns structured intel for camp and city", () => {
+    const world = new World({ devFastTime: true });
+    const a = world.createGuest("ScoutA", "brinecant");
+    const b = world.createGuest("ScoutB", "ashcoil");
+    world.adminGrant(a.player.id, {
+      units: { levy: 20 },
+      skipProtection: true,
+    });
+    world.adminGrant(b.player.id, { skipProtection: true });
+    world.setPosture(b.city.id, b.player.id, "full");
+    const camp = [...world.camps.values()].find((c) => c.level === 1)!;
+    const campMarch = world.createMarch(a.player.id, {
+      fromCityId: a.city.id,
+      intent: "scout",
+      targetType: "camp",
+      targetId: camp.id,
+      targetX: camp.x,
+      targetY: camp.y,
+      composition: { levy: 5 },
+    });
+    campMarch.arriveAt = 0;
+    const campReport = world.landMarch(campMarch, world.now());
+    expect(campReport!.result.type).toBe("scout");
+    const campIntel = campReport!.result.intel as {
+      kind: string;
+      level: number;
+      threatBand: string;
+    };
+    expect(campIntel.kind).toBe("camp");
+    expect(campIntel.level).toBe(1);
+    expect(campIntel.threatBand).toBe("low");
+
+    const cityMarch = world.createMarch(a.player.id, {
+      fromCityId: a.city.id,
+      intent: "scout",
+      targetType: "city",
+      targetId: b.city.id,
+      targetX: b.city.mapX,
+      targetY: b.city.mapY,
+      composition: { levy: 5 },
+    });
+    cityMarch.arriveAt = 0;
+    const cityReport = world.landMarch(cityMarch, world.now());
+    const cityIntel = cityReport!.result.intel as {
+      kind: string;
+      defensePosture: string;
+      troopBand: string;
+      ownerName: string;
+    };
+    expect(cityIntel.kind).toBe("city");
+    expect(cityIntel.defensePosture).toBe("full");
+    expect(cityIntel.ownerName).toBe("ScoutB");
+    expect(cityIntel.troopBand).toBeTruthy();
+  });
+
+  it("haul delivers cargo to own secondary city", () => {
+    const world = new World({ devFastTime: true });
+    const { player, city } = world.createGuest("Hauler", "mossvault");
+    world.adminGrant(player.id, {
+      units: { levy: 30 },
+      brineholdUnlock: true,
+      resources: { kelp: 500 },
+    });
+    const brine = world.foundBrinehold(player.id, "Cargo Dock");
+    const origin = world.getCity(city.id)!;
+    const kelpBeforeOrigin = origin.resources.kelp;
+    const kelpBeforeDest = brine.resources.kelp;
+    const march = world.createMarch(player.id, {
+      fromCityId: city.id,
+      intent: "haul",
+      targetType: "city",
+      targetId: brine.id,
+      targetX: brine.mapX,
+      targetY: brine.mapY,
+      composition: { levy: 10 },
+      cargo: { kelp: 200 },
+    });
+    expect(world.getCity(city.id)!.resources.kelp).toBe(kelpBeforeOrigin - 200);
+    march.arriveAt = 0;
+    const report = world.landMarch(march, world.now());
+    expect(report!.result.type).toBe("haul");
+    expect(report!.result.delivered).toBe(true);
+    expect(world.getCity(brine.id)!.resources.kelp).toBe(kelpBeforeDest + 200);
+  });
+
+  it("haul to foreign non-alliance city bounces cargo home", () => {
+    const world = new World({ devFastTime: true });
+    const a = world.createGuest("HaulFailA", "brinecant");
+    const b = world.createGuest("HaulFailB", "ashcoil");
+    world.adminGrant(a.player.id, {
+      units: { levy: 20 },
+      resources: { driftwood: 300 },
+    });
+    const originKelp = world.getCity(a.city.id)!.resources.driftwood;
+    const march = world.createMarch(a.player.id, {
+      fromCityId: a.city.id,
+      intent: "haul",
+      targetType: "city",
+      targetId: b.city.id,
+      targetX: b.city.mapX,
+      targetY: b.city.mapY,
+      composition: { levy: 10 },
+      cargo: { driftwood: 100 },
+    });
+    expect(world.getCity(a.city.id)!.resources.driftwood).toBe(
+      originKelp - 100,
+    );
+    march.arriveAt = 0;
+    const report = world.landMarch(march, world.now());
+    expect(report!.result.delivered).toBe(false);
+    expect(report!.result.reason).toBe("not_own_or_alliance_city");
+    // Cargo returned to origin on failed delivery
+    expect(world.getCity(a.city.id)!.resources.driftwood).toBe(originKelp);
+  });
 });

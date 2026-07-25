@@ -119,8 +119,9 @@ type BattleReport = {
     type?: string;
     reason?: string;
     note?: string;
-    intel?: string;
+    intel?: string | Record<string, unknown>;
     harborLoot?: boolean;
+    delivered?: boolean;
     loot?: Partial<Resources>;
     battle?: {
       winner?: string;
@@ -137,6 +138,15 @@ type BattleReport = {
     };
     target?: { type?: string; x?: number; y?: number; id?: string | null };
   };
+};
+
+type Toast = { id: number; message: string; kind: "info" | "ok" | "err" };
+
+type WorldEventDto = {
+  seq: number;
+  type: string;
+  message: string;
+  at: number;
 };
 
 type UnitDef = {
@@ -257,6 +267,53 @@ function lootList(loot?: Partial<Resources>): string {
   return parts.length ? parts.join(", ") : "none";
 }
 
+function postureLabel(posture?: string, harborLoot?: boolean): string {
+  if (harborLoot) return "Harbor (free loot — no wall fight)";
+  if (posture === "full") return "Full defense (stacks fought)";
+  if (posture === "partial") return "Partial defense";
+  if (posture === "harbor") return "Harbor";
+  return harborLoot === false ? "Fought (not harbor loot)" : "—";
+}
+
+function formatIntel(intel: BattleReport["result"]["intel"]): string {
+  if (!intel) return "";
+  if (typeof intel === "string") return intel;
+  const kind = String(intel.kind ?? "intel");
+  if (kind === "camp") {
+    return `Camp L${intel.level} · threat ${intel.threatBand}${
+      intel.exampleComp ? ` · ~${intel.exampleComp}` : ""
+    }`;
+  }
+  if (kind === "city") {
+    return `City ${intel.cityName ?? ""} · ${intel.ownerName ?? "?"} · posture ${
+      intel.defensePosture ?? "?"
+    } · troops ${intel.troopBand ?? "?"}${
+      intel.protected ? " · protected" : ""
+    }`;
+  }
+  if (kind === "wilderness") {
+    return `Wild ${intel.resourceType} L${intel.level}${
+      intel.ownerName ? ` · owner ${intel.ownerName}` : " · unclaimed"
+    }`;
+  }
+  return JSON.stringify(intel);
+}
+
+function reportHeadline(r: BattleReport, youId: string): string {
+  const t = r.result?.type ?? "battle";
+  if (t === "pvp_blocked") return "PvP blocked (protection)";
+  if (t === "scout") return "Scout report";
+  if (t === "haul")
+    return r.result?.delivered ? "Haul delivered" : "Haul bounced";
+  if (t === "pvp") {
+    return r.result?.harborLoot ? "Harbor raid" : "Full defense PvP";
+  }
+  if (t === "attack") return "Camp attack";
+  if (t === "occupy") return "Occupy wilderness";
+  const youAtk = r.attackerPlayerId === youId;
+  return youAtk ? `${t} (you attacked)` : `${t} (incoming)`;
+}
+
 function plotLabel(id: string | null): string {
   if (!id) return "empty";
   return id
@@ -335,6 +392,9 @@ export function App() {
     { id: string; name: string; tag: string; memberCount: number }[]
   >([]);
   const [joinTag, setJoinTag] = useState("");
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [eventSince, setEventSince] = useState(0);
+  const [unreadReports, setUnreadReports] = useState(0);
 
   const city = useMemo(
     () => cities.find((c) => c.id === cityId) ?? cities[0] ?? null,
@@ -414,6 +474,17 @@ export function App() {
     }
   }, []);
 
+  const pushToast = useCallback(
+    (message: string, kind: Toast["kind"] = "info") => {
+      const id = Date.now() + Math.floor(Math.random() * 1000);
+      setToasts((t) => [...t.slice(-4), { id, message, kind }]);
+      window.setTimeout(() => {
+        setToasts((t) => t.filter((x) => x.id !== id));
+      }, 6000);
+    },
+    [],
+  );
+
   useEffect(() => {
     void loadUnits();
   }, [loadUnits]);
@@ -436,13 +507,65 @@ export function App() {
     return () => window.clearInterval(id);
   }, [token, cityId, refreshMe, refreshQueues, refreshMarches]);
 
+  // P0.2: poll sim events for toasts without relying on full-page refresh
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    let since = eventSince;
+    const poll = async () => {
+      try {
+        const data = await api<{
+          events: WorldEventDto[];
+          latestSeq?: number;
+        }>(`/api/v1/events?since=${since}`, token);
+        if (cancelled || !data.events?.length) return;
+        let maxSeq = since;
+        for (const e of data.events) {
+          maxSeq = Math.max(maxSeq, e.seq);
+          const kind =
+            e.type === "report" || e.type === "march_land"
+              ? "ok"
+              : e.type === "queue_complete"
+                ? "ok"
+                : "info";
+          pushToast(e.message, kind);
+          if (e.type === "report" || e.type === "march_land") {
+            setUnreadReports((n) => n + 1);
+            void loadReports().catch(() => undefined);
+            void refreshMarches(token).catch(() => undefined);
+          }
+          if (e.type === "queue_complete" || e.type === "march_return") {
+            void refreshMe(token).catch(() => undefined);
+            void refreshQueues(token, cityId).catch(() => undefined);
+            void refreshMarches(token).catch(() => undefined);
+          }
+        }
+        since = maxSeq;
+        setEventSince(maxSeq);
+      } catch {
+        /* ignore poll blips */
+      }
+    };
+    void poll();
+    const id = window.setInterval(() => void poll(), 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+    // eventSince intentionally not in deps — we keep local since cursor
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, cityId, refreshMe, refreshQueues, refreshMarches]);
+
   async function run(label: string, fn: () => Promise<void>) {
     setError(null);
     try {
       await fn();
       setStatus(label);
+      pushToast(label, "ok");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      pushToast(msg, "err");
     }
   }
 
@@ -542,7 +665,17 @@ export function App() {
     const composition = compositionFromUi();
     if (Object.keys(composition).length === 0) {
       setError("Set march composition (units from your stacks)");
+      pushToast("March blocked: no units selected", "err");
       return;
+    }
+    for (const [uid, n] of Object.entries(composition)) {
+      const have = city.stacks[uid] ?? 0;
+      if (have < n) {
+        const msg = `Not enough ${uid} (need ${n}, have ${have})`;
+        setError(msg);
+        pushToast(msg, "err");
+        return;
+      }
     }
     await run(
       `${opts.intent} → ${opts.target.x},${opts.target.y}`,
@@ -558,6 +691,10 @@ export function App() {
         });
         await refreshMe(token);
         await refreshMarches(token);
+        pushToast(
+          `March sent: ${opts.intent} @ ${opts.target.x},${opts.target.y}`,
+          "ok",
+        );
       },
     );
   }
@@ -841,6 +978,13 @@ export function App() {
   if (!token || !player) {
     return (
       <div className={`shell faction-${factionMeta.accent}`}>
+        <div className="toast-stack" aria-live="polite">
+          {toasts.map((t) => (
+            <div key={t.id} className={`toast toast-${t.kind}`}>
+              {t.message}
+            </div>
+          ))}
+        </div>
         <header className="hero">
           <p className="eyebrow">Tideforge Empires · MVP Beta</p>
           <h1>Claim a forge on the tide</h1>
@@ -886,9 +1030,19 @@ export function App() {
   const rates = city?.productionPerHour;
   const mapW = mapFocus.x1 - mapFocus.x0 + 1;
   const mapH = mapFocus.y1 - mapFocus.y0 + 1;
+  const selectedInfo = selectedTile
+    ? tileAt(selectedTile.x, selectedTile.y)
+    : null;
 
   return (
     <div className={`shell faction-${factionMeta.accent}`}>
+      <div className="toast-stack" aria-live="polite">
+        {toasts.map((t) => (
+          <div key={t.id} className={`toast toast-${t.kind}`}>
+            {t.message}
+          </div>
+        ))}
+      </div>
       <header className="topbar">
         <div>
           <p className="eyebrow">{factionMeta.label}</p>
@@ -909,7 +1063,10 @@ export function App() {
               onClick={() => {
                 setTab(t);
                 if (t === "map") void loadMap().catch((e) => setError(String(e)));
-                if (t === "war") void loadReports().catch((e) => setError(String(e)));
+                if (t === "war") {
+                  setUnreadReports(0);
+                  void loadReports().catch((e) => setError(String(e)));
+                }
                 if (t === "codex") void loadCodex().catch((e) => setError(String(e)));
                 if (t === "shop") void loadShop().catch((e) => setError(String(e)));
                 if (t === "alliance")
@@ -917,6 +1074,9 @@ export function App() {
               }}
             >
               {TAB_LABELS[t]}
+              {t === "war" && unreadReports > 0 ? (
+                <span className="badge">{unreadReports}</span>
+              ) : null}
             </button>
           ))}
         </nav>
@@ -1432,23 +1592,101 @@ export function App() {
             </div>
 
             {selectedTile && (
-              <p>
-                Selected:{" "}
-                <strong>
-                  {selectedTile.x},{selectedTile.y}
-                </strong>{" "}
-                — {tileAt(selectedTile.x, selectedTile.y)?.kind ?? "empty"}
-              </p>
+              <div className="tile-detail card-inset">
+                <h3>
+                  Selected {selectedTile.x},{selectedTile.y}
+                </h3>
+                {!selectedInfo && (
+                  <p className="muted">Empty water / open tile</p>
+                )}
+                {selectedInfo?.kind === "camp" && (
+                  <p>
+                    <strong>Riftborn camp L{selectedInfo.camp.level}</strong>
+                    <br />
+                    <span className="muted">
+                      Attack runs server combat and stores a War report.
+                    </span>
+                  </p>
+                )}
+                {selectedInfo?.kind === "wild" && (
+                  <p>
+                    <strong>
+                      {selectedInfo.wild.resourceType} wilderness L
+                      {selectedInfo.wild.level}
+                    </strong>
+                    <br />
+                    <span className="muted">
+                      {selectedInfo.wild.ownerPlayerId
+                        ? "Already claimed — occupy will fight owner garrison"
+                        : "Unclaimed — occupy to claim production bonus"}
+                    </span>
+                  </p>
+                )}
+                {selectedInfo?.kind === "city" && (
+                  <p>
+                    <strong>
+                      {selectedInfo.city.name} ({selectedInfo.city.kind})
+                    </strong>
+                    <br />
+                    <span className="muted">
+                      {selectedInfo.city.playerId === player.id
+                        ? "Your city — use reinforce/haul from PvP form if needed"
+                        : "Enemy/other city — use Attack or Scout below"}
+                    </span>
+                  </p>
+                )}
+                <div className="row">
+                  <button
+                    type="button"
+                    disabled={selectedInfo?.kind !== "camp"}
+                    onClick={() => void attackSelectedCamp()}
+                  >
+                    Attack camp
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      selectedInfo?.kind !== "wild" ||
+                      !!selectedInfo?.wild.ownerPlayerId
+                    }
+                    onClick={() => void occupySelectedWild()}
+                  >
+                    Occupy wild
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      selectedInfo?.kind !== "city" ||
+                      selectedInfo.city.playerId === player.id
+                    }
+                    onClick={() => {
+                      setPvpX(selectedTile.x);
+                      setPvpY(selectedTile.y);
+                      setPvpIntent("attack");
+                      void attackPvp();
+                    }}
+                  >
+                    Attack city
+                  </button>
+                  <button
+                    type="button"
+                    disabled={selectedInfo?.kind !== "city"}
+                    onClick={() => {
+                      setPvpX(selectedTile.x);
+                      setPvpY(selectedTile.y);
+                      setPvpIntent("scout");
+                      void attackPvp();
+                    }}
+                  >
+                    Scout tile
+                  </button>
+                </div>
+                <p className="muted tiny">
+                  Composition must use units you own — over-selecting is blocked
+                  client-side and server-side (NO_TROOPS).
+                </p>
+              </div>
             )}
-
-            <div className="row">
-              <button type="button" onClick={() => void attackSelectedCamp()}>
-                Attack selected camp
-              </button>
-              <button type="button" onClick={() => void occupySelectedWild()}>
-                Occupy selected wilderness
-              </button>
-            </div>
 
             <h3>PvP / coords march</h3>
             <p className="muted">
@@ -1498,11 +1736,18 @@ export function App() {
         {tab === "war" && (
           <section className="card">
             <h2>War / Reports</h2>
+            <p className="muted">
+              Server-authored only. Harbor = free loot (no stack fight). Full =
+              stacks fight via resolveBattle.
+            </p>
             <button
               type="button"
-              onClick={() =>
-                void loadReports().catch((e) => setError(String(e.message ?? e)))
-              }
+              onClick={() => {
+                setUnreadReports(0);
+                void loadReports().catch((e) =>
+                  setError(String(e.message ?? e)),
+                );
+              }}
             >
               Refresh reports
             </button>
@@ -1512,13 +1757,20 @@ export function App() {
               <ul className="report-cards">
                 {reports.slice(0, 12).map((r) => {
                   const b = r.result?.battle;
-                  const winner = b?.winner ?? (r.result?.type === "pvp_blocked" ? "blocked" : "—");
+                  const winner =
+                    b?.winner ??
+                    (r.result?.type === "pvp_blocked" ? "blocked" : "—");
                   const youAtk = r.attackerPlayerId === player.id;
+                  const defenseMode = postureLabel(
+                    undefined,
+                    r.result?.harborLoot,
+                  );
                   return (
                     <li key={r.id} className="report-card">
                       <div className="ops-head">
                         <strong>
-                          {r.result?.type ?? "battle"} · {fmtTime(r.createdAt)}
+                          {reportHeadline(r, player.id)} ·{" "}
+                          {fmtTime(r.createdAt)}
                         </strong>
                         <span
                           className={
@@ -1531,27 +1783,39 @@ export function App() {
                         >
                           {winner === "blocked"
                             ? "blocked"
-                            : `winner: ${winner}`}
+                            : winner === "—"
+                              ? r.result?.type ?? ""
+                              : `winner: ${winner}`}
                         </span>
                       </div>
                       {r.result?.target && (
                         <p className="muted tiny">
                           Target {r.result.target.type} @ {r.result.target.x},
                           {r.result.target.y}
-                          {r.result.harborLoot ? " · harbor loot" : ""}
+                          {r.result.type === "pvp"
+                            ? ` · ${defenseMode}`
+                            : r.result.harborLoot
+                              ? " · harbor loot"
+                              : ""}
+                          {youAtk ? " · you attacked" : " · you defended"}
                         </p>
                       )}
                       {r.result?.reason && (
                         <p className="err">Reason: {r.result.reason}</p>
                       )}
                       {r.result?.intel && (
-                        <p className="muted">{r.result.intel}</p>
+                        <p className="intel">
+                          <strong>Intel:</strong> {formatIntel(r.result.intel)}
+                        </p>
                       )}
                       {b && (
                         <>
                           <p>
                             Rounds: {b.rounds ?? "—"}
                             {b.note ? ` · ${b.note}` : ""}
+                            {r.result?.harborLoot
+                              ? " · no combat (harbor)"
+                              : " · combat resolved"}
                           </p>
                           <p>
                             <strong>Your losses:</strong>{" "}

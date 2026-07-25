@@ -269,6 +269,16 @@ export class PgStore {
         world.realmId,
       ]);
       for (const row of marches.rows) {
+        const raw = (row.composition ?? {}) as Record<string, unknown>;
+        const cargo =
+          raw.__cargo && typeof raw.__cargo === "object"
+            ? (raw.__cargo as March["cargo"])
+            : {};
+        const composition: Record<string, number> = {};
+        for (const [k, v] of Object.entries(raw)) {
+          if (k === "__cargo") continue;
+          if (typeof v === "number") composition[k] = v;
+        }
         const m: March = {
           id: row.id,
           realmId: row.realm_id,
@@ -281,7 +291,8 @@ export class PgStore {
           targetId: row.target_id,
           targetX: row.target_x,
           targetY: row.target_y,
-          composition: row.composition ?? {},
+          composition,
+          cargo,
           departAt: new Date(row.depart_at).getTime(),
           arriveAt: new Date(row.arrive_at).getTime(),
           returnAt: row.return_at ? new Date(row.return_at).getTime() : null,
@@ -643,7 +654,10 @@ export class PgStore {
             m.targetId,
             m.targetX,
             m.targetY,
-            JSON.stringify(m.composition),
+            JSON.stringify({
+              ...m.composition,
+              __cargo: m.cargo ?? {},
+            }),
             m.departAt,
             m.arriveAt,
             m.returnAt,
