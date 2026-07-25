@@ -310,10 +310,31 @@ export function App() {
   });
   const [pvpX, setPvpX] = useState(0);
   const [pvpY, setPvpY] = useState(0);
-  const [pvpIntent, setPvpIntent] = useState<"attack" | "scout">("attack");
+  const [pvpIntent, setPvpIntent] = useState<"attack" | "scout" | "reinforce">(
+    "attack",
+  );
   const [plotPick, setPlotPick] = useState("kelp_farm");
   const [now, setNow] = useState(() => Date.now());
   const [mapFocus, setMapFocus] = useState({ x0: 0, y0: 0, x1: 19, y1: 19 });
+  const [tutorial, setTutorial] = useState<{
+    step: number;
+    completed: boolean;
+    totalSteps: number;
+    currentLabel: string;
+  } | null>(null);
+  const [dailyQuests, setDailyQuests] = useState<
+    {
+      id: string;
+      title: string;
+      rewardChronite: number;
+      done: boolean;
+      claimed: boolean;
+    }[]
+  >([]);
+  const [allianceList, setAllianceList] = useState<
+    { id: string; name: string; tag: string; memberCount: number }[]
+  >([]);
+  const [joinTag, setJoinTag] = useState("");
 
   const city = useMemo(
     () => cities.find((c) => c.id === cityId) ?? cities[0] ?? null,
@@ -333,12 +354,27 @@ export function App() {
         harnessComplete: boolean;
       }[];
       serverNow?: number;
+      tutorial?: {
+        step: number;
+        completed: boolean;
+        totalSteps: number;
+        currentLabel: string;
+      };
+      dailyQuests?: {
+        id: string;
+        title: string;
+        rewardChronite: number;
+        done: boolean;
+        claimed: boolean;
+      }[];
     }>("/api/v1/me", tok);
     setPlayer(me.player);
     setCities(me.cities);
     setCityId((id) => id ?? me.cities[0]?.id ?? null);
     setAlliance(me.alliance);
     setSovereigns(me.sovereigns ?? []);
+    if (me.tutorial) setTutorial(me.tutorial);
+    if (me.dailyQuests) setDailyQuests(me.dailyQuests);
     if (me.serverNow) setNow(me.serverNow);
   }, []);
 
@@ -494,7 +530,7 @@ export function App() {
   }
 
   async function sendMarch(opts: {
-    intent: "attack" | "occupy" | "scout";
+    intent: "attack" | "occupy" | "scout" | "reinforce";
     target: {
       type: "camp" | "wilderness" | "city" | "coords";
       id?: string;
@@ -604,6 +640,50 @@ export function App() {
         body: JSON.stringify({ name: allyName, tag: allyTag }),
       });
       setAlliance(data.alliance);
+    });
+  }
+
+  async function loadAlliances() {
+    if (!token) return;
+    const data = await api<{
+      alliances: { id: string; name: string; tag: string; memberCount: number }[];
+    }>("/api/v1/alliances", token);
+    setAllianceList(data.alliances);
+  }
+
+  async function joinAlly(tagOrId: { tag?: string; allianceId?: string }) {
+    if (!token) return;
+    await run("Joined Tideband", async () => {
+      await api("/api/v1/alliances/join", token, {
+        method: "POST",
+        body: JSON.stringify(tagOrId),
+      });
+      await refreshMe(token);
+    });
+  }
+
+  async function advanceTutorial() {
+    if (!token) return;
+    await run("Tutorial advanced", async () => {
+      const data = await api<{
+        tutorial: {
+          step: number;
+          completed: boolean;
+          totalSteps: number;
+          currentLabel: string;
+        };
+      }>("/api/v1/tutorial/advance", token, { method: "POST" });
+      setTutorial(data.tutorial);
+    });
+  }
+
+  async function claimQuest(questId: string) {
+    if (!token) return;
+    await run(`Claimed ${questId}`, async () => {
+      await api(`/api/v1/quests/daily/${questId}/claim`, token, {
+        method: "POST",
+      });
+      await refreshMe(token);
     });
   }
 
@@ -832,6 +912,8 @@ export function App() {
                 if (t === "war") void loadReports().catch((e) => setError(String(e)));
                 if (t === "codex") void loadCodex().catch((e) => setError(String(e)));
                 if (t === "shop") void loadShop().catch((e) => setError(String(e)));
+                if (t === "alliance")
+                  void loadAlliances().catch((e) => setError(String(e)));
               }}
             >
               {TAB_LABELS[t]}
@@ -850,6 +932,21 @@ export function App() {
           </p>
         )}
         {status && <p className="ok banner">{status}</p>}
+
+        {tutorial && !tutorial.completed && (
+          <section className="card tutorial-banner">
+            <div className="ops-head">
+              <h2>
+                Tutorial {Math.min(tutorial.step + 1, tutorial.totalSteps)}/
+                {tutorial.totalSteps}
+              </h2>
+              <button type="button" onClick={() => void advanceTutorial()}>
+                Next step
+              </button>
+            </div>
+            <p>{tutorial.currentLabel}</p>
+          </section>
+        )}
 
         {/* P0: queues + marches always visible when logged in */}
         <section className="card ops">
@@ -1070,6 +1167,32 @@ export function App() {
                 Found Brinehold
               </button>
             </div>
+
+            <h3>Daily quests</h3>
+            {dailyQuests.length === 0 ? (
+              <p className="muted">No quests loaded yet</p>
+            ) : (
+              <ul className="quest-list">
+                {dailyQuests.map((q) => (
+                  <li key={q.id} className="plot-row">
+                    <div>
+                      {q.done ? "✓ " : "○ "}
+                      {q.title}{" "}
+                      <span className="muted">+{q.rewardChronite} Chronite</span>
+                    </div>
+                    {q.done && !q.claimed ? (
+                      <button type="button" onClick={() => void claimQuest(q.id)}>
+                        Claim
+                      </button>
+                    ) : q.claimed ? (
+                      <span className="muted">Claimed</span>
+                    ) : (
+                      <span className="muted">In progress</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         )}
 
@@ -1355,11 +1478,14 @@ export function App() {
                 <select
                   value={pvpIntent}
                   onChange={(e) =>
-                    setPvpIntent(e.target.value as "attack" | "scout")
+                    setPvpIntent(
+                      e.target.value as "attack" | "scout" | "reinforce",
+                    )
                   }
                 >
                   <option value="attack">Attack</option>
                   <option value="scout">Scout</option>
+                  <option value="reinforce">Reinforce (ally city)</option>
                 </select>
               </label>
               <button type="button" onClick={() => void attackPvp()}>
@@ -1466,6 +1592,9 @@ export function App() {
                 <p>
                   {alliance.name} [{alliance.tag}]
                 </p>
+                <p className="muted tiny">
+                  Share tag <code>{alliance.tag}</code> so others can join.
+                </p>
                 <div className="row form-inline">
                   <input
                     value={chatBody}
@@ -1490,17 +1619,63 @@ export function App() {
               </>
             ) : (
               <>
-                <input
-                  value={allyName}
-                  onChange={(e) => setAllyName(e.target.value)}
-                />
-                <input
-                  value={allyTag}
-                  onChange={(e) => setAllyTag(e.target.value)}
-                />
-                <button type="button" onClick={() => void createAlly()}>
-                  Create Tideband
-                </button>
+                <h3>Create</h3>
+                <div className="row form-inline">
+                  <input
+                    value={allyName}
+                    onChange={(e) => setAllyName(e.target.value)}
+                    placeholder="Name"
+                  />
+                  <input
+                    value={allyTag}
+                    onChange={(e) => setAllyTag(e.target.value)}
+                    placeholder="Tag"
+                  />
+                  <button type="button" onClick={() => void createAlly()}>
+                    Create Tideband
+                  </button>
+                </div>
+                <h3>Join by tag</h3>
+                <div className="row form-inline">
+                  <input
+                    value={joinTag}
+                    onChange={(e) => setJoinTag(e.target.value)}
+                    placeholder="e.g. TIDE"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void joinAlly({ tag: joinTag })}
+                  >
+                    Join tag
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void loadAlliances().catch((e) =>
+                        setError(String(e.message ?? e)),
+                      )
+                    }
+                  >
+                    Refresh list
+                  </button>
+                </div>
+                {allianceList.length > 0 && (
+                  <ul className="plot-list">
+                    {allianceList.map((a) => (
+                      <li key={a.id} className="plot-row">
+                        <div>
+                          {a.name} [{a.tag}] · {a.memberCount} members
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void joinAlly({ allianceId: a.id })}
+                        >
+                          Join
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </>
             )}
           </section>

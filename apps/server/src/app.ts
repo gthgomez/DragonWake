@@ -19,9 +19,10 @@ import {
   type City,
   type Player,
   PLOT_TYPES,
+  TUTORIAL_STEPS,
 } from "./world.js";
 
-export const VERSION = "0.2.1-mvp-polish";
+export const VERSION = "0.2.2-exit-gate";
 
 export type AppEnv = {
   Variables: {
@@ -180,14 +181,14 @@ export function createApp(world: World) {
     );
     const mem = world.allianceMembers.get(player.id);
     const alliance = mem ? world.alliances.get(mem.allianceId) : null;
-    const tutorial = world.tutorials.get(player.id);
     return c.json({
       player: publicPlayer(player),
       cities,
       alliance: alliance
         ? { id: alliance.id, name: alliance.name, tag: alliance.tag }
         : null,
-      tutorial,
+      tutorial: world.tutorialView(player.id),
+      dailyQuests: world.listDailyQuests(player.id),
       serverNow: Date.now(),
       sovereigns: [...world.sovereigns.values()]
         .filter((s) => s.playerId === player.id)
@@ -479,6 +480,10 @@ export function createApp(world: World) {
     }
   });
 
+  api.get("/alliances", (c) => {
+    return c.json({ alliances: world.listAlliances() });
+  });
+
   api.post("/alliances", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
@@ -494,6 +499,33 @@ export function createApp(world: World) {
       return err(
         c,
         (e as { code?: string }).code ?? "ALLY_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/alliances/join", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = (await c.req.json().catch(() => ({}))) as {
+      allianceId?: string;
+      tag?: string;
+    };
+    try {
+      if (body.tag) {
+        const alliance = world.joinAllianceByTag(player.id, body.tag);
+        return c.json({ ok: true, alliance });
+      }
+      if (body.allianceId) {
+        world.joinAlliance(player.id, body.allianceId);
+        const alliance = world.alliances.get(body.allianceId);
+        return c.json({ ok: true, alliance });
+      }
+      return err(c, "BAD_JOIN", "allianceId or tag required");
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "JOIN_FAIL",
         e instanceof Error ? e.message : String(e),
       );
     }
@@ -594,18 +626,45 @@ export function createApp(world: World) {
     return c.json({ ok: true, me: publicPlayer(world.players.get(player.id)!) });
   });
 
+  api.get("/tutorial", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    return c.json({
+      tutorial: world.tutorialView(player.id),
+      steps: TUTORIAL_STEPS,
+    });
+  });
+
   api.post("/tutorial/advance", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const t = world.tutorials.get(player.id) ?? {
-      playerId: player.id,
-      step: 0,
-      completed: false,
-    };
-    t.step = Math.min(10, t.step + 1);
-    if (t.step >= 10) t.completed = true;
-    world.tutorials.set(player.id, t);
-    return c.json({ tutorial: t });
+    const t = world.advanceTutorial(player.id);
+    return c.json({ tutorial: world.tutorialView(player.id), raw: t });
+  });
+
+  api.get("/quests/daily", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    return c.json({ quests: world.listDailyQuests(player.id) });
+  });
+
+  api.post("/quests/daily/:id/claim", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      const result = world.claimDailyQuest(player.id, c.req.param("id"));
+      return c.json({
+        ...result,
+        quests: world.listDailyQuests(player.id),
+        player: publicPlayer(world.players.get(player.id)!),
+      });
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "QUEST_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
   });
 
   api.post("/sim/tick", (c) => {

@@ -158,6 +158,44 @@ export type Session = {
 };
 export type Tutorial = { playerId: string; step: number; completed: boolean };
 
+/** Product-freeze tutorial steps (10). DEV_SKIP_TUTORIAL starts completed. */
+export const TUTORIAL_STEPS = [
+  "Welcome to the realm — your capital sits on the tide map.",
+  "Open City and review Kelp, Driftwood, and other stocks.",
+  "Queue a building (Barracks or Habitation).",
+  "Assign a Resource Grounds plot to raise production.",
+  "Research Longmark and train Levy or Reefbow.",
+  "Open Map, set composition, and attack a Riftborn camp.",
+  "Occupy wilderness to boost production.",
+  "Complete the Harbinger harness (dev grant OK for demo).",
+  "Found a Brinehold citadel.",
+  "Create or join a Tideband and send chat.",
+] as const;
+
+export const DAILY_QUEST_DEFS = [
+  {
+    id: "build",
+    title: "Queue a construction",
+    rewardChronite: 2,
+  },
+  {
+    id: "train",
+    title: "Train troops",
+    rewardChronite: 2,
+  },
+  {
+    id: "camp",
+    title: "Attack a Riftborn camp",
+    rewardChronite: 5,
+  },
+] as const;
+
+export type DailyProgress = {
+  dayKey: string;
+  done: Record<string, boolean>;
+  claimed: Record<string, boolean>;
+};
+
 /** Minimal store surface so World can flush without circular import at type level. */
 export type WorldStore = {
   mode: "postgres" | "memory";
@@ -296,6 +334,8 @@ export class World {
   sovereigns = new Map<string, Sovereign>();
   inventory = new Map<string, Record<string, number>>(); // playerId -> items
   tutorials = new Map<string, Tutorial>();
+  /** Minimal daily quest stubs (reset by UTC day key). */
+  dailyQuests = new Map<string, DailyProgress>();
   usedTiles = new Set<string>();
   devFastTime: boolean;
   skipTutorial: boolean;
@@ -611,6 +651,7 @@ export class World {
     };
     this.jobs.set(job.id, job);
     this.cities.set(city.id, city);
+    this.markDaily(playerId, "build");
     return job;
   }
 
@@ -675,6 +716,7 @@ export class World {
     };
     this.jobs.set(job.id, job);
     this.cities.set(city.id, city);
+    this.markDaily(playerId, "train");
     return job;
   }
 
@@ -958,6 +1000,7 @@ export class World {
       const level = camp?.level ?? 1;
       const def = getCamps().find((c: { camp_level: number }) => c.camp_level === level);
       defGroups = parseCampComp(def?.example_comp ?? "40 Levy");
+      this.markDaily(march.playerId, "camp");
     } else if (march.targetType === "wilderness") {
       wild =
         (march.targetId ? this.wilderness.get(march.targetId) : null) ??
@@ -1291,6 +1334,22 @@ export class World {
     return a;
   }
 
+  listAlliances(): {
+    id: string;
+    name: string;
+    tag: string;
+    memberCount: number;
+  }[] {
+    return [...this.alliances.values()].map((a) => ({
+      id: a.id,
+      name: a.name,
+      tag: a.tag,
+      memberCount: [...this.allianceMembers.values()].filter(
+        (m) => m.allianceId === a.id,
+      ).length,
+    }));
+  }
+
   joinAlliance(playerId: string, allianceId: string): void {
     if (this.allianceMembers.has(playerId)) {
       throw Object.assign(new Error("already in alliance"), {
@@ -1304,6 +1363,102 @@ export class World {
       playerId,
       rank: "member",
     });
+  }
+
+  joinAllianceByTag(playerId: string, tag: string): Alliance {
+    const normalized = tag.slice(0, 5).toUpperCase();
+    const a = [...this.alliances.values()].find((x) => x.tag === normalized);
+    if (!a) throw Object.assign(new Error("no alliance with that tag"), {
+      code: "NO_ALLY",
+    });
+    this.joinAlliance(playerId, a.id);
+    return a;
+  }
+
+  private dayKey(now = this.now()): string {
+    return new Date(now).toISOString().slice(0, 10);
+  }
+
+  ensureDaily(playerId: string): DailyProgress {
+    const key = this.dayKey();
+    let d = this.dailyQuests.get(playerId);
+    if (!d || d.dayKey !== key) {
+      d = { dayKey: key, done: {}, claimed: {} };
+      this.dailyQuests.set(playerId, d);
+    }
+    return d;
+  }
+
+  markDaily(playerId: string, questId: string): void {
+    const d = this.ensureDaily(playerId);
+    d.done[questId] = true;
+  }
+
+  listDailyQuests(playerId: string) {
+    const d = this.ensureDaily(playerId);
+    return DAILY_QUEST_DEFS.map((def) => ({
+      id: def.id,
+      title: def.title,
+      rewardChronite: def.rewardChronite,
+      done: !!d.done[def.id],
+      claimed: !!d.claimed[def.id],
+    }));
+  }
+
+  claimDailyQuest(
+    playerId: string,
+    questId: string,
+  ): { chronite: number; questId: string } {
+    const def = DAILY_QUEST_DEFS.find((q) => q.id === questId);
+    if (!def) {
+      throw Object.assign(new Error("unknown quest"), { code: "NO_QUEST" });
+    }
+    const player = this.players.get(playerId);
+    if (!player) throw new Error("no player");
+    const d = this.ensureDaily(playerId);
+    if (!d.done[questId]) {
+      throw Object.assign(new Error("quest incomplete"), {
+        code: "QUEST_INCOMPLETE",
+      });
+    }
+    if (d.claimed[questId]) {
+      throw Object.assign(new Error("already claimed"), {
+        code: "QUEST_CLAIMED",
+      });
+    }
+    d.claimed[questId] = true;
+    player.chronite += def.rewardChronite;
+    this.players.set(playerId, player);
+    return { chronite: player.chronite, questId };
+  }
+
+  advanceTutorial(playerId: string): Tutorial {
+    const t = this.tutorials.get(playerId) ?? {
+      playerId,
+      step: 0,
+      completed: false,
+    };
+    t.step = Math.min(TUTORIAL_STEPS.length, t.step + 1);
+    if (t.step >= TUTORIAL_STEPS.length) t.completed = true;
+    this.tutorials.set(playerId, t);
+    return t;
+  }
+
+  tutorialView(playerId: string) {
+    const t = this.tutorials.get(playerId) ?? {
+      playerId,
+      step: 0,
+      completed: false,
+    };
+    const idx = Math.min(t.step, TUTORIAL_STEPS.length - 1);
+    return {
+      ...t,
+      totalSteps: TUTORIAL_STEPS.length,
+      currentLabel: t.completed
+        ? "Tutorial complete"
+        : TUTORIAL_STEPS[idx] ?? TUTORIAL_STEPS[0],
+      steps: [...TUTORIAL_STEPS],
+    };
   }
 
   postChat(

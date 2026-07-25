@@ -11,7 +11,9 @@
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "typecheck": "pnpm -r run typecheck",
-    "lint": "pnpm -r run lint --if-present"
+    "lint": "pnpm -r run lint --if-present",
+    "accept": "pnpm --filter @tideforge/server accept",
+    "seed:demo": "pnpm --filter @tideforge/server seed:demo"
   },
   "engines": {
     "node": ">=20"

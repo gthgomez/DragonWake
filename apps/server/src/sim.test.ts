@@ -66,6 +66,32 @@ describe("parseCampComp", () => {
   });
 });
 
+describe("World daily quests + tutorial", () => {
+  it("marks build/train quests and claims chronite once", () => {
+    const world = new World({ devFastTime: true });
+    const { player, city } = world.createGuest("QuestA", "brinecant");
+    world.startBuild(city.id, player.id, 2, "barracks");
+    world.startTrain(city.id, player.id, "levy", 5);
+    const list = world.listDailyQuests(player.id);
+    expect(list.find((q) => q.id === "build")?.done).toBe(true);
+    expect(list.find((q) => q.id === "train")?.done).toBe(true);
+    const before = world.players.get(player.id)!.chronite;
+    const claim = world.claimDailyQuest(player.id, "build");
+    expect(claim.chronite).toBe(before + 2);
+    expect(() => world.claimDailyQuest(player.id, "build")).toThrow(
+      /already claimed/,
+    );
+  });
+
+  it("advances tutorial to complete", () => {
+    const world = new World({ devFastTime: true, skipTutorial: false });
+    const { player } = world.createGuest("TutA", "skyshear");
+    expect(world.tutorialView(player.id).completed).toBe(false);
+    for (let i = 0; i < 10; i++) world.advanceTutorial(player.id);
+    expect(world.tutorialView(player.id).completed).toBe(true);
+  });
+});
+
 describe("World plots (grounds)", () => {
   it("assigns empty plot and upgrades with production gain", () => {
     const world = new World({ devFastTime: true });

@@ -97,20 +97,38 @@ Environment: `pnpm dev` (or `docker compose up -d db` + server/web), two browser
 | M10 | A attacks B (B Harbor posture) | Report; resources move on harbor |
 | M11 | Codex formulas page | Non-empty formulas JSON |
 
-Scripted equivalent (no browser): `pnpm --filter @tideforge/server test` includes the two-session API demo.
+Scripted equivalent (no browser):
+
+```powershell
+pnpm accept   # ACCEPTANCE_MVP M1–M11 labeled path
+pnpm test     # combat + full server suite (includes M1–M11)
+pnpm seed:demo  # print two-player in-process seed (tokens for local tooling)
+```
+
+Alliance M9 in UI: guest A creates Tideband → share **tag** → guest B **Join by tag** (or list).
 
 ## Automated exit gates (T1–T8)
 
 ```powershell
 pnpm install                                          # T1
 pnpm --filter @tideforge/combat test                  # T3–T4 (M1–M10)
-pnpm --filter @tideforge/server test                  # T5–T6 (+ API demo)
-# T7: docker compose up -d db; pnpm --filter @tideforge/server migrate
+pnpm --filter @tideforge/server test                  # T5–T6 + M1–M11 + API demo
+# T7 (optional durability): start Postgres, set DATABASE_URL, then:
+#   pnpm --filter @tideforge/server migrate
+#   pnpm --filter @tideforge/server test   # pg-persist runs when DB reachable
+# Docker Desktop: docker compose up -d db   (daemon must be running)
 pnpm --filter @tideforge/web build                    # web
 pnpm --filter @tideforge/combat typecheck
 pnpm --filter @tideforge/server typecheck
 pnpm --filter @tideforge/web typecheck                # T8
 ```
+
+| Gate | Status (local) |
+|------|----------------|
+| T1–T6, T8 | Green via `pnpm test` + typecheck/build |
+| T7 PG apply + restart survival | Optional — runs when `DATABASE_URL` reachable; otherwise memory realm |
+| M1–M11 | Green via `pnpm accept` |
+| Docker full stack | Optional — needs Docker Desktop engine |
 
 ## Implementation board
 
@@ -126,7 +144,8 @@ pnpm --filter @tideforge/web typecheck                # T8
 | A7 Harbinger harness + Brinehold | Done |
 | A8 Tideband + chat | Done |
 | A9 Web screens | Done |
-| A10 Shop stub + tutorial skip + README | Done |
+| A10 Shop stub + tutorial + dailies + README | Done |
+| Exit gate | M1–M11 automated; T7/Docker env-dependent residual |
 
 ## OUT OF SCOPE (not required)
 

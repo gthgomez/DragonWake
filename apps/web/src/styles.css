@@ -433,3 +433,19 @@ code {
 .swatch.foe {
   background: #7a3a8b;
 }
+
+.tutorial-banner {
+  border-color: color-mix(in srgb, var(--accent-hot) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-card));
+}
+
+.tutorial-banner h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.quest-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.35rem 0 0;
+}

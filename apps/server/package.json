@@ -9,7 +9,9 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "migrate": "tsx src/migrate-cli.ts"
+    "migrate": "tsx src/migrate-cli.ts",
+    "seed:demo": "tsx src/seed-demo-cli.ts",
+    "accept": "vitest run src/acceptance.test.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.1",
