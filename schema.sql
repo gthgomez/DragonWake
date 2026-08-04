@@ -40,7 +40,10 @@ CREATE TABLE cities (
   player_id       UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
   realm_id        SMALLINT NOT NULL REFERENCES realms(id),
   kind            TEXT NOT NULL DEFAULT 'capital'
-                  CHECK (kind IN ('capital','brinehold','citadel_other')),
+                  CHECK (kind IN (
+                    'capital','brinehold','stonekeel','cinderreach',
+                    'galeari','mnemolith','citadel_other'
+                  )),
   name            TEXT NOT NULL,
   map_x           INT NOT NULL,
   map_y           INT NOT NULL,

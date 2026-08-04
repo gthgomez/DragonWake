@@ -6,6 +6,7 @@ import {
 } from "@tideforge/combat";
 import {
   getBuildings,
+  getCitadels,
   getFormulas,
   getMeta,
   getResearch,
@@ -36,7 +37,7 @@ import {
   trainBodySchema,
 } from "./validate.js";
 
-export const VERSION = "0.2.3-p0-polish";
+export const VERSION = "0.3.0-s1-stonekeel";
 
 export type AppEnv = {
   Variables: {
@@ -545,17 +546,65 @@ export function createApp(world: World) {
     return c.json({ sovereigns: list });
   });
 
+  api.get("/citadels", (c) => c.json({ citadels: getCitadels() }));
+
   api.post("/citadels/found-brinehold", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
     const body = (await c.req.json().catch(() => ({}))) as { name?: string };
     try {
-      // Dev unlock path
+      // Dev unlock path (MVP affordance)
       world.adminGrant(player.id, { brineholdUnlock: true });
       const city = world.foundBrinehold(player.id, body.name);
       return c.json({ city: publicCity(city, world) });
     } catch (e) {
-      return err(c, "BRINE_FAIL", e instanceof Error ? e.message : String(e));
+      return err(
+        c,
+        (e as { code?: string }).code ?? "BRINE_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  /** S1+ generic found: { kind: "stonekeel", name?, unlock?: true } */
+  api.post("/citadels/found", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = (await c.req.json().catch(() => ({}))) as {
+      kind?: string;
+      name?: string;
+      unlock?: boolean;
+    };
+    const kind = body.kind ?? "";
+    if (!kind) return err(c, "VALIDATION", "kind required");
+    try {
+      if (body.unlock !== false) {
+        // Dev/demo unlock for this citadel (and brinehold prereq if needed)
+        if (kind === "stonekeel" || kind === "brinehold") {
+          world.adminGrant(player.id, {
+            brineholdUnlock: true,
+            stonekeelUnlock: kind === "stonekeel",
+            citadelUnlock: kind,
+          });
+        } else {
+          world.adminGrant(player.id, { citadelUnlock: kind });
+        }
+        // Ensure prereq cities exist when demo-unlocking ladder rungs
+        if (kind === "stonekeel") {
+          if (!world.citiesForPlayer(player.id).some((x) => x.kind === "brinehold")) {
+            world.adminGrant(player.id, { brineholdUnlock: true });
+            world.foundBrinehold(player.id);
+          }
+        }
+      }
+      const city = world.foundCitadel(player.id, kind, body.name);
+      return c.json({ city: publicCity(city, world) });
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "CITADEL_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
     }
   });
 

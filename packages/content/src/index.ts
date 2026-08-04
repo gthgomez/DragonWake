@@ -114,6 +114,18 @@ export type MatchupDef = {
   status: string;
 };
 
+export type CitadelDef = {
+  id: string;
+  name: string;
+  order: number;
+  ship: string;
+  exclusive_units: string[];
+  starter_stacks: Record<string, number>;
+  craft_mat: string;
+  unlock_research: string;
+  requires?: string[];
+};
+
 let cache: {
   units?: UnitDef[];
   rps?: Record<string, Record<string, number>>;
@@ -126,6 +138,7 @@ let cache: {
   sovereigns?: SovereignDef[];
   shop?: ShopItem[];
   matchups?: MatchupDef[];
+  citadels?: CitadelDef[];
 } = {};
 
 export function getMeta(): ContentMeta {
@@ -183,6 +196,14 @@ export function getShop(): ShopItem[] {
 
 export function getMatchups(): MatchupDef[] {
   return (cache.matchups ??= loadJson<MatchupDef[]>("matchups.json"));
+}
+
+export function getCitadels(): CitadelDef[] {
+  return (cache.citadels ??= loadJson<CitadelDef[]>("citadels.json"));
+}
+
+export function getCitadelById(id: string): CitadelDef | undefined {
+  return getCitadels().find((c) => c.id === id);
 }
 
 export function getDataPath(): string {

@@ -887,6 +887,17 @@ export function App() {
     });
   }
 
+  async function foundStone() {
+    if (!token) return;
+    await run("Stonekeel founded", async () => {
+      await api("/api/v1/citadels/found", token, {
+        method: "POST",
+        body: JSON.stringify({ kind: "stonekeel", name: "Stonekeel", unlock: true }),
+      });
+      await refreshMe(token);
+    });
+  }
+
   async function setPosture(posture: string) {
     if (!token || !city) return;
     await run(`Posture → ${posture}`, async () => {
@@ -1326,7 +1337,14 @@ export function App() {
               <button type="button" onClick={() => void foundBrine()}>
                 Found Brinehold
               </button>
+              <button type="button" onClick={() => void foundStone()}>
+                Found Stonekeel (S1)
+              </button>
             </div>
+            <p className="muted tiny">
+              S1 ladder: Brinehold → Stonekeel → Cinderreach → Galeari →
+              Mnemolith. Stonekeel grants Rubbleback + Slabguard stacks.
+            </p>
 
             <h3>Daily quests</h3>
             {dailyQuests.length === 0 ? (

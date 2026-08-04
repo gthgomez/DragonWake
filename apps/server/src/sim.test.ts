@@ -260,6 +260,22 @@ describe("World queues + marches (shipped paths)", () => {
     expect(brine.stacks.gulper).toBeGreaterThan(0);
   });
 
+  it("S1.1 stonekeel requires brinehold and grants exclusive stacks", () => {
+    const world = new World({ devFastTime: true });
+    const { player } = world.createGuest("StoneLord", "mossvault");
+    world.adminGrant(player.id, {
+      brineholdUnlock: true,
+      stonekeelUnlock: true,
+    });
+    expect(() => world.foundStonekeel(player.id)).toThrow(/requires brinehold/);
+    world.foundBrinehold(player.id, "First Hold");
+    const stone = world.foundStonekeel(player.id, "Keel Rock");
+    expect(stone.kind).toBe("stonekeel");
+    expect(stone.stacks.rubbleback).toBeGreaterThan(0);
+    expect(stone.stacks.slabguard).toBeGreaterThan(0);
+    expect(() => world.foundStonekeel(player.id)).toThrow(/already own/);
+  });
+
   it("full posture pvp runs resolveBattle and can reduce defender stacks", () => {
     const world = new World({ devFastTime: true });
     const a = world.createGuest("FullRaider", "brinecant");

@@ -10,13 +10,14 @@ import {
   resolveBattle,
   type BattleGroup,
 } from "@tideforge/combat";
-import { getCamps, getUnitById } from "@tideforge/content";
+import { getCamps, getCitadelById, getUnitById } from "@tideforge/content";
 import {
   DEV_FAST_MULTIPLIER,
   MAP_H,
   MAP_W,
   NEW_PLAYER_PROTECTION_MS,
   SALTVAULT_PROTECT_RATIO,
+  type CityKind,
   type DefensePosture,
   type Faction,
   type MarchIntent,
@@ -48,7 +49,7 @@ export type City = {
   id: string;
   playerId: string;
   realmId: number;
-  kind: "capital" | "brinehold" | "citadel_other";
+  kind: CityKind;
   name: string;
   mapX: number;
   mapY: number;
@@ -1527,6 +1528,8 @@ export class World {
       chronite?: number;
       skipProtection?: boolean;
       brineholdUnlock?: boolean;
+      stonekeelUnlock?: boolean;
+      citadelUnlock?: string;
       items?: Record<string, number>;
     },
   ): void {
@@ -1565,9 +1568,19 @@ export class World {
       }
     }
     if (body.brineholdUnlock && city) {
-      // mark research gate
       city.research["brinehold_unlock"] = 1;
       this.cities.set(city.id, city);
+    }
+    if (body.stonekeelUnlock && city) {
+      city.research["stonekeel_unlock"] = 1;
+      this.cities.set(city.id, city);
+    }
+    if (body.citadelUnlock && city) {
+      const def = getCitadelById(body.citadelUnlock);
+      if (def) {
+        city.research[def.unlock_research] = 1;
+        this.cities.set(city.id, city);
+      }
     }
     if (body.items) {
       const inv = this.inventory.get(playerId) ?? {};
@@ -1579,22 +1592,62 @@ export class World {
   }
 
   foundBrinehold(playerId: string, name?: string): City {
+    return this.foundCitadel(playerId, "brinehold", name);
+  }
+
+  foundStonekeel(playerId: string, name?: string): City {
+    return this.foundCitadel(playerId, "stonekeel", name);
+  }
+
+  /**
+   * Found a ladder citadel from content (S1+). Requires unlock research on capital
+   * (admin grant path allowed). One city per kind per player.
+   */
+  foundCitadel(playerId: string, kind: string, name?: string): City {
+    const def = getCitadelById(kind);
+    if (!def) {
+      throw Object.assign(new Error(`unknown citadel ${kind}`), {
+        code: "BAD_CITADEL",
+      });
+    }
+    if (def.ship !== "MVP" && def.ship !== "S1") {
+      throw Object.assign(new Error(`citadel ${kind} not in current ship`), {
+        code: "NOT_SHIPPED",
+      });
+    }
     const capitals = this.citiesForPlayer(playerId).filter(
       (c) => c.kind === "capital",
     );
-    if (capitals.length === 0) throw new Error("no capital");
+    if (capitals.length === 0) {
+      throw Object.assign(new Error("no capital"), { code: "NO_CAPITAL" });
+    }
     const capital = capitals[0]!;
-    // Allow if unlock flag or admin path
-    if (!capital.research["brinehold_unlock"] && process.env.NODE_ENV === "production") {
-      // still allow in beta with unlock research
+    if (this.citiesForPlayer(playerId).some((c) => c.kind === kind)) {
+      throw Object.assign(new Error(`already own ${kind}`), {
+        code: "HAS_CITADEL",
+      });
+    }
+    // Prerequisite citadels (e.g. Stonekeel requires Brinehold)
+    for (const req of def.requires ?? []) {
+      if (!this.citiesForPlayer(playerId).some((c) => c.kind === req)) {
+        throw Object.assign(new Error(`requires ${req} first`), {
+          code: "CITADEL_PREREQ",
+        });
+      }
+    }
+    if (!capital.research[def.unlock_research]) {
+      throw Object.assign(new Error(`${kind} not unlocked`), {
+        code: "NO_UNLOCK",
+      });
     }
     const { x, y } = this.findOpenTile();
+    const stacks: Record<string, number> = { ...(def.starter_stacks ?? {}) };
     const city: City = {
       id: randomUUID(),
       playerId,
       realmId: this.realmId,
-      kind: "brinehold",
-      name: name?.trim() || "Brinehold",
+      kind: kind as CityKind,
+      name: name?.trim() || def.name,
       mapX: x,
       mapY: y,
       resources: emptyResources(800),
@@ -1609,10 +1662,16 @@ export class World {
         plotType: null,
         level: 0,
       })),
-      stacks: { gulper: 10, coral_lance: 10 },
+      stacks,
       research: { ...capital.research },
     };
     this.cities.set(city.id, city);
+    this.pushEvent(
+      playerId,
+      "info",
+      `Founded ${def.name}`,
+      { cityId: city.id, kind },
+    );
     return city;
   }
 

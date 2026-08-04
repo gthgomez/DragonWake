@@ -490,6 +490,8 @@ export function parseForceString(spec: string): SideInput {
     skyshrike: "skyshrike",
     stormkeel: "stormkeel",
     gulper: "gulper",
+    rubbleback: "rubbleback",
+    slabguard: "slabguard",
     "coral lance": "coral_lance",
     ironbarge: "ironbarge",
     whisper: "whisper",

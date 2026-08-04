@@ -1,0 +1,56 @@
+[
+  {
+    "id": "brinehold",
+    "name": "Brinehold",
+    "order": 0,
+    "ship": "MVP",
+    "exclusive_units": ["gulper", "coral_lance"],
+    "starter_stacks": { "gulper": 20, "coral_lance": 10 },
+    "craft_mat": "gillplate",
+    "unlock_research": "brinehold_unlock"
+  },
+  {
+    "id": "stonekeel",
+    "name": "Stonekeel",
+    "order": 1,
+    "ship": "S1",
+    "exclusive_units": ["rubbleback", "slabguard"],
+    "starter_stacks": { "rubbleback": 15, "slabguard": 15 },
+    "craft_mat": "mandrake_slag",
+    "unlock_research": "stonekeel_unlock",
+    "requires": ["brinehold"]
+  },
+  {
+    "id": "cinderreach",
+    "name": "Cinderreach",
+    "order": 2,
+    "ship": "S1",
+    "exclusive_units": ["magmajaw", "ashspit"],
+    "starter_stacks": {},
+    "craft_mat": "volcanic_seal",
+    "unlock_research": "cinderreach_unlock",
+    "requires": ["stonekeel"]
+  },
+  {
+    "id": "galeari",
+    "name": "Galeari",
+    "order": 3,
+    "ship": "S1",
+    "exclusive_units": ["wailer", "shearwing"],
+    "starter_stacks": {},
+    "craft_mat": "wind_talon",
+    "unlock_research": "galeari_unlock",
+    "requires": ["cinderreach"]
+  },
+  {
+    "id": "mnemolith",
+    "name": "Mnemolith",
+    "order": 4,
+    "ship": "S1",
+    "exclusive_units": ["soulwright", "echo_stalker", "titan_echo"],
+    "starter_stacks": {},
+    "craft_mat": "reaper_totem",
+    "unlock_research": "mnemolith_unlock",
+    "requires": ["galeari"]
+  }
+]

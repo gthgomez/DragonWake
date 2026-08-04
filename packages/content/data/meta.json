@@ -1,5 +1,13 @@
 {
-  "version": "0.1.0",
-  "source": "combat-balance CSVs + GDD hand tables",
-  "generated": "2026-07-24"
+  "version": "0.2.0-s1",
+  "source": "combat-balance CSVs + GDD hand tables + S1 freeze",
+  "generated": "2026-07-25",
+  "campaign": "S1",
+  "citadel_ladder": [
+    "brinehold",
+    "stonekeel",
+    "cinderreach",
+    "galeari",
+    "mnemolith"
+  ]
 }

@@ -36,7 +36,25 @@ export type MarchIntent =
   | "reinforce"
   | "haul";
 
-export type CityKind = "capital" | "brinehold" | "citadel_other";
+/** Capital + MVP Brinehold + S1 ladder citadels (see PRODUCT_FREEZE_S1). */
+export type CityKind =
+  | "capital"
+  | "brinehold"
+  | "stonekeel"
+  | "cinderreach"
+  | "galeari"
+  | "mnemolith"
+  | "citadel_other";
+
+export const S1_CITADEL_ORDER = [
+  "brinehold",
+  "stonekeel",
+  "cinderreach",
+  "galeari",
+  "mnemolith",
+] as const;
+
+export type S1CitadelKind = (typeof S1_CITADEL_ORDER)[number];
 
 export type PlayerPublic = {
   id: string;

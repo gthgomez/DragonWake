@@ -76,6 +76,8 @@ export const adminGrantSchema = z.object({
   chronite: z.number().int().min(0).optional(),
   skipProtection: z.boolean().optional(),
   brineholdUnlock: z.boolean().optional(),
+  stonekeelUnlock: z.boolean().optional(),
+  citadelUnlock: z.string().min(1).max(32).optional(),
   items: z.record(z.string(), z.number().int().min(0)).optional(),
 });
 

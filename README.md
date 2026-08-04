@@ -156,11 +156,16 @@ Design plan (read-only authority):
 
 | Phase | Focus | Status |
 |-------|--------|--------|
-| **B0** | Residual closeout (PG test honesty, live T7, full PvP test, compose smoke) | **Done** (2026-07-25) |
-| **P0** | Playable polish (events/toasts, report/map UX, rate limits, Zod, CI) | **Done** (2026-07-25) |
-| **S1** | Arena, Tidebeast, Mnemolith, citadel ladder, market, etc. | After freeze |
+| **B0** | Residual closeout | **Done** |
+| **P0** | Playable polish | **Done** |
+| **S1.0–S1.1** | Freeze + **Stonekeel** citadel | **In progress / landed** |
+| **S1.2+** | Cinderreach → Mnemolith, Arena, Tidebeast, Market… | Next |
 
-P0 notes: `docs/P0_M1_M11_EVIDENCE.md` · events poll `GET /api/v1/events?since=` · SSE `/api/v1/events/stream` · CI `.github/workflows/ci.yml`
+S1 design authority:  
+`research/dragons-of-atlantis/pre-implementation/PRODUCT_FREEZE_S1.md`  
+Board: `IMPLEMENTATION_BOARD_S1.md` · Accept: `ACCEPTANCE_S1.md`
+
+Found Stonekeel: `POST /api/v1/citadels/found` `{ "kind": "stonekeel", "unlock": true }`
 
 ## OUT OF SCOPE (MVP; S1 only with new freeze)
 
