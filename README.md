@@ -2,8 +2,29 @@
 
 Multiplayer web MMORTS MVP beta (async city builder + map combat).
 
-**Design authority (read-only):**  
-`C:\Workspace\research\dragons-of-atlantis\pre-implementation\`
+## Design authority
+
+Read these before changing fiction, content IDs, or client presentation:
+
+1. [`docs/design/DIRECTION_FREEZE_V1.md`](docs/design/DIRECTION_FREEZE_V1.md) — **FROZEN** product + lore direction
+2. [`docs/design/CANON_AUTHORITY.md`](docs/design/CANON_AUTHORITY.md) — authority stack
+3. [`docs/design/LORE_BIBLE_V1.md`](docs/design/LORE_BIBLE_V1.md) — once approved (does not exist yet)
+4. [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md) — Phase 0–7 sequence
+
+Current implementation is authoritative **only** where those documents do
+not contradict it.
+
+Historical Dragons of Atlantis research
+(`C:\Workspace\research\dragons-of-atlantis\pre-implementation\`) is
+**reference only, NON-AUTHORITATIVE.** Do not treat it as the product
+direction. The MMORTS loop survives because Direction Freeze §28
+explicitly preserves it.
+
+Lore Bible v1 is not written yet. Scope only:
+[`docs/design/LORE_BIBLE_V1_BRIEF.md`](docs/design/LORE_BIBLE_V1_BRIEF.md).
+
+Do not start content-heavy mobile UI against the current aquatic / elemental
+content model.
 
 ## Stack
 
@@ -23,6 +44,7 @@ apps/server       — API + sim loop (queues, marches, combat, alliances)
 packages/shared   — shared types
 packages/combat   — resolveBattle (deterministic)
 packages/content  — JSON game data
+docs/design       — Direction Freeze, canon authority, migration plan
 ```
 
 ## Prerequisites
@@ -82,6 +104,10 @@ Authorization: Bearer <token>
 ## ACCEPTANCE_MVP manual path (M1–M11)
 
 Environment: `pnpm dev` (or `docker compose up -d db` + server/web), two browser profiles or two guest logins.
+
+These steps still describe the **current implementation**. They are not the
+target fiction. Do not copy Brinecant / Reefbow / Harbinger / Brinehold /
+Harbor into new content.
 
 | Step | Action | Pass if |
 |------|--------|---------|
@@ -149,22 +175,33 @@ pnpm --filter @tideforge/web typecheck                # T8
 | A10 Shop stub + tutorial + dailies + README | Done |
 | Exit gate | M1–M11 automated; **B0 residual closeout done** (T7 honesty + full PvP + scout/haul) |
 
-## Next campaign (post-MVP)
+## Next campaign
 
-Design plan (read-only authority):  
-`C:\Workspace\research\dragons-of-atlantis\pre-implementation\POST_MVP_ITERATION.md`
+This is a **domain-preserving migration**, not a rewrite and not a skin swap.
+See [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md).
 
 | Phase | Focus | Status |
 |-------|--------|--------|
-| **B0** | Residual closeout (PG test honesty, live T7, full PvP test, compose smoke) | **Done** (2026-07-25) |
-| **P0** | Playable polish (events/toasts, report/map UX, rate limits, Zod, CI) | **Done** (2026-07-25) |
-| **S1** | Arena, Tidebeast, Mnemolith, citadel ladder, market, etc. | After freeze |
+| **0** | Authority freeze (this tree) | In progress |
+| **1** | Lore Bible v1 (one region) | Not started |
+| **2** | Mechanical translation design | Blocked on 1 |
+| **3** | Decouple old canon from engine (migrations) | Blocked on 2 |
+| **4** | Content conversion | Blocked on 2–3 |
+| **5** | Web vertical slice (castle → Codex → lesser dragon) | Blocked on 4 |
+| **6** | Mobile client against stabilized semantics | After 5 |
+| **7** | Dragon systems (expeditions, anatomy, bonding) | After 5 |
 
 P0 notes: `docs/P0_M1_M11_EVIDENCE.md` · events poll `GET /api/v1/events?since=` · SSE `/api/v1/events/stream` · CI `.github/workflows/ci.yml`
 
-## OUT OF SCOPE (MVP; S1 only with new freeze)
+## OUT OF SCOPE (until a later freeze)
 
-Arena, world boss, citadels past Brinehold, Mnemolith/Echo, live market, native mobile, real IAP, Hardcore realms.
+Arena, world boss, citadels past the second-settlement system, Mnemolith/Echo,
+live market, real IAP, Hardcore realms.
+
+Native mobile **architecture** may be planned in parallel. Native mobile
+**content-heavy UI** waits until Phase 6.
+
+Old S1 labels (Tidebeast, Mnemolith, elemental factions) are historical.
 
 ## License
 
