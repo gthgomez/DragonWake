@@ -77,6 +77,10 @@ For each creature in §4, answer:
 
 If those answers are missing, the species name is decoration.
 
+Ecology answers are **heavier** than names. A later rename is cheap. A
+wrong food web or "why they still coexist" answer is expensive.
+
+
 ### 4. Four to six dragon-related creatures in this region
 
 Do not create 43 dragons.
@@ -178,6 +182,10 @@ Not every entry has to be objectively correct. A medieval scholar may write
 that iron repels valley wyrms; later evidence can prove the belief false.
 That creates lore → investigation → gameplay knowledge.
 
+v1 is a **seed**, not an encyclopedia. Aim for a few dozen entries across
+the three books, many incomplete or wrong. Do not finish a taxonomy.
+
+
 ### 11. Monetization philosophy (product, parked beside lore)
 
 Not gacha. The current shop is deterministic speedups and protection.
@@ -188,9 +196,12 @@ rare, mysterious magic.
 The Bible should record a **provisional** stance:
 
 - Convenience items must be mundane wartime stores, not everyday spellcasting.
-- A separate product freeze is still required for what TideForge monetization
-  is allowed to become. That freeze can happen in parallel with the Bible; it
-  must happen before Phase 4 content conversion.
+- Speedups are not gacha, but they threaten the frozen rule that distance
+  and time matter. Decide whether march time and build queues can be skipped
+  at all, what a shield is in-world, and what the paid currency is made of.
+- That product freeze is a Phase 1/2 deliverable. It must exist before
+  Phase 4 content conversion.
+
 
 ## Explicitly out of scope for v1
 

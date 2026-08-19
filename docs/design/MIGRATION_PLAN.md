@@ -233,8 +233,13 @@ This is where Brinehold, harbor posture, harness, Chronite, Sovereign, and
 city kinds are decided as *systems*, not renamed blindly.
 
 Also decide the target domain model for commanders / beasts / True Dragons.
+**Decide** the fate of `sovereigns` (delete / repurpose / human-only).
+Write the combat-model destination: which future factors the resolver must
+remain able to express, and which current RPS stand-ins Phase 4 may keep.
 
-**Exit:** signed translation table. This is the contract for Phases 3–4.
+**Exit:** signed translation table + Sovereign decision + combat-model
+destination note. This is the contract for Phases 3–4.
+
 
 ### Phase 3 — Decouple old canon from the engine
 
@@ -315,7 +320,86 @@ canon or ship rejected fiction:
 
 Those require a new freeze after Phase 5 at the earliest.
 
+## Second-pass constraints
+
+These are not disagreements with the 13 corrections. They stop the
+corrections from being applied too loosely.
+
+### Domain-preserving is not abstraction-preserving
+
+"Preserve the sim" does not mean preserve Sovereign, faction CHECKs, or
+harness fields as concepts. Phase 3 may kill an abstraction. If an old
+type only exists because DoA needed a dragon-shaped troop, it does not get
+a medieval rename.
+
+### Phase 2 must decide Sovereign, not investigate it
+
+Allowed outcomes:
+
+- delete
+- repurpose into a non-dragon domain object
+- restrict to human commanders and never reuse for True Dragons
+
+"Investigate later" is not an exit. Harbinger's *structural* collision
+(army-wide aura + 5,000 life + stacks with thousands of troops) is already
+enough to forbid `Sovereign` as the True Dragon type.
+
+### Combat-model destination belongs in Phase 2
+
+Do not implement armor, morale, ammunition, or anatomy in v1.
+
+Do write, before Phase 4, which of those the resolver must be *able* to
+grow into, and which current RPS assumptions the first medieval roster is
+allowed to keep as a temporary stand-in. Otherwise Phase 4 will paste
+Pikeman onto Melee and call it first principles.
+
+### Power estimates must be lossy
+
+If the number is a transparent sum of the same stats the engine uses,
+players will still play Power Score.
+
+The estimate should be at least one of:
+
+- composition-blind
+- scouting-gated
+- wrong in known ways
+- shown as a range
+
+The battle engine does not consume it.
+
+### Monetization freeze is a Phase 1/2 deliverable
+
+Speedups are not gacha. They *are* a threat to Freeze §21 (distance and
+time matter). The naming fix (no everyday time magic) is insufficient.
+
+Before Phase 4, decide:
+
+- whether march time can be skipped
+- whether build queues can be skipped
+- what a shield is, in-world
+- what the paid currency is made of
+
+### Codex v1 is a seed, not an encyclopedia
+
+Three books is the right shape. The vertical slice only needs a few dozen
+entries, many incomplete or wrong. A scholar's error is more valuable than
+a finished taxonomy.
+
+### Creature names are provisional; ecology answers are heavier
+
+If a later pass renames the valley wyrm, nothing breaks. If "what does it
+eat / why haven't humans wiped it out" is wrong, the world is wrong.
+
+### Mobile spikes cannot freeze a content schema
+
+Safe now: client choice, auth, package boundaries, report DTO shape,
+offline cache *strategy*.
+
+Not safe before Phase 2: content sync contracts that bake current unit IDs,
+resource names, or sovereign fields into a mobile API.
+
 ## Review corrections absorbed into this plan
+
 
 1. Domain-preserving migration, not a skin swap. Schema / API / IDs move.
 2. Do not assume Harbinger is a dragon. Separate commanders, beasts, True Dragons.
