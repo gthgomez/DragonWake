@@ -61,6 +61,10 @@ CREATE TABLE cities (
   UNIQUE (realm_id, map_x, map_y)
 );
 
+ALTER TABLE cities ADD COLUMN IF NOT EXISTS population INT NOT NULL DEFAULT 0;
+ALTER TABLE cities ADD COLUMN IF NOT EXISTS max_population INT NOT NULL DEFAULT 0;
+ALTER TABLE cities ADD COLUMN IF NOT EXISTS used_manpower INT NOT NULL DEFAULT 0;
+
 CREATE INDEX cities_player_idx ON cities(player_id);
 
 CREATE TABLE buildings (
@@ -241,6 +245,24 @@ CREATE TABLE tutorial_progress (
   player_id       UUID PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE,
   step            INT NOT NULL DEFAULT 0,
   completed       BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE bestiary_entries (
+  player_id       UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  entry_id        TEXT NOT NULL,
+  observation_level INT NOT NULL DEFAULT 0,
+  encounter_count INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (player_id, entry_id)
+);
+
+CREATE TABLE dragon_progress (
+  player_id       UUID PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE,
+  bestiary_studied INT NOT NULL DEFAULT 0,
+  research_level  INT NOT NULL DEFAULT 0,
+  materials_collected INT NOT NULL DEFAULT 0,
+  camp_types_defeated TEXT[] NOT NULL DEFAULT '{}',
+  expedition_stage INT NOT NULL DEFAULT 0,
+  charter_earned  BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE quest_progress (

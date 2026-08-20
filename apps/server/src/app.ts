@@ -858,6 +858,29 @@ export function createApp(world: World) {
     });
   });
 
+  // Expedition start/complete-stage endpoints
+  api.post("/dragon/expedition/start", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = (await c.req.json().catch(() => ({}))) as { expeditionId?: string };
+    const expeditionId = body.expeditionId ?? "first_dragon_expedition";
+    const result = world.startExpedition(player.id, expeditionId);
+    if (!result) return err(c, "EXPEDITION_FAIL", "cannot start expedition — check readiness");
+    return c.json(result);
+  });
+
+  api.post("/dragon/expedition/complete-stage", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = (await c.req.json().catch(() => ({}))) as { expeditionId?: string; stageNumber?: number };
+    const expeditionId = body.expeditionId ?? "first_dragon_expedition";
+    const stageNumber = Number(body.stageNumber);
+    if (!stageNumber || stageNumber < 1) return err(c, "VALIDATION", "stageNumber required");
+    const result = world.completeExpeditionStage(player.id, expeditionId, stageNumber);
+    if (!result) return err(c, "EXPEDITION_FAIL", "cannot complete stage");
+    return c.json(result);
+  });
+
   api.get("/dragon/clues", (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);

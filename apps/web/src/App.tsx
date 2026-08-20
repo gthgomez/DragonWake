@@ -18,23 +18,23 @@ const FACTION_META: Record<
   { label: string; blurb: string; accent: string }
 > = {
   brinecant: {
-    label: "Brinecant",
-    blurb: "Reef forges and tidal discipline — salt-hardened archers and barges.",
+    label: "Northern Kingdom",
+    blurb: "Hardy soldiers and fortified keeps — defenders of the realm.",
     accent: "brine",
   },
   ashcoil: {
-    label: "Ashcoil",
-    blurb: "Ember coasts and slag pits — iron will, brutal melee pressure.",
+    label: "Mountain Realm",
+    blurb: "Miners and smiths — iron and stone shape their destiny.",
     accent: "ash",
   },
   skyshear: {
-    label: "Skyshear",
-    blurb: "High wind corridors — scouts, skyshrikes, and open-water range.",
+    label: "Forest People",
+    blurb: "Archers and scouts — the woods are their domain.",
     accent: "sky",
   },
   mossvault: {
-    label: "Mossvault",
-    blurb: "Sunken vaults and kelp farms — slow power, deep logistics.",
+    label: "Coastal Lords",
+    blurb: "Ships and trade — they control the sea lanes.",
     accent: "moss",
   },
 };
@@ -244,11 +244,11 @@ function canAfford(res: Resources, cost: Partial<Resources>): boolean {
 
 function unitTrainCost(u: UnitDef, count: number): Partial<Resources> {
   return {
-    kelp: (u.cost_kelp ?? 0) * count,
-    driftwood: (u.cost_driftwood ?? 0) * count,
-    basalt: (u.cost_basalt ?? 0) * count,
-    slagiron: (u.cost_slagiron ?? 0) * count,
-    tidegilt: (u.cost_tidegilt ?? 0) * count,
+    kelp: ((u as any).cost_food ?? u.cost_kelp ?? 0) * count,
+    driftwood: ((u as any).cost_timber ?? u.cost_driftwood ?? 0) * count,
+    basalt: ((u as any).cost_stone ?? u.cost_basalt ?? 0) * count,
+    slagiron: ((u as any).cost_iron ?? u.cost_slagiron ?? 0) * count,
+    tidegilt: ((u as any).cost_coin ?? u.cost_tidegilt ?? 0) * count,
   };
 }
 
@@ -370,11 +370,11 @@ export function App() {
   const [displayName, setDisplayName] = useState("Guest");
   const [faction, setFaction] = useState("brinecant");
   const [chatBody, setChatBody] = useState("");
-  const [allyName, setAllyName] = useState("Tideband");
+  const [allyName, setAllyName] = useState("Alliance");
   const [allyTag, setAllyTag] = useState("TIDE");
   const [comp, setComp] = useState<Record<string, number>>({
     levy: 20,
-    reefbow: 10,
+    bowman: 10,
   });
   const [pvpX, setPvpX] = useState(0);
   const [pvpY, setPvpY] = useState(0);
@@ -780,7 +780,7 @@ export function App() {
 
   async function createAlly() {
     if (!token) return;
-    await run("Tideband created", async () => {
+    await run("Alliance created", async () => {
       const data = await api<{
         alliance: { id: string; name: string; tag: string };
       }>("/api/v1/alliances", token, {
@@ -801,7 +801,7 @@ export function App() {
 
   async function joinAlly(tagOrId: { tag?: string; allianceId?: string }) {
     if (!token) return;
-    await run("Joined Tideband", async () => {
+    await run("Joined alliance", async () => {
       await api("/api/v1/alliances/join", token, {
         method: "POST",
         body: JSON.stringify(tagOrId),
@@ -990,7 +990,7 @@ export function App() {
       ...Object.keys(city.stacks).filter((k) => (city.stacks[k] ?? 0) > 0),
       ...Object.keys(comp),
       "levy",
-      "reefbow",
+      "bowman",
     ]);
     return [...ids];
   }, [city, comp]);
@@ -1001,9 +1001,9 @@ export function App() {
         (u) =>
           u.unlock === "start" ||
           u.id === "levy" ||
-          u.id === "reefbow" ||
-          u.id === "whisper" ||
-          u.id === "bearer",
+          u.id === "bowman" ||
+          u.id === "scout" ||
+          u.id === "porter",
       ),
     [units],
   );
@@ -1355,7 +1355,7 @@ export function App() {
                 ? startUnits
                 : [
                     { id: "levy", name: "Levy" },
-                    { id: "reefbow", name: "Reefbow" },
+                    { id: "bowman", name: "Bowman" },
                   ]
               ).map((u) => {
                 const def = units.find((x) => x.id === u.id);
@@ -1681,7 +1681,7 @@ export function App() {
                 )}
                 {selectedInfo?.kind === "camp" && (
                   <p>
-                    <strong>Riftborn camp L{selectedInfo.camp.level}</strong>
+                    <strong>Bandit camp L{selectedInfo.camp.level}</strong>
                     <br />
                     <span className="muted">
                       Attack runs server combat and stores a War report.
@@ -1930,7 +1930,7 @@ export function App() {
 
         {tab === "alliance" && (
           <section className="card">
-            <h2>Tideband (Alliance)</h2>
+            <h2>Alliance</h2>
             {alliance ? (
               <>
                 <p>
@@ -1976,7 +1976,7 @@ export function App() {
                     placeholder="Tag"
                   />
                   <button type="button" onClick={() => void createAlly()}>
-                    Create Tideband
+                    Create alliance
                   </button>
                 </div>
                 <h3>Join by tag</h3>
@@ -2208,7 +2208,7 @@ export function App() {
                 type="button"
                 onClick={() =>
                   void grantDev(
-                    { units: { levy: 100, reefbow: 50 } },
+                    { units: { levy: 100, bowman: 50 } },
                     "Granted demo troops",
                   )
                 }

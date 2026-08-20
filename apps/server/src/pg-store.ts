@@ -5,6 +5,7 @@
 import pg from "pg";
 import { createHash } from "node:crypto";
 import { applySchemaIfNeeded, findSchemaPath, tryConnectPg } from "./pg.js";
+import { getUnitById } from "@tideforge/content";
 import type {
   Alliance,
   AllianceMember,
@@ -161,9 +162,10 @@ export class PgStore {
           plots: [],
           stacks: {},
           research: {},
-          population: 0,
-          maxPopulation: 0,
-          usedManpower: 0,
+          population: Number(row.population ?? 0),
+          maxPopulation: Number(row.max_population ?? 0),
+          usedManpower: Number(row.used_manpower ?? 0),
+          marchedManpower: 0,
         };
         world.cities.set(city.id, city);
         world.usedTiles.add(`${city.mapX},${city.mapY}`);
@@ -350,6 +352,36 @@ export class PgStore {
         world.tutorials.set(t.playerId, t);
       }
 
+      // Bestiary entries
+      const bestRows = await client.query(
+        `SELECT * FROM bestiary_entries WHERE player_id IN (SELECT id FROM players WHERE realm_id = $1)`,
+        [world.realmId],
+      );
+      for (const row of bestRows.rows) {
+        const key = `${row.player_id}:${row.entry_id}`;
+        world.bestiary.set(key, {
+          entryId: row.entry_id,
+          observationLevel: row.observation_level,
+          encounterCount: row.encounter_count,
+        });
+      }
+
+      // Dragon progress
+      const dpRows = await client.query(
+        `SELECT * FROM dragon_progress WHERE player_id IN (SELECT id FROM players WHERE realm_id = $1)`,
+        [world.realmId],
+      );
+      for (const row of dpRows.rows) {
+        world.dragonProgress.set(row.player_id, {
+          bestiaryStudied: row.bestiary_studied,
+          researchLevel: row.research_level,
+          materialsCollected: row.materials_collected,
+          campTypesDefeated: new Set(row.camp_types_defeated ?? []),
+          expeditionStage: row.expedition_stage,
+          charterEarned: row.charter_earned,
+        });
+      }
+
       const allies = await client.query(`SELECT * FROM alliances WHERE realm_id = $1`, [
         world.realmId,
       ]);
@@ -397,6 +429,23 @@ export class PgStore {
       // If no map entities at all, keep constructor seed (already present)
       if (!hasMap && world.camps.size === 0) {
         world.seedMap();
+      }
+
+      // Recompute manpower for all cities
+      world.recalculateAllManpower();
+
+      // Recompute marchedManpower for all cities
+      for (const city of world.cities.values()) {
+        let marchedPop = 0;
+        for (const march of world.marches.values()) {
+          if (march.playerId !== city.playerId || march.fromCityId !== city.id) continue;
+          if (march.status !== "en_route" && march.status !== "returning") continue;
+          for (const [unitId, count] of Object.entries(march.composition)) {
+            const unit = getUnitById(unitId);
+            if (unit) marchedPop += unit.pop * count;
+          }
+        }
+        city.marchedManpower = marchedPop;
       }
 
       return {
@@ -502,9 +551,9 @@ export class PgStore {
           `INSERT INTO cities (
              id, player_id, realm_id, kind, name, map_x, map_y,
              kelp, driftwood, basalt, slagiron, tidegilt,
-             defense_posture, last_resource_tick
+             defense_posture, last_resource_tick, population, max_population, used_manpower
            ) VALUES (
-             $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,to_timestamp($14/1000.0)
+             $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,to_timestamp($14/1000.0),$15,$16,$17
            )
            ON CONFLICT (id) DO UPDATE SET
              kind=EXCLUDED.kind,
@@ -515,7 +564,10 @@ export class PgStore {
              slagiron=EXCLUDED.slagiron,
              tidegilt=EXCLUDED.tidegilt,
              defense_posture=EXCLUDED.defense_posture,
-             last_resource_tick=EXCLUDED.last_resource_tick`,
+             last_resource_tick=EXCLUDED.last_resource_tick,
+             population=EXCLUDED.population,
+             max_population=EXCLUDED.max_population,
+             used_manpower=EXCLUDED.used_manpower`,
           [
             c.id,
             c.playerId,
@@ -531,6 +583,9 @@ export class PgStore {
             c.resources.tidegilt,
             c.defensePosture,
             c.lastResourceTick,
+            c.population,
+            c.maxPopulation,
+            c.usedManpower,
           ],
         );
 
@@ -714,6 +769,44 @@ export class PgStore {
            VALUES ($1,$2,$3)
            ON CONFLICT (player_id) DO UPDATE SET step=EXCLUDED.step, completed=EXCLUDED.completed`,
           [t.playerId, t.step, t.completed],
+        );
+      }
+
+      // Bestiary entries
+      for (const [key, entry] of world.bestiary.entries()) {
+        const [playerId, entryId] = [key.split(":")[0], key.split(":").slice(1).join(":")];
+        if (!playerId || !entryId) continue;
+        await client.query(
+          `INSERT INTO bestiary_entries (player_id, entry_id, observation_level, encounter_count)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (player_id, entry_id) DO UPDATE SET
+             observation_level=EXCLUDED.observation_level,
+             encounter_count=EXCLUDED.encounter_count`,
+          [playerId, entryId, entry.observationLevel, entry.encounterCount],
+        );
+      }
+
+      // Dragon progress
+      for (const [playerId, progress] of world.dragonProgress.entries()) {
+        await client.query(
+          `INSERT INTO dragon_progress (player_id, bestiary_studied, research_level, materials_collected, camp_types_defeated, expedition_stage, charter_earned)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (player_id) DO UPDATE SET
+             bestiary_studied=EXCLUDED.bestiary_studied,
+             research_level=EXCLUDED.research_level,
+             materials_collected=EXCLUDED.materials_collected,
+             camp_types_defeated=EXCLUDED.camp_types_defeated,
+             expedition_stage=EXCLUDED.expedition_stage,
+             charter_earned=EXCLUDED.charter_earned`,
+          [
+            playerId,
+            progress.bestiaryStudied,
+            progress.researchLevel,
+            progress.materialsCollected,
+            [...progress.campTypesDefeated],
+            progress.expeditionStage,
+            progress.charterEarned,
+          ],
         );
       }
 

@@ -74,6 +74,7 @@ export type City = {
   population: number;
   maxPopulation: number;
   usedManpower: number;
+  marchedManpower: number;
 };
 export type QueueJob = {
   id: string;
@@ -217,7 +218,7 @@ export const DAILY_QUEST_DEFS = [
   },
   {
     id: "camp",
-    title: "Attack a Riftborn camp",
+    title: "Attack a bandit camp",
     rewardChronite: 5,
   },
 ] as const;
@@ -285,9 +286,23 @@ function recalculateManpower(city: City): number {
   return used;
 }
 
-/** Available manpower = maxPopulation - usedManpower. */
+/** Compute manpower committed to active marches from a city. */
+function computeMarchedManpower(world: World, playerId: string, cityId: string): number {
+  let total = 0;
+  for (const march of world.marches.values()) {
+    if (march.playerId !== playerId || march.fromCityId !== cityId) continue;
+    if (march.status !== "en_route" && march.status !== "returning") continue;
+    for (const [unitId, count] of Object.entries(march.composition)) {
+      const unit = getUnitById(unitId);
+      if (unit) total += unit.pop * count;
+    }
+  }
+  return total;
+}
+
+/** Available manpower = maxPopulation - usedManpower - marchedManpower. */
 function availableManpower(city: City): number {
-  return city.maxPopulation - city.usedManpower;
+  return Math.max(0, (city.maxPopulation ?? 0) - (city.usedManpower ?? 0) - (city.marchedManpower ?? 0));
 }
 
 function hashToken(token: string): string {
@@ -680,11 +695,12 @@ export class World {
         plotType: null,
         level: 0,
       })),
-      stacks: { levy: 50, bearer: 10, whisper: 5 },
+      stacks: { levy: 50, porter: 10, scout: 5 },
       research: {},
       population: BASE_POPULATION,
       maxPopulation: 0,
       usedManpower: 0,
+      marchedManpower: 0,
     };
     city.maxPopulation = computeMaxPopulation(city);
     city.usedManpower = recalculateManpower(city);
@@ -928,7 +944,16 @@ export class World {
 
   setPosture(cityId: string, playerId: string, posture: DefensePosture): City {
     const city = this.requireCityOwner(cityId, playerId);
+    // Posture cooldown: 5 minutes between changes (INITIAL_TEST_FIXTURE)
+    const POSTURE_COOLDOWN_MS = 5 * 60 * 1000;
+    const lastChange = (city as any)._lastPostureChange ?? 0;
+    if (this.now() - lastChange < POSTURE_COOLDOWN_MS) {
+      throw Object.assign(new Error("posture change on cooldown"), {
+        code: "POSTURE_COOLDOWN",
+      });
+    }
     city.defensePosture = posture;
+    (city as any)._lastPostureChange = this.now();
     this.cities.set(city.id, city);
     return city;
   }
@@ -1244,6 +1269,7 @@ export class World {
     for (const city of this.cities.values()) {
       city.maxPopulation = computeMaxPopulation(city);
       city.usedManpower = recalculateManpower(city);
+      city.marchedManpower = computeMarchedManpower(this, city.playerId, city.id);
       if (city.population > city.maxPopulation) {
         city.population = city.maxPopulation;
       }
@@ -1286,7 +1312,7 @@ export class World {
     for (const [uid, cnt] of Object.entries(opts.composition)) {
       city.stacks[uid] = (city.stacks[uid] ?? 0) - cnt;
     }
-    city.usedManpower = recalculateManpower(city);
+    city.marchedManpower = computeMarchedManpower(this, playerId, city.id);
 
     // Haul: deduct cargo from origin now; deliver on land
     const cargo: Partial<ResourceBag> = {};
@@ -1442,7 +1468,7 @@ export class World {
       for (const [uid, cnt] of Object.entries(march.composition)) {
         if (cnt > 0) city.stacks[uid] = (city.stacks[uid] ?? 0) + cnt;
       }
-      city.usedManpower = recalculateManpower(city);
+      city.marchedManpower = computeMarchedManpower(this, march.playerId, city.id);
       this.cities.set(city.id, city);
     }
     march.status = "completed";
@@ -2097,6 +2123,7 @@ export class World {
       population: BASE_POPULATION,
       maxPopulation: 0,
       usedManpower: 0,
+      marchedManpower: 0,
     };
     city.maxPopulation = computeMaxPopulation(city);
     city.usedManpower = recalculateManpower(city);

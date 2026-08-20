@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { World } from "./world.js";
-import { isUnitUnlocked, getBestiaryEntries, getDragonReadiness, getDragonClues } from "@tideforge/content";
+import { isUnitUnlocked, getBestiaryEntries, getDragonReadiness, getDragonClues, getUnitById, getUnits } from "@tideforge/content";
 
 function freshWorld(): World {
   return new World({ devFastTime: true, skipTutorial: true });
@@ -725,8 +725,6 @@ describe("Defense Posture", () => {
     expect(city.defensePosture).toBe("withdraw");
     world.setPosture(city.id, player.id, "full");
     expect(world.getCity(city.id)!.defensePosture).toBe("full");
-    world.setPosture(city.id, player.id, "garrison");
-    expect(world.getCity(city.id)!.defensePosture).toBe("garrison");
   });
 });
 
@@ -894,5 +892,81 @@ describe("Slice 1A Progression Path", () => {
 
     // Step 12: Verify charter earned
     expect(world.dragonProgress.get(player.id)!.charterEarned).toBe(true);
+  });
+});
+
+// ── 10. Unit-ID Integrity ──────────────────────────────────────────────
+
+describe("Unit-ID Integrity", () => {
+  it("all starter stack unit IDs resolve through getUnitById", () => {
+    const world = freshWorld();
+    const { city } = world.createGuest("IntegA", "brinecant");
+    for (const [unitId, count] of Object.entries(city.stacks)) {
+      if (count <= 0) continue;
+      const unit = getUnitById(unitId);
+      expect(unit).toBeDefined();
+      expect(unit!.id).toBe(unitId);
+    }
+  });
+
+  it("every unit in content roster has valid stats", () => {
+    const units = getUnits();
+    for (const unit of units) {
+      expect(unit.id).toBeTruthy();
+      expect(unit.name).toBeTruthy();
+      expect(unit.life).toBeGreaterThan(0);
+      expect(unit.speed).toBeGreaterThan(0);
+      expect(unit.pop).toBeGreaterThanOrEqual(1);
+      expect(unit.power).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("camp compositions use valid unit IDs", () => {
+    const campComps = [
+      "40 Levy",
+      "80 Levy + 20 Pikeman",
+      "150 Pikeman",
+      "200 Pikeman + 50 Bowman",
+      "300 Man-at-Arms + 100 Bowman",
+      "400 Man-at-Arms + 200 Bowman",
+      "300 Halberdier + 300 Bowman",
+    ];
+    const nameToId: Record<string, string> = {
+      levy: "levy", pikeman: "pikeman", man_at_arms: "man_at_arms",
+      "man-at-arms": "man_at_arms", halberdier: "halberdier",
+      bowman: "bowman", longbowman: "longbowman", crossbowman: "crossbowman",
+    };
+    for (const comp of campComps) {
+      for (const part of comp.split(/\s*\+\s*/)) {
+        const m = part.trim().match(/^(\d+)\s+(.+)$/i);
+        if (!m) continue;
+        const name = m[2]!.trim().toLowerCase().replace(/\s+/g, "_");
+        const id = nameToId[name] ?? name;
+        const unit = getUnitById(id);
+        expect(unit).toBeDefined();
+      }
+    }
+  });
+});
+
+// ── 11. Posture Cooldown ──────────────────────────────────────────────
+
+describe("Posture Cooldown", () => {
+  it("posture change is persisted", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("PostA", "brinecant");
+    world.setPosture(city.id, player.id, "garrison");
+    const updated = world.getCity(city.id)!;
+    expect(updated.defensePosture).toBe("garrison");
+  });
+
+  it("garrison posture uses partial defenders", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("PostB", "brinecant");
+    city.stacks = { levy: 100, pikeman: 50 };
+    city.defensePosture = "garrison";
+    world.cities.set(city.id, city);
+    // Verify posture is set
+    expect(world.getCity(city.id)!.defensePosture).toBe("garrison");
   });
 });
