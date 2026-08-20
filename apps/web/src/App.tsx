@@ -5,6 +5,14 @@ const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const BUILD_COST = { kelp: 100, driftwood: 100 } as const;
 const PLOT_ASSIGN_COST = { kelp: 80, driftwood: 40 } as const;
 
+const RESOURCE_DISPLAY: Record<string, string> = {
+  kelp: "Food",
+  driftwood: "Timber",
+  basalt: "Stone",
+  slagiron: "Iron",
+  tidegilt: "Coin",
+};
+
 const FACTION_META: Record<
   string,
   { label: string; blurb: string; accent: string }
@@ -32,24 +40,22 @@ const FACTION_META: Record<
 };
 
 const TAB_LABELS: Record<Tab, string> = {
-  city: "City",
-  grounds: "Grounds",
-  map: "Map",
+  castle: "Castle",
+  lands: "Lands",
+  realm: "Realm",
   war: "War",
   alliance: "Alliance",
-  shop: "Shop",
-  codex: "Codex",
+  knowledge: "Knowledge",
   settings: "Settings",
 };
 
 type Tab =
-  | "city"
-  | "grounds"
-  | "map"
+  | "castle"
+  | "lands"
+  | "realm"
   | "war"
   | "alliance"
-  | "shop"
-  | "codex"
+  | "knowledge"
   | "settings";
 
 type Resources = {
@@ -74,6 +80,10 @@ type City = {
   research: Record<string, number>;
   productionPerHour?: Resources;
   ownedWilderness?: number;
+  population?: number;
+  maxPopulation?: number;
+  usedManpower?: number;
+  maxManpower?: number;
 };
 
 type Player = {
@@ -268,11 +278,11 @@ function lootList(loot?: Partial<Resources>): string {
 }
 
 function postureLabel(posture?: string, harborLoot?: boolean): string {
-  if (harborLoot) return "Harbor (free loot — no wall fight)";
+  if (harborLoot) return "Withdraw (free loot — no wall fight)";
   if (posture === "full") return "Full defense (stacks fought)";
-  if (posture === "partial") return "Partial defense";
-  if (posture === "harbor") return "Harbor";
-  return harborLoot === false ? "Fought (not harbor loot)" : "—";
+  if (posture === "garrison") return "Garrison (only garrisoned troops fight)";
+  if (posture === "withdraw") return "Withdraw";
+  return harborLoot === false ? "Fought (not withdraw loot)" : "—";
 }
 
 function formatIntel(intel: BattleReport["result"]["intel"]): string {
@@ -306,7 +316,7 @@ function reportHeadline(r: BattleReport, youId: string): string {
   if (t === "haul")
     return r.result?.delivered ? "Haul delivered" : "Haul bounced";
   if (t === "pvp") {
-    return r.result?.harborLoot ? "Harbor raid" : "Full defense PvP";
+    return r.result?.harborLoot ? "Withdraw raid" : "Full defense PvP";
   }
   if (t === "attack") return "Camp attack";
   if (t === "occupy") return "Occupy wilderness";
@@ -323,7 +333,7 @@ function plotLabel(id: string | null): string {
 }
 
 export function App() {
-  const [tab, setTab] = useState<Tab>("city");
+  const [tab, setTab] = useState<Tab>("castle");
   const [token, setToken] = useState<string | null>(
     () => localStorage.getItem("tideforge_token"),
   );
@@ -349,9 +359,6 @@ export function App() {
     { body: string; fromPlayerId: string; createdAt?: number }[]
   >([]);
   const [formulas, setFormulas] = useState<unknown>(null);
-  const [catalog, setCatalog] = useState<
-    { id: string; name: string; chronite: number }[]
-  >([]);
   const [units, setUnits] = useState<UnitDef[]>([]);
   const [sovereigns, setSovereigns] = useState<
     { id: string; sovereignType: string; harnessComplete: boolean }[]
@@ -847,24 +854,6 @@ export function App() {
     setFormulas(data.formulas);
   }
 
-  async function loadShop() {
-    const data = await api<{
-      catalog: { id: string; name: string; chronite: number }[];
-    }>("/api/v1/shop/catalog", token);
-    setCatalog(data.catalog);
-  }
-
-  async function buyItem(itemId: string) {
-    if (!token) return;
-    await run(`Bought ${itemId}`, async () => {
-      await api("/api/v1/shop/buy", token, {
-        method: "POST",
-        body: JSON.stringify({ itemId }),
-      });
-      await refreshMe(token);
-    });
-  }
-
   async function grantDev(body: Record<string, unknown>, label: string) {
     if (!token) return;
     await run(label, async () => {
@@ -998,7 +987,7 @@ export function App() {
         </div>
         <header className="hero">
           <p className="eyebrow">Tideforge Empires · MVP Beta</p>
-          <h1>Claim a forge on the tide</h1>
+          <h1>Claim a keep in a dangerous age</h1>
           <p className="tag">{factionMeta.blurb}</p>
         </header>
         <main>
@@ -1073,13 +1062,12 @@ export function App() {
               className={tab === t ? "active" : ""}
               onClick={() => {
                 setTab(t);
-                if (t === "map") void loadMap().catch((e) => setError(String(e)));
+                if (t === "realm") void loadMap().catch((e) => setError(String(e)));
                 if (t === "war") {
                   setUnreadReports(0);
                   void loadReports().catch((e) => setError(String(e)));
                 }
-                if (t === "codex") void loadCodex().catch((e) => setError(String(e)));
-                if (t === "shop") void loadShop().catch((e) => setError(String(e)));
+                if (t === "knowledge") void loadCodex().catch((e) => setError(String(e)));
                 if (t === "alliance")
                   void loadAlliances().catch((e) => setError(String(e)));
               }}
@@ -1189,7 +1177,7 @@ export function App() {
           </div>
         </section>
 
-        {tab === "city" && city && (
+        {tab === "castle" && city && (
           <section className="card">
             <h2>
               {city.name}{" "}
@@ -1217,7 +1205,7 @@ export function App() {
             <ul className="res-grid">
               {(Object.keys(city.resources) as (keyof Resources)[]).map((k) => (
                 <li key={k}>
-                  <strong>{k}</strong>
+                  <strong>{RESOURCE_DISPLAY[k] ?? k}</strong>
                   <span className="res-val">{city.resources[k]}</span>
                   {rates && (
                     <span className="res-rate">+{rates[k]}/h</span>
@@ -1225,6 +1213,40 @@ export function App() {
                 </li>
               ))}
             </ul>
+
+            <h3>Population & Manpower</h3>
+            <div className="pop-bar-container">
+              <div className="pop-row">
+                <span>Population: {city.population ?? 0} / {city.maxPopulation ?? "—"}</span>
+              </div>
+              <div className="bar">
+                <div
+                  className="bar-fill"
+                  style={{
+                    width: city.maxPopulation
+                      ? `${Math.min(100, ((city.population ?? 0) / city.maxPopulation) * 100)}%`
+                      : "0%",
+                  }}
+                />
+              </div>
+              <div className="pop-row">
+                <span>
+                  Available Manpower: {(city.maxManpower ?? 0) - (city.usedManpower ?? 0)}{" "}
+                  (of {city.maxManpower ?? 0})
+                </span>
+              </div>
+              <div className="bar">
+                <div
+                  className="bar-fill"
+                  style={{
+                    width: city.maxManpower
+                      ? `${Math.min(100, ((city.usedManpower ?? 0) / city.maxManpower) * 100)}%`
+                      : "0%",
+                    background: "linear-gradient(90deg, var(--ok), var(--accent-hot))",
+                  }}
+                />
+              </div>
+            </div>
             {typeof city.ownedWilderness === "number" && (
               <p className="muted">
                 Wilderness claims: {city.ownedWilderness} (boosts production)
@@ -1240,8 +1262,8 @@ export function App() {
               ))}
             </ul>
             <p className="muted tiny">
-              Build cost: {BUILD_COST.kelp} kelp + {BUILD_COST.driftwood}{" "}
-              driftwood each
+              Build cost: {BUILD_COST.kelp} Food + {BUILD_COST.driftwood}{" "}
+              Timber each
             </p>
             <div className="row">
               {(
@@ -1374,12 +1396,12 @@ export function App() {
           </section>
         )}
 
-        {tab === "grounds" && city && (
+        {tab === "lands" && city && (
           <section className="card">
-            <h2>Resource Grounds</h2>
+            <h2>Lands</h2>
             <p className="muted">
-              Assign empty plots ({PLOT_ASSIGN_COST.kelp} kelp +{" "}
-              {PLOT_ASSIGN_COST.driftwood} driftwood). Upgrade scales 50×level
+              Assign empty plots ({PLOT_ASSIGN_COST.kelp} Food +{" "}
+              {PLOT_ASSIGN_COST.driftwood} Timber). Upgrade scales 50×level
               of each resource. Max L5.
             </p>
             <label>
@@ -1430,16 +1452,16 @@ export function App() {
             </ul>
             {rates && (
               <p className="ok">
-                Live rates: kelp +{rates.kelp}/h · driftwood +{rates.driftwood}
-                /h · basalt +{rates.basalt}/h · slagiron +{rates.slagiron}/h
+                Live rates: Food +{rates.kelp}/h · Timber +{rates.driftwood}
+                /h · Stone +{rates.basalt}/h · Iron +{rates.slagiron}/h
               </p>
             )}
           </section>
         )}
 
-        {tab === "map" && (
+        {tab === "realm" && (
           <section className="card">
-            <h2>Map</h2>
+            <h2>Realm</h2>
             <div className="row">
               <button
                 type="button"
@@ -1708,7 +1730,7 @@ export function App() {
 
             <h3>PvP / coords march</h3>
             <p className="muted">
-              Target another city (or coords). Harbor posture = free loot if
+              Target another city (or coords). Withdraw posture = free loot if
               they have no wall troops; Full fights stacks. New-player
               protection blocks until it expires or they attack first.
             </p>
@@ -1755,7 +1777,7 @@ export function App() {
           <section className="card">
             <h2>War / Reports</h2>
             <p className="muted">
-              Server-authored only. Harbor = free loot (no stack fight). Full =
+              Server-authored only. Withdraw = free loot (no stack fight). Full =
               stacks fight via resolveBattle.
             </p>
             <button
@@ -1963,29 +1985,9 @@ export function App() {
           </section>
         )}
 
-        {tab === "shop" && (
+        {tab === "knowledge" && (
           <section className="card">
-            <h2>Shop (Chronite stub)</h2>
-            <p>Balance: {player.chronite} Chronite — no real IAP</p>
-            <button type="button" onClick={() => void loadShop()}>
-              Load catalog
-            </button>
-            <ul>
-              {catalog.map((item) => (
-                <li key={item.id}>
-                  {item.name} — {item.chronite}{" "}
-                  <button type="button" onClick={() => void buyItem(item.id)}>
-                    Buy
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {tab === "codex" && (
-          <section className="card">
-            <h2>Codex — Formulas</h2>
+            <h2>Knowledge</h2>
             <button type="button" onClick={() => void loadCodex()}>
               Load formulas
             </button>
@@ -2005,8 +2007,11 @@ export function App() {
             </p>
             <p>Defense posture: {city.defensePosture}</p>
             <div className="row">
-              <button type="button" onClick={() => void setPosture("harbor")}>
-                Harbor
+              <button type="button" onClick={() => void setPosture("withdraw")}>
+                Withdraw
+              </button>
+              <button type="button" onClick={() => void setPosture("garrison")}>
+                Garrison
               </button>
               <button type="button" onClick={() => void setPosture("full")}>
                 Full

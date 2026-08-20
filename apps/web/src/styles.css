@@ -1,47 +1,19 @@
 :root {
   color-scheme: dark;
   font-family: "Segoe UI", system-ui, sans-serif;
-  --bg: #0b1520;
-  --bg-card: #122333;
-  --border: #243b4f;
-  --text: #e8f1f8;
-  --muted: #8aa4b8;
-  --accent: #2a6f97;
-  --accent-hot: #3d8fbf;
+  --accent: #6b4423;
+  --accent-hot: #8b5a2b;
+  --bg: #1a1410;
+  --bg-card: #2a2018;
+  --border: #3d3020;
+  --text: #d4c4a8;
+  --muted: #8a7a60;
   --ok: #8dffb0;
   --err: #ff8e8e;
-  --tile: #0f1c28;
+  --tile: #0f0d0a;
   line-height: 1.45;
   background: var(--bg);
   color: var(--text);
-}
-
-.shell.faction-brine {
-  --accent: #1f8aa8;
-  --accent-hot: #3eb6d4;
-  --bg: #08141c;
-  --bg-card: #0f2430;
-}
-
-.shell.faction-ash {
-  --accent: #b4532a;
-  --accent-hot: #e07a3a;
-  --bg: #160e0a;
-  --bg-card: #241610;
-}
-
-.shell.faction-sky {
-  --accent: #6b5cad;
-  --accent-hot: #9b8ad4;
-  --bg: #0c0e1a;
-  --bg-card: #161a2e;
-}
-
-.shell.faction-moss {
-  --accent: #3d7a4a;
-  --accent-hot: #5cab6a;
-  --bg: #0a140e;
-  --bg-card: #122018;
 }
 
 * {
@@ -320,6 +292,17 @@ code {
   background: #0b1520;
   padding: 0.1rem 0.3rem;
   border-radius: 4px;
+}
+
+.pop-bar-container {
+  margin: 0.5rem 0 1rem;
+}
+
+.pop-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
 }
 
 .plot-list {
