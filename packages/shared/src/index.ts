@@ -27,7 +27,7 @@ export type ResourceBag = {
   tidegilt: number;
 };
 
-export type DefensePosture = "harbor" | "partial" | "full";
+export type DefensePosture = "withdraw" | "garrison" | "full";
 
 export type MarchIntent =
   | "scout"

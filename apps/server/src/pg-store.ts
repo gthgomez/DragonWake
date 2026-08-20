@@ -155,12 +155,15 @@ export class PgStore {
             slagiron: Number(row.slagiron),
             tidegilt: Number(row.tidegilt),
           },
-          defensePosture: row.defense_posture,
+          defensePosture: row.defense_posture === "harbor" ? "withdraw" : row.defense_posture === "partial" ? "garrison" : row.defense_posture,
           lastResourceTick: new Date(row.last_resource_tick).getTime(),
           buildings: [],
           plots: [],
           stacks: {},
           research: {},
+          population: 0,
+          maxPopulation: 0,
+          usedManpower: 0,
         };
         world.cities.set(city.id, city);
         world.usedTiles.add(`${city.mapX},${city.mapY}`);

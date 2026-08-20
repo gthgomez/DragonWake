@@ -10,7 +10,17 @@ import {
   resolveBattle,
   type BattleGroup,
 } from "@tideforge/combat";
-import { getCamps, getCitadelById, getUnitById } from "@tideforge/content";
+import {
+  getCamps,
+  getCitadelById,
+  getUnitById,
+  isUnitUnlocked,
+  getBestiaryEntries,
+  getDragonReadiness,
+  getExpeditions,
+  getDragonClues,
+  type DragonClue,
+} from "@tideforge/content";
 import {
   DEV_FAST_MULTIPLIER,
   MAP_H,
@@ -60,6 +70,9 @@ export type City = {
   plots: Plot[];
   stacks: Record<string, number>;
   research: Record<string, number>;
+  population: number;
+  maxPopulation: number;
+  usedManpower: number;
 };
 export type QueueJob = {
   id: string;
@@ -178,16 +191,16 @@ export type Tutorial = { playerId: string; step: number; completed: boolean };
 
 /** Product-freeze tutorial steps (10). DEV_SKIP_TUTORIAL starts completed. */
 export const TUTORIAL_STEPS = [
-  "Welcome to the realm — your capital sits on the tide map.",
-  "Open City and review Kelp, Driftwood, and other stocks.",
-  "Queue a building (Barracks or Habitation).",
-  "Assign a Resource Grounds plot to raise production.",
-  "Research Longmark and train Levy or Reefbow.",
-  "Open Map, set composition, and attack a Riftborn camp.",
-  "Occupy wilderness to boost production.",
-  "Complete the Harbinger harness (dev grant OK for demo).",
-  "Found a Brinehold citadel.",
-  "Create or join a Tideband and send chat.",
+  "Welcome, Lord — your keep stands in a dangerous age.",
+  "Open Castle and review your Food, Timber, and other supplies.",
+  "Build Homes to grow your population and manpower.",
+  "Assign farmland in the Lands to raise food production.",
+  "Research Infantry Doctrine and train Levy Spearman.",
+  "Open Realm, scout a Bandit Camp, and send your army.",
+  "Capture wilderness to boost your resource production.",
+  "Study the Bestiary — dragon signs are appearing.",
+  "Complete the Dragon Expedition readiness requirements.",
+  "Found a Marcher Keep to expand your kingdom.",
 ] as const;
 
 export const DAILY_QUEST_DEFS = [
@@ -224,6 +237,11 @@ export type WorldStore = {
 
 const FACTIONS: Faction[] = ["brinecant", "ashcoil", "skyshear", "mossvault"];
 
+/** Population/manpower configuration constants. */
+const BASE_POPULATION = 200;
+const HOMES_CAPACITY_PER_LEVEL = 100;
+const POPULATION_GROWTH_RATE = 0.01; // per hour per occupied habitation slot
+
 export const PLOT_TYPES = [
   "kelp_farm",
   "drift_dock",
@@ -241,6 +259,34 @@ function emptyResources(n = 1000): ResourceBag {
     slagiron: Math.floor(n / 2),
     tidegilt: Math.floor(n / 2),
   };
+}
+
+function computeMaxPopulation(city: City): number {
+  let cap = BASE_POPULATION;
+  for (const b of city.buildings) {
+    if (b.buildingType === "habitation") {
+      cap += HOMES_CAPACITY_PER_LEVEL * b.level;
+    }
+  }
+  return cap;
+}
+
+/** Recalculate usedManpower from current stacks. */
+function recalculateManpower(city: City): number {
+  let used = 0;
+  for (const [unitId, count] of Object.entries(city.stacks)) {
+    if (count <= 0) continue;
+    const unit = getUnitById(unitId);
+    if (unit) {
+      used += unit.pop * count;
+    }
+  }
+  return used;
+}
+
+/** Available manpower = maxPopulation - usedManpower. */
+function availableManpower(city: City): number {
+  return city.maxPopulation - city.usedManpower;
 }
 
 function hashToken(token: string): string {
@@ -306,27 +352,57 @@ export function productionPerHour(city: City): ResourceBag {
 export function tickCityResources(
   city: City,
   now: number,
-  ownedWildCount = 0,
+  ownedWilderness: string[] = [],
 ): City {
   const elapsedMs = Math.max(0, now - city.lastResourceTick);
   if (elapsedMs < 1000) return city;
   const hours = elapsedMs / 3_600_000;
   const rates = productionPerHour(city);
-  const wildMul = 1 + ownedWildCount * 0.05;
+  // Per-type wilderness bonuses
+  let wildTimber = 0, wildFood = 0, wildStone = 0, wildIron = 0;
+  for (const wt of ownedWilderness) {
+    switch (wt) {
+      case "forest": wildTimber += 30; break;
+      case "fertile_land": wildFood += 40; break;
+      case "quarry": wildStone += 25; break;
+      case "iron_hills": wildIron += 15; break;
+    }
+  }
   const next: ResourceBag = {
-    kelp: Math.floor(city.resources.kelp + rates.kelp * hours * wildMul),
+    kelp: Math.floor(city.resources.kelp + (rates.kelp + wildFood) * hours),
     driftwood: Math.floor(
-      city.resources.driftwood + rates.driftwood * hours * wildMul,
+      city.resources.driftwood + (rates.driftwood + wildTimber) * hours,
     ),
-    basalt: Math.floor(city.resources.basalt + rates.basalt * hours * wildMul),
+    basalt: Math.floor(city.resources.basalt + (rates.basalt + wildStone) * hours),
     slagiron: Math.floor(
-      city.resources.slagiron + rates.slagiron * hours * wildMul,
+      city.resources.slagiron + (rates.slagiron + wildIron) * hours,
     ),
     tidegilt: Math.floor(
-      city.resources.tidegilt + rates.tidegilt * hours * wildMul,
+      city.resources.tidegilt + rates.tidegilt * hours,
     ),
   };
-  return { ...city, resources: next, lastResourceTick: now };
+
+  // Population growth: grows based on habitation building levels
+  let habitationLevels = 0;
+  for (const b of city.buildings) {
+    if (b.buildingType === "habitation") habitationLevels += b.level;
+  }
+  const maxPop = city.maxPopulation || computeMaxPopulation(city);
+  let newPop = city.population;
+  if (habitationLevels > 0 && newPop < maxPop) {
+    const growth = Math.floor(
+      newPop * POPULATION_GROWTH_RATE * hours * habitationLevels,
+    );
+    newPop = Math.min(maxPop, newPop + Math.max(1, growth));
+  }
+
+  return {
+    ...city,
+    resources: next,
+    population: newPop,
+    maxPopulation: maxPop,
+    lastResourceTick: now,
+  };
 }
 
 function durationMs(baseSec: number, devFast: boolean): number {
@@ -354,6 +430,17 @@ export class World {
   tutorials = new Map<string, Tutorial>();
   /** Minimal daily quest stubs (reset by UTC day key). */
   dailyQuests = new Map<string, DailyProgress>();
+  /** Bestiary observation state — keyed by "playerId:entryId". */
+  bestiary = new Map<string, { entryId: string; observationLevel: number; encounterCount: number }>();
+  /** Dragon expedition readiness progress — keyed by playerId. */
+  dragonProgress = new Map<string, {
+    bestiaryStudied: number;
+    researchLevel: number;
+    materialsCollected: number;
+    campTypesDefeated: Set<string>;
+    expeditionStage: number;
+    charterEarned: boolean;
+  }>();
   usedTiles = new Set<string>();
   devFastTime: boolean;
   skipTutorial: boolean;
@@ -411,6 +498,7 @@ export class World {
   async attachStore(store: WorldStore): Promise<void> {
     this.store = store;
     await store.loadInto(this);
+    this.recalculateAllManpower();
     // Persist seeded map if DB was empty
     await store.saveWorld(this);
   }
@@ -470,14 +558,21 @@ export class World {
         y = (y + 3) % MAP_H;
       }
       const id = randomUUID();
-      const types = ["kelp", "driftwood", "basalt", "slagiron"];
+      const WILDERNESS_TYPES = [
+        { type: "forest", bonus: "timber", rate: 30 },
+        { type: "fertile_land", bonus: "food", rate: 40 },
+        { type: "quarry", bonus: "stone", rate: 25 },
+        { type: "iron_hills", bonus: "iron", rate: 15 },
+        { type: "crossroads", bonus: "logistics", rate: 0 },
+        { type: "watch_hill", bonus: "scouting", rate: 0 },
+      ];
       this.wilderness.set(id, {
         id,
         realmId: this.realmId,
         x,
         y,
         level: 1 + (n % 5),
-        resourceType: types[n % types.length]!,
+        resourceType: WILDERNESS_TYPES[n % WILDERNESS_TYPES.length].type,
         ownerPlayerId: null,
       });
       this.usedTiles.add(this.tileKey(x, y));
@@ -557,7 +652,7 @@ export class World {
       mapX: x,
       mapY: y,
       resources: emptyResources(1500),
-      defensePosture: "harbor",
+      defensePosture: "withdraw",
       lastResourceTick: now,
       buildings: [
         { slotIndex: 0, buildingType: "forge_heart", level: 1 },
@@ -570,7 +665,12 @@ export class World {
       })),
       stacks: { levy: 50, bearer: 10, whisper: 5 },
       research: {},
+      population: BASE_POPULATION,
+      maxPopulation: 0,
+      usedManpower: 0,
     };
+    city.maxPopulation = computeMaxPopulation(city);
+    city.usedManpower = recalculateManpower(city);
     this.cities.set(cityId, city);
 
     // Default commanderless; create Harbinger stub not yet deployable
@@ -621,10 +721,10 @@ export class World {
   /** Sim tick: resources, queues, marches. */
   tick(now = this.now()): void {
     for (const city of this.cities.values()) {
-      const wild = [...this.wilderness.values()].filter(
-        (w) => w.ownerPlayerId === city.playerId,
-      ).length;
-      const next = tickCityResources(city, now, wild);
+      const wildTypes = [...this.wilderness.values()]
+        .filter((w) => w.ownerPlayerId === city.playerId)
+        .map((w) => w.resourceType);
+      const next = tickCityResources(city, now, wildTypes);
       this.cities.set(city.id, next);
     }
     this.processQueues(now);
@@ -655,6 +755,8 @@ export class World {
       } else {
         city.buildings.push({ slotIndex: slot, buildingType: type, level: 1 });
       }
+      // Recalculate maxPopulation after build (exploit fix)
+      city.maxPopulation = computeMaxPopulation(city);
     } else if (job.kind === "research") {
       const techId = String(job.payload.techId);
       city.research[techId] = (city.research[techId] ?? 0) + 1;
@@ -662,6 +764,7 @@ export class World {
       const unitId = String(job.payload.unitId);
       const count = Number(job.payload.count) || 0;
       city.stacks[unitId] = (city.stacks[unitId] ?? 0) + count;
+      city.usedManpower = recalculateManpower(city);
     }
     job.status = "completed";
     this.cities.set(city.id, city);
@@ -754,16 +857,39 @@ export class World {
     if (!unit) {
       throw Object.assign(new Error("unknown unit"), { code: "BAD_UNIT" });
     }
+    // Enforce research unlock gates (PG-INV-003)
+    if (!isUnitUnlocked(unitId, city.research)) {
+      throw Object.assign(new Error(`unit ${unitId} not unlocked by research`), {
+        code: "UNIT_LOCKED",
+      });
+    }
     const n = Math.max(1, Math.floor(count));
+    const unitPop = unit.pop * n;
+    if (availableManpower(city) < unitPop) {
+      throw Object.assign(new Error("insufficient manpower"), {
+        code: "NO_MANPOWER",
+      });
+    }
     const costK = (unit.cost_kelp ?? 30) * n;
+    const costD = (unit.cost_driftwood ?? 0) * n;
+    const costB = (unit.cost_basalt ?? 0) * n;
+    const costS = (unit.cost_slagiron ?? 0) * n;
     if (city.resources.kelp < costK) {
-      throw Object.assign(new Error("insufficient kelp"), { code: "NO_RES" });
+      throw Object.assign(new Error("insufficient food"), { code: "NO_RES" });
+    }
+    if (city.resources.driftwood < costD) {
+      throw Object.assign(new Error("insufficient timber"), { code: "NO_RES" });
+    }
+    if (city.resources.basalt < costB) {
+      throw Object.assign(new Error("insufficient stone"), { code: "NO_RES" });
+    }
+    if (city.resources.slagiron < costS) {
+      throw Object.assign(new Error("insufficient iron"), { code: "NO_RES" });
     }
     city.resources.kelp -= costK;
-    city.resources.driftwood = Math.max(
-      0,
-      city.resources.driftwood - (unit.cost_driftwood ?? 0) * n,
-    );
+    city.resources.driftwood -= costD;
+    city.resources.basalt -= costB;
+    city.resources.slagiron -= costS;
     const trainSec = (unit.train_sec_L1 ?? 20) * n;
     const now = this.now();
     const job: QueueJob = {
@@ -859,14 +985,251 @@ export class World {
   /** Effective production/hour including wilderness bonus (same as tick). */
   effectiveProduction(city: City): ResourceBag {
     const rates = productionPerHour(city);
-    const wildMul = 1 + this.ownedWildernessCount(city.playerId) * 0.05;
+    const wildBonus = this.ownedWildernessBonus(city.playerId);
     return {
-      kelp: Math.floor(rates.kelp * wildMul),
-      driftwood: Math.floor(rates.driftwood * wildMul),
-      basalt: Math.floor(rates.basalt * wildMul),
-      slagiron: Math.floor(rates.slagiron * wildMul),
-      tidegilt: Math.floor(rates.tidegilt * wildMul),
+      kelp: Math.floor(rates.kelp + wildBonus.kelp),
+      driftwood: Math.floor(rates.driftwood + wildBonus.driftwood),
+      basalt: Math.floor(rates.basalt + wildBonus.basalt),
+      slagiron: Math.floor(rates.slagiron + wildBonus.slagiron),
+      tidegilt: Math.floor(rates.tidegilt + wildBonus.tidegilt),
     };
+  }
+
+  /** Per-type wilderness resource bonus for a player. */
+  private ownedWildernessBonus(playerId: string): ResourceBag {
+    const bonus: ResourceBag = { kelp: 0, driftwood: 0, basalt: 0, slagiron: 0, tidegilt: 0 };
+    for (const w of this.wilderness.values()) {
+      if (w.ownerPlayerId !== playerId) continue;
+      switch (w.resourceType) {
+        case "forest": bonus.driftwood += 30; break;
+        case "fertile_land": bonus.kelp += 40; break;
+        case "quarry": bonus.basalt += 25; break;
+        case "iron_hills": bonus.slagiron += 15; break;
+        // crossroads, watch_hill: non-resource bonuses (TODO)
+      }
+    }
+    return bonus;
+  }
+
+  /** Update a player's bestiary observation for an entry. */
+  updateBestiary(playerId: string, entryId: string, encounterIncrease: number): void {
+    const key = `${playerId}:${entryId}`;
+    const existing = this.bestiary.get(key);
+    const entries = getBestiaryEntries();
+    const entryDef = entries.find((e) => e.id === entryId);
+    if (!entryDef) return;
+
+    const prevObs = existing?.observationLevel ?? 0;
+    const prevEnc = existing?.encounterCount ?? 0;
+    const newEnc = prevEnc + encounterIncrease;
+
+    // Observation level increases at encounter thresholds: 3, 7, 15, 30
+    let newObs = prevObs;
+    if (newEnc >= 30) newObs = 4;
+    else if (newEnc >= 15) newObs = 3;
+    else if (newEnc >= 7) newObs = 2;
+    else if (newEnc >= 3) newObs = 1;
+
+    this.bestiary.set(key, {
+      entryId,
+      observationLevel: newObs,
+      encounterCount: newEnc,
+    });
+
+    // Update dragon readiness if observation level increased
+    if (newObs > prevObs) {
+      this.recalcDragonReadiness(playerId);
+    }
+  }
+
+  /** Recalculate a player's dragon readiness from current state. */
+  private recalcDragonReadiness(playerId: string): void {
+    const studied = new Set<string>();
+    for (const [key, val] of this.bestiary.entries()) {
+      if (key.startsWith(`${playerId}:`) && val.observationLevel >= 1) {
+        studied.add(val.entryId);
+      }
+    }
+
+    const cities = this.citiesForPlayer(playerId);
+    const maxResearch = cities.reduce(
+      (max, c) => Math.max(max, ...Object.values(c.research).map(Number)),
+      0,
+    );
+
+    const inv = this.inventory.get(playerId) ?? {};
+    const materials = inv["dragon_material"] ?? 0;
+
+    const existing = this.dragonProgress.get(playerId) ?? {
+      bestiaryStudied: 0,
+      researchLevel: 0,
+      materialsCollected: 0,
+      campTypesDefeated: new Set<string>(),
+      expeditionStage: 0,
+      charterEarned: false,
+    };
+
+    this.dragonProgress.set(playerId, {
+      ...existing,
+      bestiaryStudied: studied.size,
+      researchLevel: maxResearch,
+      materialsCollected: materials,
+    });
+  }
+
+  /** Check dragon readiness and return status. */
+  checkDragonReadiness(playerId: string): {
+    ready: boolean;
+    requirements: Array<{ id: string; met: boolean; description: string }>;
+    reward?: string;
+  } {
+    this.recalcDragonReadiness(playerId);
+    const progress = this.dragonProgress.get(playerId);
+    const config = getDragonReadiness();
+    const requirements = config.requirements.map((req) => {
+      let met = false;
+      switch (req.type) {
+        case "bestiary_threshold":
+          met = (progress?.bestiaryStudied ?? 0) >= req.threshold;
+          break;
+        case "research_level":
+          met = (progress?.researchLevel ?? 0) >= req.threshold;
+          break;
+        case "item_count":
+          met = (progress?.materialsCollected ?? 0) >= req.threshold;
+          break;
+        case "camps_defeated":
+          met = (progress?.campTypesDefeated.size ?? 0) >= req.threshold;
+          break;
+      }
+      return { id: req.id, met, description: req.description };
+    });
+    const ready = requirements.every((r) => r.met);
+    return { ready, requirements, reward: ready ? config.reward : undefined };
+  }
+
+  /** Start an expedition for a player. Returns the first stage info. */
+  startExpedition(playerId: string, expeditionId: string): { stage: number; name: string } | null {
+    const expeditions = getExpeditions();
+    const expedition = expeditions.find((e) => e.id === expeditionId);
+    if (!expedition || expedition.stages.length === 0) return null;
+
+    const existing = this.dragonProgress.get(playerId);
+    if (!existing || existing.charterEarned) return null;
+
+    // Enforce readiness gate (exploit fix)
+    const readiness = this.checkDragonReadiness(playerId);
+    if (!readiness.ready) return null;
+
+    this.dragonProgress.set(playerId, { ...existing, expeditionStage: 1 });
+    const first = expedition.stages[0];
+    return { stage: first.stage, name: first.name };
+  }
+
+  /** Complete an expedition stage and advance or finish. */
+  completeExpeditionStage(
+    playerId: string,
+    expeditionId: string,
+    stageNumber: number,
+  ): { completed: boolean; stageName: string; reward?: Record<string, unknown> } | null {
+    const expeditions = getExpeditions();
+    const expedition = expeditions.find((e) => e.id === expeditionId);
+    if (!expedition) return null;
+
+    const progress = this.dragonProgress.get(playerId);
+    if (!progress || progress.expeditionStage !== stageNumber) return null;
+
+    const stageDef = expedition.stages.find((s) => s.stage === stageNumber);
+    if (!stageDef) return null;
+
+    const isLast = stageNumber >= expedition.stages.length;
+    this.dragonProgress.set(playerId, {
+      ...progress,
+      expeditionStage: isLast ? 0 : stageNumber + 1,
+      charterEarned: isLast ? true : progress.charterEarned,
+    });
+
+    // Grant reward items
+    const reward = stageDef.completion_reward;
+    if (reward.item && typeof reward.item === "string") {
+      const inv = this.inventory.get(playerId) ?? {};
+      inv[reward.item] = (inv[reward.item] ?? 0) + (Number(reward.count) || 1);
+      this.inventory.set(playerId, inv);
+    }
+
+    return { completed: isLast, stageName: stageDef.name, reward };
+  }
+
+  /** Grant a dragon clue to a player, updating bestiary and readiness. */
+  grantDragonClue(playerId: string, clueId: string): DragonClue | null {
+    const clues = getDragonClues();
+    const clue = clues.find((c) => c.id === clueId);
+    if (!clue) return null;
+
+    // Add to inventory
+    const inv = this.inventory.get(playerId) ?? {};
+    inv["dragon_clue"] = (inv["dragon_clue"] ?? 0) + 1;
+    this.inventory.set(playerId, inv);
+
+    // Update bestiary if clue unlocks one
+    if (clue.bestiary_unlock) {
+      this.updateBestiary(playerId, clue.bestiary_unlock, 1);
+    }
+
+    // Increment readiness materials
+    const progress = this.dragonProgress.get(playerId);
+    if (progress) {
+      this.dragonProgress.set(playerId, {
+        ...progress,
+        materialsCollected: progress.materialsCollected + 1,
+      });
+    }
+
+    this.pushEvent(playerId, "info", `Dragon clue discovered: ${clue.name}`);
+    return clue;
+  }
+
+  /** Determine clue drop from a camp victory. Returns clue or null. */
+  private rollCampClueDrop(campLevel: number, seed: number): DragonClue | null {
+    const clues = getDragonClues();
+    if (clues.length === 0) return null;
+
+    // Simple seeded random [0, 1)
+    const roll = (seed >>> 0) / 0xffffffff;
+    let rarity: string | null = null;
+
+    if (campLevel >= 1 && campLevel <= 3) {
+      if (roll < 0.15) rarity = "common";
+    } else if (campLevel >= 4 && campLevel <= 5) {
+      if (roll < 0.10) rarity = "rare";
+      else if (roll < 0.40) rarity = "uncommon";
+      else if (roll < 0.70) rarity = "common";
+    } else if (campLevel >= 6 && campLevel <= 7) {
+      if (roll < 0.05) rarity = "rare";
+      else if (roll < 0.20) rarity = "uncommon";
+      else if (roll < 0.40) rarity = "common";
+    } else if (campLevel >= 8 && campLevel <= 10) {
+      if (roll < 0.10) rarity = "rare";
+      else if (roll < 0.30) rarity = "uncommon";
+      else if (roll < 0.45) rarity = "common";
+    }
+
+    if (!rarity) return null;
+
+    const candidates = clues.filter((c) => c.rarity === rarity);
+    if (candidates.length === 0) return null;
+    return candidates[Math.floor((seed >>> 0) % candidates.length)];
+  }
+
+  /** Recalculate population/manpower for all cities (use after DB load). */
+  recalculateAllManpower(): void {
+    for (const city of this.cities.values()) {
+      city.maxPopulation = computeMaxPopulation(city);
+      city.usedManpower = recalculateManpower(city);
+      if (city.population > city.maxPopulation) {
+        city.population = city.maxPopulation;
+      }
+    }
   }
 
   private requireCityOwner(cityId: string, playerId: string): City {
@@ -905,6 +1268,7 @@ export class World {
     for (const [uid, cnt] of Object.entries(opts.composition)) {
       city.stacks[uid] = (city.stacks[uid] ?? 0) - cnt;
     }
+    city.usedManpower = recalculateManpower(city);
 
     // Haul: deduct cargo from origin now; deliver on land
     const cargo: Partial<ResourceBag> = {};
@@ -1060,6 +1424,7 @@ export class World {
       for (const [uid, cnt] of Object.entries(march.composition)) {
         if (cnt > 0) city.stacks[uid] = (city.stacks[uid] ?? 0) + cnt;
       }
+      city.usedManpower = recalculateManpower(city);
       this.cities.set(city.id, city);
     }
     march.status = "completed";
@@ -1179,9 +1544,14 @@ export class World {
           this.startReturn(march, now, march.composition);
           return report;
         }
-        if (defCity.defensePosture === "harbor") {
+        if (defCity.defensePosture === "withdraw") {
           harborLoot = true;
-          defGroups = []; // free loot unprotected
+          defGroups = []; // no combat — plunder at reduced rate
+        } else if (defCity.defensePosture === "garrison") {
+          // Only 30% of garrisoned stacks fight
+          defGroups = Object.entries(defCity.stacks)
+            .filter(([, n]) => n > 0)
+            .map(([unitId, count]) => ({ unitId, count: Math.ceil(count * 0.3) }));
         } else {
           defGroups = Object.entries(defCity.stacks)
             .filter(([, n]) => n > 0)
@@ -1208,7 +1578,7 @@ export class World {
               ),
               defender: {},
             },
-            note: "harbor_free_loot",
+            note: "withdraw_free_loot",
           }
         : resolveBattle({
             rulesVersion: COMBAT_RULES_VERSION,
@@ -1240,16 +1610,18 @@ export class World {
     }
 
     // Apply defender city stack losses on full defense
-    if (defCity && defCity.defensePosture !== "harbor") {
+    if (defCity && defCity.defensePosture !== "withdraw") {
       for (const [uid, lost] of Object.entries(battle.losses.defender)) {
         const n = Number(lost) || 0;
         defCity.stacks[uid] = Math.max(0, (defCity.stacks[uid] ?? 0) - n);
       }
+      defCity.usedManpower = recalculateManpower(defCity);
       this.cities.set(defCity.id, defCity);
     }
 
     // Loot
     let loot: Partial<ResourceBag> = {};
+    let clueDrop: DragonClue | null = null;
     if (battle.winner === "attacker") {
       if (camp) {
         loot = {
@@ -1257,12 +1629,38 @@ export class World {
           driftwood: 30 * camp.level,
           basalt: 10 * camp.level,
         };
+        // Roll for dragon clue drop
+        clueDrop = this.rollCampClueDrop(camp.level, seed + 1);
+        if (clueDrop) {
+          this.grantDragonClue(march.playerId, clueDrop.id);
+        }
+        // Track camp type defeat for readiness gate
+        const progress = this.dragonProgress.get(march.playerId) ?? {
+          bestiaryStudied: 0,
+          researchLevel: 0,
+          materialsCollected: 0,
+          campTypesDefeated: new Set<string>(),
+          expeditionStage: 0,
+          charterEarned: false,
+        };
+        progress.campTypesDefeated.add(`camp_l${camp.level}`);
+        this.dragonProgress.set(march.playerId, progress);
+        // Update bestiary for camp creatures
+        const campDef = getCamps().find((c) => c.camp_level === camp.level);
+        if (campDef) {
+          const entries = getBestiaryEntries();
+          for (const entry of entries) {
+            if (entry.category === "creature" && campDef.example_comp.toLowerCase().includes(entry.subject.split(" ")[0].toLowerCase())) {
+              this.updateBestiary(march.playerId, entry.id, 1);
+            }
+          }
+        }
       } else if (wild && march.intent === "occupy") {
         wild.ownerPlayerId = march.playerId;
         this.wilderness.set(wild.id, wild);
         loot = { kelp: 40, driftwood: 40 };
       } else if (defCity && (harborLoot || battle.winner === "attacker")) {
-        loot = this.plunderCity(defCity);
+        loot = this.plunderCity(defCity, harborLoot ? 0.5 : 1);
       }
       // credit loot to origin city
       const origin = this.cities.get(march.fromCityId);
@@ -1290,6 +1688,7 @@ export class World {
         battle,
         loot,
         harborLoot,
+        clueDrop: clueDrop ? { id: clueDrop.id, name: clueDrop.name, rarity: clueDrop.rarity } : null,
         target: {
           type: march.targetType,
           id: march.targetId,
@@ -1305,20 +1704,20 @@ export class World {
   }
 
   /** Saltvault protects portion of non-Tidegilt resources. */
-  plunderCity(city: City): Partial<ResourceBag> {
+  plunderCity(city: City, rate = 1): Partial<ResourceBag> {
     const salt = city.buildings.find((b) => b.buildingType === "saltvault");
     const protectRatio = salt
       ? Math.min(0.9, SALTVAULT_PROTECT_RATIO + salt.level * 0.05)
       : 0.2;
     const lootable = (amount: number) =>
-      Math.floor(amount * (1 - protectRatio) * 0.25);
+      Math.floor(amount * (1 - protectRatio) * 0.25 * rate);
     const loot: Partial<ResourceBag> = {
       kelp: lootable(city.resources.kelp),
       driftwood: lootable(city.resources.driftwood),
       basalt: lootable(city.resources.basalt),
       slagiron: lootable(city.resources.slagiron),
       // Tidegilt never protected by Saltvault — still only partial raid
-      tidegilt: Math.floor(city.resources.tidegilt * 0.15),
+      tidegilt: Math.floor(city.resources.tidegilt * 0.15 * rate),
     };
     city.resources.kelp -= loot.kelp ?? 0;
     city.resources.driftwood -= loot.driftwood ?? 0;
@@ -1341,6 +1740,8 @@ export class World {
     for (const [uid, cnt] of Object.entries(march.composition)) {
       targetCity.stacks[uid] = (targetCity.stacks[uid] ?? 0) + cnt;
     }
+    // Recalculate manpower after reinforcement (exploit fix)
+    targetCity.usedManpower = recalculateManpower(targetCity);
     this.cities.set(targetCity.id, targetCity);
     march.composition = {};
   }
@@ -1547,6 +1948,7 @@ export class World {
       for (const [uid, n] of Object.entries(body.units)) {
         city.stacks[uid] = (city.stacks[uid] ?? 0) + n;
       }
+      city.usedManpower = recalculateManpower(city);
       this.cities.set(city.id, city);
     }
     if (body.chronite) {
@@ -1651,7 +2053,7 @@ export class World {
       mapX: x,
       mapY: y,
       resources: emptyResources(800),
-      defensePosture: "harbor",
+      defensePosture: "withdraw",
       lastResourceTick: this.now(),
       buildings: [
         { slotIndex: 0, buildingType: "forge_heart", level: 1 },
@@ -1664,7 +2066,12 @@ export class World {
       })),
       stacks,
       research: { ...capital.research },
+      population: BASE_POPULATION,
+      maxPopulation: 0,
+      usedManpower: 0,
     };
+    city.maxPopulation = computeMaxPopulation(city);
+    city.usedManpower = recalculateManpower(city);
     this.cities.set(city.id, city);
     this.pushEvent(
       playerId,

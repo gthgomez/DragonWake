@@ -126,6 +126,88 @@ export type CitadelDef = {
   requires?: string[];
 };
 
+export type DomainCatalog = {
+  version: string;
+  description: string;
+  resources: {
+    legacy_to_target: Record<string, string>;
+    target: string[];
+    columns: Record<string, string>;
+  };
+  units: {
+    legacy_to_target: Record<string, string>;
+    role_adapter: Record<string, string>;
+  };
+  buildings: { legacy_to_target: Record<string, string> };
+  research: { legacy_to_target: Record<string, string> };
+  factions: { legacy_to_target: Record<string, string> };
+  plot_types: { legacy_to_target: Record<string, string> };
+  defense_posture: { legacy_to_target: Record<string, string> };
+  citadels: { legacy_to_target: Record<string, string> };
+  camp_types: Record<string, { levels: number[]; description: string }>;
+  wilderness_types: Record<string, { bonus: string; description: string }>;
+};
+
+export type ResearchUnlock = {
+  research_id: string;
+  research_level: number;
+  unlocks: string[];
+  kind: "unit" | "building" | "capability";
+};
+
+export type BestiaryEntry = {
+  id: string;
+  subject: string;
+  category: string;
+  observation_level: number;
+  known_traits: string[];
+  unknown_traits: string[];
+  habitat: string | null;
+  known_attacks: string[];
+  suspected_weakness: string | null;
+  confirmed_weakness: string | null;
+  encounter_count: number;
+  source: string;
+  lore_notes: string;
+};
+
+export type DragonReadinessConfig = {
+  version: string;
+  gate_name: string;
+  requirements: Array<{
+    id: string;
+    type: string;
+    description: string;
+    threshold: number;
+    research_id?: string;
+    item_id?: string;
+  }>;
+  reward: string;
+};
+
+export type Expedition = {
+  id: string;
+  name: string;
+  description: string;
+  stages: Array<{
+    stage: number;
+    name: string;
+    description: string;
+    type: string;
+    target_level: number;
+    completion_reward: Record<string, unknown>;
+  }>;
+};
+
+export type DragonClue = {
+  id: string;
+  name: string;
+  description: string;
+  rarity: string;
+  bestiary_unlock: string;
+  readiness_value: number;
+};
+
 let cache: {
   units?: UnitDef[];
   rps?: Record<string, Record<string, number>>;
@@ -139,6 +221,13 @@ let cache: {
   shop?: ShopItem[];
   matchups?: MatchupDef[];
   citadels?: CitadelDef[];
+  domainCatalog?: DomainCatalog;
+  researchUnlocks?: ResearchUnlock[];
+  bestiaryEntries?: BestiaryEntry[];
+  dragonReadiness?: DragonReadinessConfig;
+  expeditions?: Expedition[];
+  dragonClues?: DragonClue[];
+  medievalUnits?: UnitDef[];
 } = {};
 
 export function getMeta(): ContentMeta {
@@ -208,6 +297,53 @@ export function getCitadelById(id: string): CitadelDef | undefined {
 
 export function getDataPath(): string {
   return dataDir;
+}
+
+export function getDomainCatalog(): DomainCatalog {
+  return (cache.domainCatalog ??= loadJson<DomainCatalog>("domain_catalog.json"));
+}
+
+export function getResearchUnlocks(): ResearchUnlock[] {
+  return (cache.researchUnlocks ??= loadJson<ResearchUnlock[]>("research_unlocks.json"));
+}
+
+export function getBestiaryEntries(): BestiaryEntry[] {
+  return (cache.bestiaryEntries ??= loadJson<BestiaryEntry[]>("bestiary_entries.json"));
+}
+
+export function getDragonReadiness(): DragonReadinessConfig {
+  return (cache.dragonReadiness ??= loadJson<DragonReadinessConfig>("dragon_readiness.json"));
+}
+
+export function getExpeditions(): Expedition[] {
+  return (cache.expeditions ??= loadJson<Expedition[]>("expeditions.json"));
+}
+
+export function getDragonClues(): DragonClue[] {
+  return (cache.dragonClues ??= loadJson<DragonClue[]>("dragon_clues.json"));
+}
+
+/** Check if a unit is unlocked by the city's research. */
+export function isUnitUnlocked(unitId: string, cityResearch: Record<string, number>): boolean {
+  const units = getUnits();
+  const unit = units.find((u) => u.id === unitId);
+  if (!unit) return false;
+  if (!unit.unlock || unit.unlock === "start") return true;
+  // Check research_unlocks.json for explicit gates
+  const unlocks = getResearchUnlocks();
+  const gate = unlocks.find((u) => u.kind === "unit" && u.unlocks.includes(unitId));
+  if (!gate) return true; // no explicit gate = always available
+  const currentLevel = cityResearch[gate.research_id] ?? 0;
+  return currentLevel >= gate.research_level;
+}
+
+/** Check if a building type is unlocked by research. */
+export function isBuildingUnlocked(buildingId: string, cityResearch: Record<string, number>): boolean {
+  const unlocks = getResearchUnlocks();
+  const gate = unlocks.find((u) => u.kind === "building" && u.unlocks.includes(buildingId));
+  if (!gate) return true;
+  const currentLevel = cityResearch[gate.research_id] ?? 0;
+  return currentLevel >= gate.research_level;
 }
 
 /** Clear content cache (tests). */

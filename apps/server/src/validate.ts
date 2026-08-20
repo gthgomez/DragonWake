@@ -26,7 +26,7 @@ export const trainBodySchema = z.object({
 });
 
 export const postureBodySchema = z.object({
-  posture: z.enum(["harbor", "partial", "full"]),
+  posture: z.enum(["withdraw", "garrison", "full"]),
 });
 
 export const marchBodySchema = z.object({
@@ -70,7 +70,7 @@ export const allianceJoinSchema = z
   });
 
 export const adminGrantSchema = z.object({
-  resources: z.record(z.string(), z.number()).optional(),
+  resources: z.record(z.string(), z.number().min(0)).optional(),
   units: z.record(z.string(), z.number().int().min(0)).optional(),
   harness: z.boolean().optional(),
   chronite: z.number().int().min(0).optional(),
