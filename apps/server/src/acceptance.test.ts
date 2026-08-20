@@ -59,7 +59,7 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
       method: "POST",
       token: tokenA,
       body: JSON.stringify({
-        units: { reefbow: 300, levy: 200 },
+        units: { reefbow: 100, levy: 100 },
         harness: true,
         brineholdUnlock: true,
         skipProtection: true,
@@ -188,11 +188,11 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
       chat.body.messages.some((m: { body: string }) => m.body === "M9 chat"),
     ).toBe(true);
 
-    // M10 — PvP harbor
+    // M10 — PvP withdraw
     await json(app, `/api/v1/cities/${b.body.city.id}/posture`, {
       method: "POST",
       token: tokenB,
-      body: JSON.stringify({ posture: "harbor" }),
+      body: JSON.stringify({ posture: "withdraw" }),
     });
     const pvp = await json(app, "/api/v1/marches", {
       method: "POST",

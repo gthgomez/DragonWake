@@ -22,7 +22,7 @@ function sampleCity(overrides: Partial<City> = {}): City {
       slagiron: 50,
       tidegilt: 50,
     },
-    defensePosture: "harbor",
+    defensePosture: "withdraw",
     lastResourceTick: 0,
     buildings: [{ slotIndex: 0, buildingType: "forge_heart", level: 1 }],
     plots: [
@@ -39,7 +39,7 @@ describe("tickCityResources (shipped sim)", () => {
   it("increases resources over elapsed time", () => {
     const city = sampleCity({ lastResourceTick: 0 });
     const hour = 3_600_000;
-    const next = tickCityResources(city, hour, 0);
+    const next = tickCityResources(city, hour, []);
     expect(next.resources.kelp).toBeGreaterThan(city.resources.kelp);
     expect(next.resources.driftwood).toBeGreaterThan(city.resources.driftwood);
     expect(next.lastResourceTick).toBe(hour);
@@ -48,8 +48,8 @@ describe("tickCityResources (shipped sim)", () => {
   it("wild claims increase production", () => {
     const city = sampleCity({ lastResourceTick: 0 });
     const hour = 3_600_000;
-    const base = tickCityResources(city, hour, 0);
-    const boosted = tickCityResources(city, hour, 4);
+    const base = tickCityResources(city, hour, []);
+    const boosted = tickCityResources(city, hour, ["forest", "fertile_land", "quarry", "iron_hills"]);
     expect(boosted.resources.kelp).toBeGreaterThan(base.resources.kelp);
   });
 });
@@ -205,7 +205,7 @@ describe("World queues + marches (shipped paths)", () => {
     expect(b.city.resources.kelp).toBeGreaterThan(0);
   });
 
-  it("harbor pvp loots without fighting stacks", () => {
+  it("withdraw pvp loots without fighting stacks", () => {
     const world = new World({ devFastTime: true });
     const a = world.createGuest("Raider", "brinecant");
     const b = world.createGuest("Victim", "ashcoil");
@@ -214,7 +214,7 @@ describe("World queues + marches (shipped paths)", () => {
       skipProtection: true,
     });
     world.adminGrant(b.player.id, { skipProtection: true });
-    world.setPosture(b.city.id, b.player.id, "harbor");
+    world.setPosture(b.city.id, b.player.id, "withdraw");
     const beforeKelp = b.city.resources.kelp;
     const march = world.createMarch(a.player.id, {
       fromCityId: a.city.id,

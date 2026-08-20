@@ -156,11 +156,11 @@ describe("HTTP API two-session demo path", () => {
       ),
     ).toBe(true);
 
-    // PvP harbor
+    // PvP withdraw
     await json(app, `/api/v1/cities/${b.body.city.id}/posture`, {
       method: "POST",
       token: tokenB,
-      body: JSON.stringify({ posture: "harbor" }),
+      body: JSON.stringify({ posture: "withdraw" }),
     });
     const pvp = await json(app, "/api/v1/marches", {
       method: "POST",
