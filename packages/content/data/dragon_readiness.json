@@ -1,0 +1,34 @@
+{
+  "version": "0.1.0",
+  "gate_name": "First Dragon Expedition Readiness",
+  "requirements": [
+    {
+      "id": "bestiary_knowledge",
+      "type": "bestiary_threshold",
+      "description": "Study at least 3 creatures in the Bestiary",
+      "threshold": 3,
+      "current": 0
+    },
+    {
+      "id": "dragon_studies_research",
+      "type": "research_level",
+      "description": "Complete Dragon Studies research to level 2",
+      "research_id": "dragon_studies",
+      "threshold": 2
+    },
+    {
+      "id": "dragon_material",
+      "type": "item_count",
+      "description": "Collect 5 dragon-related materials from PvE",
+      "item_id": "dragon_material",
+      "threshold": 5
+    },
+    {
+      "id": "camp_mastery",
+      "type": "camps_defeated",
+      "description": "Defeat camps of at least 3 different types",
+      "threshold": 3
+    }
+  ],
+  "reward": "dragon_expedition_charter"
+}

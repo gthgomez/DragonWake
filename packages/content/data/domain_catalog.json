@@ -1,0 +1,129 @@
+{
+  "version": "0.1.0-medieval",
+  "description": "Domain catalog mapping legacy IDs to target medieval concepts. Transitional adapter.",
+  "resources": {
+    "legacy_to_target": {
+      "kelp": "food",
+      "driftwood": "timber",
+      "basalt": "stone",
+      "slagiron": "iron",
+      "tidegilt": "coin"
+    },
+    "target": ["food", "timber", "stone", "iron", "coin"],
+    "columns": {
+      "food": "kelp",
+      "timber": "driftwood",
+      "stone": "basalt",
+      "iron": "slagiron",
+      "coin": "tidegilt"
+    }
+  },
+  "units": {
+    "legacy_to_target": {
+      "bearer": "porter",
+      "whisper": "scout",
+      "levy": "levy",
+      "tidepike": "pikeman",
+      "bullhorn": "man_at_arms",
+      "colossus_frame": "halberdier",
+      "reefbow": "bowman",
+      "sunmirror": "heavy_crossbowman",
+      "skyshrike": "light_cavalry",
+      "stormkeel": "knight",
+      "ironbarge": "supply_wagon",
+      "packwing": "mounted_scout",
+      "gulper": "shieldman",
+      "coral_lance": "crossbowman",
+      "rubbleback": "sapper",
+      "slabguard": "heavy_pikeman"
+    },
+    "role_adapter": {
+      "melee": "infantry",
+      "range": "archer",
+      "speed": "cavalry",
+      "logistics": "logistics",
+      "scout": "scout"
+    }
+  },
+  "buildings": {
+    "legacy_to_target": {
+      "forge_heart": "keep",
+      "sovereign_cradle": "_DELETED_",
+      "barracks": "barracks",
+      "habitation": "homes",
+      "archive_spire": "scriptorium",
+      "rally_quay": "muster_yard",
+      "command_gallery": "commanders_hall",
+      "lookout": "watchtower",
+      "skyreost": "dragon_watch",
+      "rivetworks": "roads",
+      "gearfoundry": "smithy",
+      "saltvault": "storehouse",
+      "seawall": "walls",
+      "training_camp": "training_camp"
+    }
+  },
+  "research": {
+    "legacy_to_target": {
+      "tidefarming": "agriculture",
+      "timberwright": "forestry",
+      "stonecunning": "masonry",
+      "alloywright": "metallurgy",
+      "forced_cadence": "infantry_doctrine",
+      "longmark": "archery",
+      "hardening": "fortification",
+      "field_medicine": "field_medicine",
+      "leviathanry": "cavalry",
+      "sky_duel": "siegecraft",
+      "buoyancy": "logistics_res",
+      "deep_sight": "scouting",
+      "rationing": "rationing"
+    }
+  },
+  "factions": {
+    "legacy_to_target": {
+      "brinecant": "northern_kingdom",
+      "ashcoil": "mountain_realm",
+      "skyshear": "forest_people",
+      "mossvault": "coastal_lords"
+    }
+  },
+  "plot_types": {
+    "legacy_to_target": {
+      "kelp_farm": "farm",
+      "drift_dock": "lumber_yard",
+      "basalt_cut": "quarry",
+      "slag_pit": "mine"
+    }
+  },
+  "defense_posture": {
+    "legacy_to_target": {
+      "harbor": "withdraw",
+      "partial": "garrison",
+      "full": "full"
+    }
+  },
+  "citadels": {
+    "legacy_to_target": {
+      "brinehold": "marcher_keep",
+      "stonekeel": "mountain_hold",
+      "cinderreach": "forest_citadel",
+      "galeari": "dragon_site",
+      "mnemolith": "_DEFERRED_"
+    }
+  },
+  "camp_types": {
+    "bandit_camp": { "levels": [1, 2, 3], "description": "Basic bandits and raiders" },
+    "raider_fort": { "levels": [4, 5], "description": "Organized raider band" },
+    "beast_den": { "levels": [6, 7], "description": "Drake and wyvern territory" },
+    "wyrm_scarred_ruin": { "levels": [8, 9, 10], "description": "Dragon-damaged ancient site" }
+  },
+  "wilderness_types": {
+    "forest": { "bonus": "timber", "description": "Dense woodland" },
+    "fertile_land": { "bonus": "food", "description": "Rich farmland" },
+    "quarry": { "bonus": "stone", "description": "Stone deposits" },
+    "iron_hills": { "bonus": "iron", "description": "Iron ore veins" },
+    "crossroads": { "bonus": "logistics", "description": "Strategic junction" },
+    "watch_hill": { "bonus": "scouting", "description": "High ground" }
+  }
+}

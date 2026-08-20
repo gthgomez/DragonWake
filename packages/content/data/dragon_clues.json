@@ -1,0 +1,34 @@
+[
+  {
+    "id": "shed_scale",
+    "name": "Shed Scale",
+    "description": "A thick, heat-resistant scale from an unknown creature",
+    "rarity": "common",
+    "bestiary_unlock": "shed_scale_phenomenon",
+    "readiness_value": 1
+  },
+  {
+    "id": "burned_livestock",
+    "name": "Burned Livestock",
+    "description": "Remains of cattle killed by extreme heat, not ordinary fire",
+    "rarity": "common",
+    "bestiary_unlock": "burned_farmland",
+    "readiness_value": 1
+  },
+  {
+    "id": "claw_marks",
+    "name": "Claw Marks on Stone",
+    "description": "Deep gouges in solid rock. Whatever made these had incredible strength.",
+    "rarity": "uncommon",
+    "bestiary_unlock": "claw_marks_stone",
+    "readiness_value": 2
+  },
+  {
+    "id": "dragon_bone",
+    "name": "Dragon Bone Fragment",
+    "description": "An ancient bone, far larger than any known animal. Partially fossilized.",
+    "rarity": "rare",
+    "bestiary_unlock": "dragon_bone",
+    "readiness_value": 3
+  }
+]

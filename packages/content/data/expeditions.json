@@ -1,0 +1,54 @@
+[
+  {
+    "id": "first_dragon_expedition",
+    "name": "The Dragon Scar Expedition",
+    "description": "Investigate reports of dragon activity in the northern wastes",
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Investigate Tracks",
+        "description": "Scout the reported dragon tracks near the border",
+        "type": "scout",
+        "target_level": 3,
+        "completion_reward": {
+          "bestiary_progress": "ridgeback_wyvern",
+          "knowledge_gain": 1
+        }
+      },
+      {
+        "stage": 2,
+        "name": "Clear the Raiders",
+        "description": "Raiders have established a camp near the dragon's territory. Drive them out.",
+        "type": "battle",
+        "target_level": 4,
+        "completion_reward": {
+          "item": "dragon_material",
+          "count": 2
+        }
+      },
+      {
+        "stage": 3,
+        "name": "Reach the Scarred Site",
+        "description": "Travel to the location where the dragon was last sighted.",
+        "type": "battle",
+        "target_level": 6,
+        "completion_reward": {
+          "bestiary_progress": "valley_drake",
+          "knowledge_gain": 2
+        }
+      },
+      {
+        "stage": 4,
+        "name": "The First Encounter",
+        "description": "A young drake blocks your path. You must drive it off without killing it — this is not a hunt, it is a survival test.",
+        "type": "encounter",
+        "target_level": 7,
+        "completion_reward": {
+          "settlement_charter": true,
+          "bestiary_progress": "ash_drake",
+          "knowledge_gain": 3
+        }
+      }
+    ]
+  }
+]

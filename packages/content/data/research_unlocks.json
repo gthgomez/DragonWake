@@ -1,0 +1,92 @@
+[
+  {
+    "research_id": "infantry_doctrine",
+    "research_level": 1,
+    "unlocks": ["pikeman"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "infantry_doctrine",
+    "research_level": 3,
+    "unlocks": ["man_at_arms"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "infantry_doctrine",
+    "research_level": 5,
+    "unlocks": ["halberdier"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "archery",
+    "research_level": 1,
+    "unlocks": ["bowman"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "archery",
+    "research_level": 3,
+    "unlocks": ["longbowman"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "archery",
+    "research_level": 5,
+    "unlocks": ["crossbowman"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "archery",
+    "research_level": 7,
+    "unlocks": ["heavy_crossbowman"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "cavalry",
+    "research_level": 2,
+    "unlocks": ["light_cavalry"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "cavalry",
+    "research_level": 5,
+    "unlocks": ["knight"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "logistics_res",
+    "research_level": 3,
+    "unlocks": ["supply_wagon"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "scouting",
+    "research_level": 2,
+    "unlocks": ["mounted_scout"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "metallurgy",
+    "research_level": 3,
+    "unlocks": ["shieldman"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "metallurgy",
+    "research_level": 5,
+    "unlocks": ["heavy_pikeman"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "siegecraft",
+    "research_level": 2,
+    "unlocks": ["sapper"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "dragon_studies",
+    "research_level": 1,
+    "unlocks": ["dragon_watch"],
+    "kind": "building"
+  }
+]
