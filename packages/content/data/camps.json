@@ -10,7 +10,7 @@
   {
     "camp_level": 2,
     "def_power_approx": 120,
-    "example_comp": "80 Levy + 20 Tidepike",
+    "example_comp": "80 Levy + 20 Pikeman",
     "recommended_player_power": 200,
     "loot_notes": "kelp",
     "harness_drop": "no"
@@ -18,7 +18,7 @@
   {
     "camp_level": 3,
     "def_power_approx": 300,
-    "example_comp": "150 Tidepike",
+    "example_comp": "150 Pikeman",
     "recommended_player_power": 500,
     "loot_notes": "kelp, mats low",
     "harness_drop": "no"
@@ -26,7 +26,7 @@
   {
     "camp_level": 4,
     "def_power_approx": 700,
-    "example_comp": "200 Tidepike + 50 Reefbow",
+    "example_comp": "200 Pikeman + 50 Bowman",
     "recommended_player_power": 1200,
     "loot_notes": "mats",
     "harness_drop": "rare shard"
@@ -34,7 +34,7 @@
   {
     "camp_level": 5,
     "def_power_approx": 1500,
-    "example_comp": "300 Bullhorn + 100 Reefbow",
+    "example_comp": "300 Man-at-Arms + 100 Bowman",
     "recommended_player_power": 2500,
     "loot_notes": "Harbinger harness piece chance",
     "harness_drop": "yes low"
@@ -42,7 +42,7 @@
   {
     "camp_level": 6,
     "def_power_approx": 3000,
-    "example_comp": "400 Bullhorn + 200 Reefbow",
+    "example_comp": "400 Man-at-Arms + 200 Bowman",
     "recommended_player_power": 5000,
     "loot_notes": "harness",
     "harness_drop": "yes"
@@ -50,7 +50,7 @@
   {
     "camp_level": 7,
     "def_power_approx": 6000,
-    "example_comp": "300 Colossus + 300 Reefbow",
+    "example_comp": "300 Halberdier + 300 Bowman",
     "recommended_player_power": 10000,
     "loot_notes": "talismans if Sov present",
     "harness_drop": "yes"

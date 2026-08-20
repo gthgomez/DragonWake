@@ -1,5 +1,11 @@
 [
   {
+    "research_id": "marcher_keep_charter",
+    "research_level": 1,
+    "unlocks": ["marcher_keep"],
+    "kind": "building"
+  },
+  {
     "research_id": "infantry_doctrine",
     "research_level": 1,
     "unlocks": ["pikeman"],

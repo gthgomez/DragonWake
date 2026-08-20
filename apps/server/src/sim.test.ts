@@ -56,11 +56,11 @@ describe("tickCityResources (shipped sim)", () => {
 
 describe("parseCampComp", () => {
   it("parses camp example compositions", () => {
-    const g = parseCampComp("80 Levy + 20 Tidepike");
+    const g = parseCampComp("80 Levy + 20 Pikeman");
     expect(g).toEqual(
       expect.arrayContaining([
         { unitId: "levy", count: 80 },
-        { unitId: "tidepike", count: 20 },
+        { unitId: "pikeman", count: 20 },
       ]),
     );
   });
@@ -138,7 +138,7 @@ describe("World queues + marches (shipped paths)", () => {
   it("march lands once and produces battle report for camp attack", () => {
     const world = new World({ devFastTime: true });
     const { player, city } = world.createGuest("Attacker", "brinecant");
-    world.adminGrant(player.id, { units: { reefbow: 200, levy: 100 } });
+    world.adminGrant(player.id, { units: { bowman: 200, levy: 100 } });
     const camp = [...world.camps.values()].find((c) => c.level === 1);
     expect(camp).toBeTruthy();
     const march = world.createMarch(player.id, {
@@ -148,7 +148,7 @@ describe("World queues + marches (shipped paths)", () => {
       targetId: camp!.id,
       targetX: camp!.x,
       targetY: camp!.y,
-      composition: { reefbow: 100, levy: 50 },
+      composition: { bowman: 100, levy: 50 },
     });
     // Force land
     march.arriveAt = world.now() - 1;
@@ -172,7 +172,7 @@ describe("World queues + marches (shipped paths)", () => {
   it("occupy wilderness claims land on win", () => {
     const world = new World({ devFastTime: true });
     const { player, city } = world.createGuest("Settler", "ashcoil");
-    world.adminGrant(player.id, { units: { levy: 500, tidepike: 100 } });
+    world.adminGrant(player.id, { units: { levy: 500, pikeman: 100 } });
     const wild = [...world.wilderness.values()][0]!;
     const march = world.createMarch(player.id, {
       fromCityId: city.id,
@@ -181,7 +181,7 @@ describe("World queues + marches (shipped paths)", () => {
       targetId: wild.id,
       targetX: wild.x,
       targetY: wild.y,
-      composition: { levy: 200, tidepike: 50 },
+      composition: { levy: 200, pikeman: 50 },
     });
     march.arriveAt = 0;
     const report = world.landMarch(march, world.now());
@@ -257,7 +257,7 @@ describe("World queues + marches (shipped paths)", () => {
     expect(world.harnessComplete(sov)).toBe(true);
     const brine = world.foundBrinehold(player.id, "Deep Brine");
     expect(brine.kind).toBe("brinehold");
-    expect(brine.stacks.gulper).toBeGreaterThan(0);
+    expect(brine.stacks.shieldman).toBeGreaterThan(0);
   });
 
   it("S1.1 stonekeel requires brinehold and grants exclusive stacks", () => {
@@ -271,8 +271,8 @@ describe("World queues + marches (shipped paths)", () => {
     world.foundBrinehold(player.id, "First Hold");
     const stone = world.foundStonekeel(player.id, "Keel Rock");
     expect(stone.kind).toBe("stonekeel");
-    expect(stone.stacks.rubbleback).toBeGreaterThan(0);
-    expect(stone.stacks.slabguard).toBeGreaterThan(0);
+    expect(stone.stacks.sapper).toBeGreaterThan(0);
+    expect(stone.stacks.heavy_pikeman).toBeGreaterThan(0);
     expect(() => world.foundStonekeel(player.id)).toThrow(/already own/);
   });
 
@@ -281,17 +281,17 @@ describe("World queues + marches (shipped paths)", () => {
     const a = world.createGuest("FullRaider", "brinecant");
     const b = world.createGuest("FullWall", "ashcoil");
     world.adminGrant(a.player.id, {
-      units: { reefbow: 400, levy: 200 },
+      units: { bowman: 400, levy: 200 },
       skipProtection: true,
     });
     world.adminGrant(b.player.id, {
-      units: { levy: 80, tidepike: 40 },
+      units: { levy: 80, pikeman: 40 },
       skipProtection: true,
     });
     world.setPosture(b.city.id, b.player.id, "full");
     const defBefore =
       (world.getCity(b.city.id)!.stacks.levy ?? 0) +
-      (world.getCity(b.city.id)!.stacks.tidepike ?? 0);
+      (world.getCity(b.city.id)!.stacks.pikeman ?? 0);
     const march = world.createMarch(a.player.id, {
       fromCityId: a.city.id,
       intent: "attack",
@@ -299,7 +299,7 @@ describe("World queues + marches (shipped paths)", () => {
       targetId: b.city.id,
       targetX: b.city.mapX,
       targetY: b.city.mapY,
-      composition: { reefbow: 300, levy: 100 },
+      composition: { bowman: 300, levy: 100 },
     });
     march.arriveAt = 0;
     const report = world.landMarch(march, world.now());
@@ -317,7 +317,7 @@ describe("World queues + marches (shipped paths)", () => {
     expect(battle.rounds >= 0).toBe(true);
     const defAfter =
       (world.getCity(b.city.id)!.stacks.levy ?? 0) +
-      (world.getCity(b.city.id)!.stacks.tidepike ?? 0);
+      (world.getCity(b.city.id)!.stacks.pikeman ?? 0);
     // On attacker win, defender stacks should drop; on defender win still may take losses
     const defLosses = Object.values(battle.losses.defender ?? {}).reduce(
       (s, n) => s + (Number(n) || 0),

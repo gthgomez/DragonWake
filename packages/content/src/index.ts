@@ -31,8 +31,14 @@ export type UnitDef = {
   cost_basalt?: number;
   cost_slagiron?: number;
   cost_tidegilt?: number;
+  cost_food?: number;
+  cost_timber?: number;
+  cost_stone?: number;
+  cost_iron?: number;
+  cost_coin?: number;
   train_sec_L1?: number;
   unlock?: string;
+  medieval_role?: string;
   [key: string]: unknown;
 };
 
@@ -245,6 +251,17 @@ export function getUnitById(id: string): UnitDef | undefined {
 export function getUnitByName(name: string): UnitDef | undefined {
   const n = name.toLowerCase();
   return getUnits().find((u) => u.name.toLowerCase() === n || u.id === n);
+}
+
+/** Return unit costs using medieval field names. Falls back to legacy names if medieval fields are absent. */
+export function getUnitCost(unit: UnitDef): { food: number; timber: number; stone: number; iron: number; coin: number } {
+  return {
+    food: unit.cost_food ?? unit.cost_kelp ?? 0,
+    timber: unit.cost_timber ?? unit.cost_driftwood ?? 0,
+    stone: unit.cost_stone ?? unit.cost_basalt ?? 0,
+    iron: unit.cost_iron ?? unit.cost_slagiron ?? 0,
+    coin: unit.cost_coin ?? unit.cost_tidegilt ?? 0,
+  };
 }
 
 export function getRps(): Record<string, Record<string, number>> {

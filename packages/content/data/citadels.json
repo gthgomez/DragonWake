@@ -1,11 +1,22 @@
 [
   {
+    "id": "marcher_keep",
+    "name": "Marcher Keep",
+    "order": 0,
+    "ship": "MVP",
+    "exclusive_units": ["light_cavalry", "mounted_scout"],
+    "starter_stacks": { "light_cavalry": 10, "mounted_scout": 5 },
+    "craft_mat": "",
+    "unlock_research": "marcher_keep_charter",
+    "requires": []
+  },
+  {
     "id": "brinehold",
     "name": "Brinehold",
     "order": 0,
     "ship": "MVP",
-    "exclusive_units": ["gulper", "coral_lance"],
-    "starter_stacks": { "gulper": 20, "coral_lance": 10 },
+    "exclusive_units": ["shieldman", "crossbowman"],
+    "starter_stacks": { "shieldman": 20, "crossbowman": 10 },
     "craft_mat": "gillplate",
     "unlock_research": "brinehold_unlock"
   },
@@ -14,8 +25,8 @@
     "name": "Stonekeel",
     "order": 1,
     "ship": "S1",
-    "exclusive_units": ["rubbleback", "slabguard"],
-    "starter_stacks": { "rubbleback": 15, "slabguard": 15 },
+    "exclusive_units": ["sapper", "heavy_pikeman"],
+    "starter_stacks": { "sapper": 15, "heavy_pikeman": 15 },
     "craft_mat": "mandrake_slag",
     "unlock_research": "stonekeel_unlock",
     "requires": ["brinehold"]

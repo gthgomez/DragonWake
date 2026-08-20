@@ -359,6 +359,10 @@ export function App() {
     { body: string; fromPlayerId: string; createdAt?: number }[]
   >([]);
   const [formulas, setFormulas] = useState<unknown>(null);
+  const [readinessStatus, setReadinessStatus] = useState<any>(null);
+  const [bestiaryEntries, setBestiaryEntries] = useState<any[]>([]);
+  const [expeditionStatus, setExpeditionStatus] = useState<any>(null);
+  const [clueData, setClueData] = useState<any>(null);
   const [units, setUnits] = useState<UnitDef[]>([]);
   const [sovereigns, setSovereigns] = useState<
     { id: string; sovereignType: string; harnessComplete: boolean }[]
@@ -854,12 +858,41 @@ export function App() {
     setFormulas(data.formulas);
   }
 
+  async function refreshKnowledge() {
+    if (!token) return;
+    try {
+      const [readyResp, bestResp, expResp, clueResp] = await Promise.all([
+        api<any>("/api/v1/dragon/readiness", token),
+        api<any>("/api/v1/dragon/bestiary", token),
+        api<any>("/api/v1/dragon/expedition", token),
+        api<any>("/api/v1/dragon/clues", token),
+      ]);
+      setReadinessStatus(readyResp);
+      setBestiaryEntries(bestResp.entries ?? []);
+      setExpeditionStatus(expResp);
+      setClueData(clueResp);
+    } catch {
+      // silently fail — knowledge is non-critical
+    }
+  }
+
   async function grantDev(body: Record<string, unknown>, label: string) {
     if (!token) return;
     await run(label, async () => {
       await api("/api/v1/admin/grant", token, {
         method: "POST",
         body: JSON.stringify(body),
+      });
+      await refreshMe(token);
+    });
+  }
+
+  async function foundMarcherKeep() {
+    if (!token) return;
+    await run("Marcher Keep founded", async () => {
+      await api("/api/v1/settlements/found-marcher-keep", token, {
+        method: "POST",
+        body: JSON.stringify({ name: "Marcher Keep" }),
       });
       await refreshMe(token);
     });
@@ -1067,7 +1100,10 @@ export function App() {
                   setUnreadReports(0);
                   void loadReports().catch((e) => setError(String(e)));
                 }
-                if (t === "knowledge") void loadCodex().catch((e) => setError(String(e)));
+                if (t === "knowledge") {
+                  void loadCodex().catch((e) => setError(String(e)));
+                  void refreshKnowledge();
+                }
                 if (t === "alliance")
                   void loadAlliances().catch((e) => setError(String(e)));
               }}
@@ -1356,6 +1392,9 @@ export function App() {
               ))}
             </ul>
             <div className="row">
+              <button type="button" onClick={() => void foundMarcherKeep()}>
+                Found Marcher Keep
+              </button>
               <button type="button" onClick={() => void foundBrine()}>
                 Found Brinehold
               </button>
@@ -1364,6 +1403,7 @@ export function App() {
               </button>
             </div>
             <p className="muted tiny">
+              Marcher Keep requires expedition charter earned from dragon expedition.
               S1 ladder: Brinehold → Stonekeel → Cinderreach → Galeari →
               Mnemolith. Stonekeel grants Rubbleback + Slabguard stacks.
             </p>
@@ -1988,10 +2028,149 @@ export function App() {
         {tab === "knowledge" && (
           <section className="card">
             <h2>Knowledge</h2>
-            <button type="button" onClick={() => void loadCodex()}>
-              Load formulas
-            </button>
-            <pre className="report">{JSON.stringify(formulas, null, 2)}</pre>
+
+            <h3>Dragon Readiness</h3>
+            {readinessStatus ? (
+              <div>
+                <div className="readiness-bar">
+                  <span>
+                    {readinessStatus.requirements.filter((r: any) => r.met).length}/
+                    {readinessStatus.requirements.length} requirements met
+                  </span>
+                </div>
+                {readinessStatus.requirements.map((req: any) => (
+                  <div
+                    key={req.id}
+                    className={`readiness-req ${req.met ? "met" : "unmet"}`}
+                  >
+                    <span>{req.met ? "✓" : "○"}</span>
+                    <span>{req.description}</span>
+                  </div>
+                ))}
+                {readinessStatus.ready && (
+                  <div className="readiness-ready">
+                    Expedition charter available!
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="muted">Loading readiness status...</p>
+            )}
+
+            <h3>Bestiary</h3>
+            {bestiaryEntries.length > 0 ? (
+              <div className="bestiary-grid">
+                {bestiaryEntries.map((entry: any, i: number) => (
+                  <div
+                    key={entry.entryId ?? i}
+                    className="bestiary-entry"
+                  >
+                    <div className="bestiary-subject">
+                      {(entry.entryId ?? "unknown").replace(/_/g, " ")}
+                    </div>
+                    <div className="bestiary-level">
+                      Observation Level: {entry.observationLevel}/5
+                    </div>
+                    <div className="bestiary-encounters">
+                      Encounters: {entry.encounterCount}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">
+                No bestiary entries yet. Defeat camps and explore to discover
+                creatures.
+              </p>
+            )}
+
+            <h3>Dragon Expedition</h3>
+            {expeditionStatus ? (
+              <div>
+                <div className="expedition-name">{expeditionStatus.name}</div>
+                {expeditionStatus.charterEarned ? (
+                  <div className="expedition-complete">
+                    Charter earned! You may found a settlement.
+                  </div>
+                ) : expeditionStatus.currentStage > 0 ? (
+                  <div>
+                    <div className="expedition-stage">
+                      Stage {expeditionStatus.currentStage}/
+                      {expeditionStatus.stages.length}
+                    </div>
+                    {expeditionStatus.stages.map((stage: any) => (
+                      <div
+                        key={stage.stage}
+                        className={`expedition-stage-item ${
+                          stage.stage <= expeditionStatus.currentStage
+                            ? "completed"
+                            : stage.stage === expeditionStatus.currentStage + 1
+                              ? "current"
+                              : "locked"
+                        }`}
+                      >
+                        <span>
+                          {stage.stage <= expeditionStatus.currentStage
+                            ? "✓"
+                            : stage.stage ===
+                                expeditionStatus.currentStage + 1
+                              ? "→"
+                              : "○"}
+                        </span>
+                        <span>{stage.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="muted">
+                    Expedition not started. Meet all readiness requirements to
+                    begin.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="muted">Loading expedition status...</p>
+            )}
+
+            <h3>Dragon Evidence</h3>
+            {clueData && clueData.clues.length > 0 ? (
+              <div>
+                {clueData.clues.map((clue: any) => (
+                  <div
+                    key={clue.id}
+                    className={`clue-item clue-${clue.rarity}`}
+                  >
+                    <span className="clue-name">{clue.name}</span>
+                    <span className="clue-count">×{clue.count}</span>
+                    <span className="clue-desc">{clue.description}</span>
+                  </div>
+                ))}
+                {clueData.dragonMaterials > 0 && (
+                  <div className="dragon-materials">
+                    Dragon Materials: {clueData.dragonMaterials}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="muted">
+                No dragon evidence collected yet. Explore and fight to discover
+                clues.
+              </p>
+            )}
+
+            <details style={{ marginTop: "1rem" }}>
+              <summary className="muted">Raw formulas (debug)</summary>
+              <button
+                type="button"
+                onClick={() => void loadCodex()}
+                style={{ margin: "0.5rem 0" }}
+              >
+                Reload formulas
+              </button>
+              <pre className="report">
+                {JSON.stringify(formulas, null, 2)}
+              </pre>
+            </details>
           </section>
         )}
 

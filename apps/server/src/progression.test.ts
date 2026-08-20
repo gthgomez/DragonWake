@@ -48,7 +48,7 @@ describe("Population and Manpower", () => {
   it("training fails when manpower insufficient (NO_MANPOWER)", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("PopD", "skyshear");
-    // maxPop=300, current used=65 (50 levy +10 bearer +5 whisper), free=235
+    // maxPop=300, current used=65 (50 levy +10 porter +5 scout), free=235
     // Try to train 300 levy (pop=300) — exceeds available manpower
     expect(() => world.startTrain(city.id, player.id, "levy", 300)).toThrow(
       /insufficient manpower/,
@@ -114,27 +114,27 @@ describe("Research Unlock Enforcement", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("ResB", "ashcoil");
     expect(() =>
-      world.startTrain(city.id, player.id, "pikeman", 1),
+      world.startTrain(city.id, player.id, "nonexistent_unit", 1),
     ).toThrow(/unknown unit/);
   });
 
   it("isUnitUnlocked returns true for start-unlocked units", () => {
     expect(isUnitUnlocked("levy", {})).toBe(true);
-    expect(isUnitUnlocked("whisper", {})).toBe(true);
-    expect(isUnitUnlocked("bearer", {})).toBe(true);
+    expect(isUnitUnlocked("scout", {})).toBe(true);
+    expect(isUnitUnlocked("porter", {})).toBe(true);
   });
 
   it("isUnitUnlocked returns false for nonexistent units", () => {
-    expect(isUnitUnlocked("pikeman", {})).toBe(false);
-    expect(isUnitUnlocked("knight", {})).toBe(false);
-    expect(isUnitUnlocked("bowman", {})).toBe(false);
+    expect(isUnitUnlocked("nonexistent_unit", {})).toBe(false);
+    expect(isUnitUnlocked("dragon_knight", {})).toBe(false);
+    expect(isUnitUnlocked("siege_tower", {})).toBe(false);
   });
 
   it("isUnitUnlocked checks research gate when present in research_unlocks.json", () => {
     // pikeman is gated by infantry_doctrine L1 in research_unlocks.json
-    // but pikeman doesn't exist in units.json, so isUnitUnlocked returns false
-    // This verifies the mechanism works (unit must exist AND have sufficient research)
-    expect(isUnitUnlocked("pikeman", { infantry_doctrine: 5 })).toBe(false);
+    // With sufficient research, pikeman should be unlocked
+    expect(isUnitUnlocked("pikeman", { infantry_doctrine: 5 })).toBe(true);
+    // Without research, pikeman should be locked
     expect(isUnitUnlocked("pikeman", {})).toBe(false);
   });
 
@@ -149,10 +149,10 @@ describe("Research Unlock Enforcement", () => {
 
   it("multiple units gated by same research at different levels", () => {
     // infantry_doctrine gates: pikeman L1, man_at_arms L3, halberdier L5
-    // None of these exist in current units.json, so verify they all return false
-    expect(isUnitUnlocked("pikeman", { infantry_doctrine: 10 })).toBe(false);
-    expect(isUnitUnlocked("man_at_arms", { infantry_doctrine: 10 })).toBe(false);
-    expect(isUnitUnlocked("halberdier", { infantry_doctrine: 10 })).toBe(false);
+    // All of these now exist in units.json, so verify they unlock with sufficient research
+    expect(isUnitUnlocked("pikeman", { infantry_doctrine: 10 })).toBe(true);
+    expect(isUnitUnlocked("man_at_arms", { infantry_doctrine: 10 })).toBe(true);
+    expect(isUnitUnlocked("halberdier", { infantry_doctrine: 10 })).toBe(true);
   });
 });
 
@@ -658,7 +658,7 @@ describe("Defense Posture", () => {
     const a = world.createGuest("DefC", "brinecant");
     const b = world.createGuest("DefD", "ashcoil");
     world.adminGrant(a.player.id, {
-      units: { reefbow: 200, levy: 100 },
+      units: { bowman: 200, levy: 100 },
       skipProtection: true,
     });
     world.adminGrant(b.player.id, {
@@ -673,7 +673,7 @@ describe("Defense Posture", () => {
       targetId: b.city.id,
       targetX: b.city.mapX,
       targetY: b.city.mapY,
-      composition: { reefbow: 150, levy: 50 },
+      composition: { bowman: 150, levy: 50 },
     });
     march.arriveAt = 0;
     const report = world.landMarch(march, world.now());
@@ -688,17 +688,17 @@ describe("Defense Posture", () => {
     const a = world.createGuest("DefE", "brinecant");
     const b = world.createGuest("DefF", "skyshear");
     world.adminGrant(a.player.id, {
-      units: { reefbow: 200, levy: 100 },
+      units: { bowman: 200, levy: 100 },
       skipProtection: true,
     });
     world.adminGrant(b.player.id, {
-      units: { levy: 100, tidepike: 50 },
+      units: { levy: 100, pikeman: 50 },
       skipProtection: true,
     });
     world.setPosture(b.city.id, b.player.id, "full");
     const defBefore =
       (world.getCity(b.city.id)!.stacks.levy ?? 0) +
-      (world.getCity(b.city.id)!.stacks.tidepike ?? 0);
+      (world.getCity(b.city.id)!.stacks.pikeman ?? 0);
     const march = world.createMarch(a.player.id, {
       fromCityId: a.city.id,
       intent: "attack",
@@ -706,7 +706,7 @@ describe("Defense Posture", () => {
       targetId: b.city.id,
       targetX: b.city.mapX,
       targetY: b.city.mapY,
-      composition: { reefbow: 200, levy: 100 },
+      composition: { bowman: 200, levy: 100 },
     });
     march.arriveAt = 0;
     const report = world.landMarch(march, world.now());
@@ -714,7 +714,7 @@ describe("Defense Posture", () => {
     expect(report!.result.harborLoot).toBeFalsy();
     const defAfter =
       (world.getCity(b.city.id)!.stacks.levy ?? 0) +
-      (world.getCity(b.city.id)!.stacks.tidepike ?? 0);
+      (world.getCity(b.city.id)!.stacks.pikeman ?? 0);
     // With full posture, all 150 troops fight — defender may take losses
     expect(defAfter).toBeLessThanOrEqual(defBefore);
   });
@@ -820,7 +820,7 @@ describe("Slice 1A Progression Path", () => {
     expect(world.getCity(city.id)!.stacks.levy).toBeGreaterThanOrEqual(50);
 
     // Step 5: Attack camp
-    world.adminGrant(player.id, { units: { reefbow: 100 }, skipProtection: true });
+    world.adminGrant(player.id, { units: { bowman: 100 }, skipProtection: true });
     const camp = [...world.camps.values()].find((c) => c.level === 1)!;
     const campMarch = world.createMarch(player.id, {
       fromCityId: city.id,
@@ -829,7 +829,7 @@ describe("Slice 1A Progression Path", () => {
       targetId: camp.id,
       targetX: camp.x,
       targetY: camp.y,
-      composition: { reefbow: 50, levy: 50 },
+      composition: { bowman: 50, levy: 50 },
     });
     campMarch.arriveAt = 0;
     const campReport = world.landMarch(campMarch, world.now());

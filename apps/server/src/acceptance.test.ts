@@ -59,7 +59,7 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
       method: "POST",
       token: tokenA,
       body: JSON.stringify({
-        units: { reefbow: 100, levy: 100 },
+        units: { bowman: 100, levy: 100 },
         harness: true,
         brineholdUnlock: true,
         skipProtection: true,
@@ -91,7 +91,7 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
       cityAfterBuild.buildings.some((x) => x.buildingType === "barracks"),
     ).toBe(true);
 
-    // M4 — research Longmark + train Reefbows
+    // M4 — research Longmark + Archery + train Bowmen
     const research = await json(app, `/api/v1/cities/${cityA}/research`, {
       method: "POST",
       token: tokenA,
@@ -99,15 +99,22 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
     });
     world.jobs.get(research.body.job.id)!.finishesAt = 0;
     world.tick();
+    const researchArch = await json(app, `/api/v1/cities/${cityA}/research`, {
+      method: "POST",
+      token: tokenA,
+      body: JSON.stringify({ techId: "archery" }),
+    });
+    world.jobs.get(researchArch.body.job.id)!.finishesAt = 0;
+    world.tick();
     const train = await json(app, `/api/v1/cities/${cityA}/train`, {
       method: "POST",
       token: tokenA,
-      body: JSON.stringify({ unitId: "reefbow", count: 5 }),
+      body: JSON.stringify({ unitId: "bowman", count: 5 }),
     });
     world.jobs.get(train.body.job.id)!.finishesAt = 0;
     world.tick();
     expect(world.getCity(cityA)!.research.longmark).toBeGreaterThanOrEqual(1);
-    expect(world.getCity(cityA)!.stacks.reefbow).toBeGreaterThan(0);
+    expect(world.getCity(cityA)!.stacks.bowman).toBeGreaterThan(0);
 
     // M5 — attack Camp L1
     const map = await json(app, "/api/v1/map/viewport?x0=0&y0=0&x1=39&y1=39", {
@@ -122,7 +129,7 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
         fromCityId: cityA,
         intent: "attack",
         target: { type: "camp", id: camp.id, x: camp.x, y: camp.y },
-        composition: { reefbow: 80, levy: 40 },
+        composition: { bowman: 80, levy: 40 },
       }),
     });
     const cm = forceLand(world, campMarch.body.march.id);

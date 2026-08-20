@@ -57,7 +57,7 @@ describe("PG persistence (shipped PgStore + World)", () => {
 
     const { player, city, token } = world1.createGuest(name, "brinecant");
     expect(city.resources.kelp).toBeGreaterThan(0);
-    world1.adminGrant(player.id, { units: { reefbow: 42 }, chronite: 7 });
+    world1.adminGrant(player.id, { units: { bowman: 42 }, chronite: 7 });
     await world1.flush();
     await store1!.close();
 
@@ -76,7 +76,7 @@ describe("PG persistence (shipped PgStore + World)", () => {
     expect(loadedCity!.mapX).toBe(city.mapX);
     expect(loadedCity!.mapY).toBe(city.mapY);
     expect(loadedCity!.resources.kelp).toBeGreaterThan(0);
-    expect(loadedCity!.stacks.reefbow).toBe(42);
+    expect(loadedCity!.stacks.bowman).toBe(42);
 
     const viaSession = world2.sessionPlayer(token);
     expect(viaSession).not.toBeNull();
@@ -103,7 +103,7 @@ describe("PG persistence (shipped PgStore + World)", () => {
       `March_${Date.now()}`,
       "ashcoil",
     );
-    world1.adminGrant(player.id, { units: { reefbow: 200, levy: 100 } });
+    world1.adminGrant(player.id, { units: { bowman: 200, levy: 100 } });
     const camp = [...world1.camps.values()].find((c) => c.level === 1)!;
     const march = world1.createMarch(player.id, {
       fromCityId: city.id,
@@ -112,7 +112,7 @@ describe("PG persistence (shipped PgStore + World)", () => {
       targetId: camp.id,
       targetX: camp.x,
       targetY: camp.y,
-      composition: { reefbow: 80, levy: 40 },
+      composition: { bowman: 80, levy: 40 },
     });
     march.arriveAt = 0;
     const report = world1.landMarch(march, world1.now());

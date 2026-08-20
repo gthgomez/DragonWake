@@ -35,8 +35,8 @@ describe("resolveBattle purity", () => {
     const input = {
       rulesVersion: COMBAT_RULES_VERSION,
       seed: 99,
-      attacker: { groups: [{ unitId: "reefbow", count: 1000 }] },
-      defender: { groups: [{ unitId: "tidepike", count: 1000 }] },
+      attacker: { groups: [{ unitId: "bowman", count: 1000 }] },
+      defender: { groups: [{ unitId: "pikeman", count: 1000 }] },
     };
     const a = resolveBattle(input);
     const b = resolveBattle(input);
@@ -47,8 +47,8 @@ describe("resolveBattle purity", () => {
   it("different seeds can differ but both complete", () => {
     const base = {
       rulesVersion: COMBAT_RULES_VERSION,
-      attacker: { groups: [{ unitId: "reefbow", count: 2000 }] },
-      defender: { groups: [{ unitId: "tidepike", count: 2000 }] },
+      attacker: { groups: [{ unitId: "bowman", count: 2000 }] },
+      defender: { groups: [{ unitId: "pikeman", count: 2000 }] },
     };
     const a = resolveBattle({ ...base, seed: 1 });
     const b = resolveBattle({ ...base, seed: 2 });
@@ -130,10 +130,10 @@ describe("matchups M1–M10 (shipped resolveBattle)", () => {
 
 describe("parseForceString", () => {
   it("parses mixed force", () => {
-    const f = parseForceString("3k Stormkeel + 2k Levy");
+    const f = parseForceString("3k Knight + 2k Levy");
     expect(f.groups).toEqual(
       expect.arrayContaining([
-        { unitId: "stormkeel", count: 3000 },
+        { unitId: "knight", count: 3000 },
         { unitId: "levy", count: 2000 },
       ]),
     );

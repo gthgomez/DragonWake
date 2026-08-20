@@ -7,6 +7,8 @@ import {
 import {
   getBuildings,
   getCitadels,
+  getDragonClues,
+  getExpeditions,
   getFormulas,
   getMeta,
   getResearch,
@@ -548,6 +550,22 @@ export function createApp(world: World) {
 
   api.get("/citadels", (c) => c.json({ citadels: getCitadels() }));
 
+  api.post("/settlements/found-marcher-keep", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = (await c.req.json().catch(() => ({}))) as { name?: string };
+    try {
+      const city = world.foundMarcherKeep(player.id, body.name);
+      return c.json({ city: publicCity(city, world) });
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "MARCHER_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
   api.post("/citadels/found-brinehold", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
@@ -807,6 +825,55 @@ export function createApp(world: World) {
     // Dev helper to force sim
     world.tick();
     return c.json({ ok: true, time: new Date().toISOString() });
+  });
+
+  api.get("/dragon/readiness", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const status = world.checkDragonReadiness(player.id);
+    return c.json(status);
+  });
+
+  api.get("/dragon/bestiary", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const entries = [...world.bestiary.entries()]
+      .filter(([key]) => key.startsWith(`${player.id}:`))
+      .map(([, value]) => value);
+    return c.json({ entries });
+  });
+
+  api.get("/dragon/expedition", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const progress = world.dragonProgress.get(player.id);
+    const expeditions = getExpeditions();
+    const expedition = expeditions[0];
+    return c.json({
+      expeditionId: expedition?.id ?? null,
+      name: expedition?.name ?? null,
+      stages: expedition?.stages ?? [],
+      currentStage: progress?.expeditionStage ?? 0,
+      charterEarned: progress?.charterEarned ?? false,
+    });
+  });
+
+  api.get("/dragon/clues", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const inv = world.inventory.get(player.id) ?? {};
+    const clues = getDragonClues();
+    const collected = clues
+      .filter((clue) => (inv[clue.id] ?? 0) > 0 || (inv["dragon_clue"] ?? 0) > 0)
+      .map((clue) => ({
+        id: clue.id,
+        name: clue.name,
+        description: clue.description,
+        rarity: clue.rarity,
+        count: inv[clue.id] ?? 0,
+      }));
+    const dragonMaterials = inv["dragon_material"] ?? 0;
+    return c.json({ clues: collected, dragonMaterials });
   });
 
   app.route("/api/v1", api);

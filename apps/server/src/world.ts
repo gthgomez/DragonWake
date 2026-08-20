@@ -14,6 +14,7 @@ import {
   getCamps,
   getCitadelById,
   getUnitById,
+  getUnitCost,
   isUnitUnlocked,
   getBestiaryEntries,
   getDragonReadiness,
@@ -301,12 +302,28 @@ function chebyshev(x0: number, y0: number, x1: number, y1: number): number {
 export function parseCampComp(example: string): BattleGroup[] {
   const nameToId: Record<string, string> = {
     levy: "levy",
-    tidepike: "tidepike",
-    bullhorn: "bullhorn",
-    reefbow: "reefbow",
-    colossus: "colossus_frame",
-    skyshrike: "skyshrike",
-    stormkeel: "stormkeel",
+    pikeman: "pikeman",
+    man_at_arms: "man_at_arms",
+    "man-at-arms": "man_at_arms",
+    halberdier: "halberdier",
+    bowman: "bowman",
+    longbowman: "longbowman",
+    crossbowman: "crossbowman",
+    "heavy crossbowman": "heavy_crossbowman",
+    heavy_crossbowman: "heavy_crossbowman",
+    light_cavalry: "light_cavalry",
+    "light cavalry": "light_cavalry",
+    knight: "knight",
+    shieldman: "shieldman",
+    sapper: "sapper",
+    // Legacy
+    tidepike: "pikeman",
+    reefbow: "bowman",
+    skyshrike: "light_cavalry",
+    stormkeel: "knight",
+    bullhorn: "man_at_arms",
+    colossus: "halberdier",
+    "colossus frame": "halberdier",
   };
   const groups: BattleGroup[] = [];
   for (const part of example.split(/\s*\+\s*/)) {
@@ -870,10 +887,11 @@ export class World {
         code: "NO_MANPOWER",
       });
     }
-    const costK = (unit.cost_kelp ?? 30) * n;
-    const costD = (unit.cost_driftwood ?? 0) * n;
-    const costB = (unit.cost_basalt ?? 0) * n;
-    const costS = (unit.cost_slagiron ?? 0) * n;
+    const costs = getUnitCost(unit);
+    const costK = costs.food * n;
+    const costD = costs.timber * n;
+    const costB = costs.stone * n;
+    const costS = costs.iron * n;
     if (city.resources.kelp < costK) {
       throw Object.assign(new Error("insufficient food"), { code: "NO_RES" });
     }
@@ -1515,7 +1533,7 @@ export class World {
         null;
       defGroups = [
         { unitId: "levy", count: 20 * (wild?.level ?? 1) },
-        { unitId: "tidepike", count: 5 * (wild?.level ?? 1) },
+        { unitId: "pikeman", count: 5 * (wild?.level ?? 1) },
       ];
     } else if (march.targetType === "city") {
       defCity =
@@ -1991,6 +2009,16 @@ export class World {
       }
       this.inventory.set(playerId, inv);
     }
+  }
+
+  foundMarcherKeep(playerId: string, name?: string): City {
+    const progress = this.dragonProgress.get(playerId);
+    if (!progress?.charterEarned) {
+      throw Object.assign(new Error("settlement charter not earned"), {
+        code: "NO_CHARTER",
+      });
+    }
+    return this.foundCitadel(playerId, "marcher_keep", name);
   }
 
   foundBrinehold(playerId: string, name?: string): City {

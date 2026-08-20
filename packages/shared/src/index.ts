@@ -39,6 +39,7 @@ export type MarchIntent =
 /** Capital + MVP Brinehold + S1 ladder citadels (see PRODUCT_FREEZE_S1). */
 export type CityKind =
   | "capital"
+  | "marcher_keep"
   | "brinehold"
   | "stonekeel"
   | "cinderreach"
@@ -47,6 +48,7 @@ export type CityKind =
   | "citadel_other";
 
 export const S1_CITADEL_ORDER = [
+  "marcher_keep",
   "brinehold",
   "stonekeel",
   "cinderreach",

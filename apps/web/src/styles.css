@@ -520,6 +520,79 @@ code {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
+.readiness-req {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.readiness-req.met { color: #4caf50; }
+.readiness-req.unmet { color: var(--muted); }
+.readiness-ready {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #2d5a3a;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 600;
+}
+.bestiary-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+.bestiary-entry {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+}
+.bestiary-subject {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.bestiary-level, .bestiary-encounters {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.expedition-stage-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+}
+.expedition-stage-item.completed { color: #4caf50; }
+.expedition-stage-item.current { color: var(--accent-hot); font-weight: 600; }
+.expedition-stage-item.locked { color: var(--muted); }
+.expedition-complete {
+  padding: 0.75rem;
+  background: #2d5a3a;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+.clue-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.clue-common { }
+.clue-uncommon { color: #2196f3; }
+.clue-rare { color: #9c27b0; }
+.clue-name { font-weight: 600; min-width: 120px; }
+.clue-count { color: var(--muted); }
+.clue-desc { color: var(--muted); font-size: 0.85rem; }
+.dragon-materials {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: var(--bg-card);
+  border-radius: 4px;
+  font-weight: 600;
+}
+
 button:disabled {
   opacity: 0.45;
   cursor: not-allowed;

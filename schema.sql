@@ -41,8 +41,8 @@ CREATE TABLE cities (
   realm_id        SMALLINT NOT NULL REFERENCES realms(id),
   kind            TEXT NOT NULL DEFAULT 'capital'
                   CHECK (kind IN (
-                    'capital','brinehold','stonekeel','cinderreach',
-                    'galeari','mnemolith','citadel_other'
+                    'capital','marcher_keep','brinehold','stonekeel',
+                    'cinderreach','galeari','mnemolith','citadel_other'
                   )),
   name            TEXT NOT NULL,
   map_x           INT NOT NULL,

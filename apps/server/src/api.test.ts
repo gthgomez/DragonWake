@@ -48,7 +48,7 @@ describe("HTTP API two-session demo path", () => {
       method: "POST",
       token: tokenA,
       body: JSON.stringify({
-        units: { reefbow: 300, levy: 200 },
+        units: { bowman: 300, levy: 200 },
         harness: true,
         brineholdUnlock: true,
         skipProtection: true,
@@ -88,7 +88,7 @@ describe("HTTP API two-session demo path", () => {
         fromCityId: cityA,
         intent: "attack",
         target: { type: "camp", id: camp.id, x: camp.x, y: camp.y },
-        composition: { reefbow: 100, levy: 50 },
+        composition: { bowman: 100, levy: 50 },
       }),
     });
     expect(march.body.march.id).toBeTruthy();
