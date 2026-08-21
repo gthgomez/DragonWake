@@ -4,6 +4,28 @@ Status: **IMPLEMENTATION CONTRACT**
 Generated: 2026-08-19
 Base SHA: `0241e51` (main)
 
+## Amendment A1 — Sovereign deletion DEFERRED to M4 (2026-08-21)
+
+The FREEZE NOW item "Sovereign DELETED as abstraction" is amended to
+**DEFER (M4, Phase 3 migration)**, per the C4 migration-class table which
+already classifies Sovereign deletion as M4.
+
+Rationale:
+- The MVP acceptance gate (ACCEPTANCE_MVP M7) requires the Harbinger
+  harness path (`/admin/grant` `harness: true`).
+- The harness progression mechanic is explicitly preserved by this freeze
+  ("mechanical purpose should be preserved"), and it currently lives on
+  the Sovereign entity.
+- Deleting Sovereign now would break the M1–M11 beta gate for no
+  mechanical gain before the dragon-readiness system replaces it.
+
+Constraints that remain binding NOW:
+- No new Sovereign content, citadel ladder content, or harness slots.
+- No new code may couple True Dragon design to the Sovereign domain.
+- Sovereign stays out of the medieval roster; it is legacy compatibility,
+  scheduled for removal in the M4 domain-model replacement.
+
+
 ## Corrections Applied to V1 Audit
 
 ### C1 — RPS is TEMPORARY_COMPATIBILITY, not FREEZE NOW
