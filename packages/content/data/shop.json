@@ -1,7 +1,7 @@
 [
   {
     "id": "speedup_1m",
-    "name": "Blink",
+    "name": "Rider Dispatch",
     "chronite": 1,
     "effect": {
       "type": "speedup_sec",
@@ -10,7 +10,7 @@
   },
   {
     "id": "speedup_1h",
-    "name": "Jump",
+    "name": "Relay Riders",
     "chronite": 10,
     "effect": {
       "type": "speedup_sec",
@@ -19,7 +19,7 @@
   },
   {
     "id": "shield_1h",
-    "name": "Momentary Truce",
+    "name": "Garrison Alert",
     "chronite": 3,
     "effect": {
       "type": "shield_sec",
@@ -28,7 +28,7 @@
   },
   {
     "id": "shield_12h",
-    "name": "Ceasefire",
+    "name": "Truce Banner",
     "chronite": 25,
     "effect": {
       "type": "shield_sec",
