@@ -2,6 +2,14 @@
 
 Status: **AUDIT COMPLETE — NOT AN IMPLEMENTATION PLAN**
 
+> **HISTORICAL SNAPSHOT** (2026-08-19, base `0241e51`). Findings below were
+> verified against that SHA and are preserved as the migration rationale.
+> Current state supersedes sections B–D: medieval roster, research ids,
+> population/manpower, dragon foundation, and posture redesign have since
+> landed (see `VERTICAL_SLICE_1A_RESULTS.md` §12). The D-matrix remains the
+> contract for remaining M2/M4 migrations (resource columns, Sovereign).
+> Canonical id mapping lives in `packages/content/data/domain_catalog.json`.
+
 Generated: 2026-08-19
 Repository: `gthgomez/TideforgeEmpires` main @ `0241e51`
 PR #1: `docs/direction-freeze-v1` @ `f3bd8168f207ae9a7f3137206494e5bd4e16d560` (OPEN)

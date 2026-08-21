@@ -304,6 +304,7 @@ record; this section is authoritative for current state.
 | "Camp variation implemented: seed determines composition" (§4/§6) | Was **not** implemented at time of writing (static `example_comp`). Now genuinely landed (`d7a7a17`): bounded template pool per level, FNV-1a seed on camp identity, real determinism/variation tests. |
 | "Marcher Keep founding not yet implemented" (§10) | Implemented in `f61c82c` — `/citadels/found` charter path, gated by `NO_CHARTER`. |
 | PG durability (README T7) | Was broken between posture redesign and `7866035`: legacy CHECK rejected `'withdraw'` and saves failed silently. Fixed + idempotent migrations added; `REQUIRE_PG=1` green on fresh and migrated DBs (90/90). |
+| "Research unlock enforcement implemented" (§4) | Was only half-true: gates referenced `infantry_doctrine`/`archery`, but those ids did not exist as researchable techs (`research.json` held legacy ids), so gates were unreachable via normal play. Fixed (`98fd7cc`+): medieval tech ids landed per `domain_catalog.research.legacy_to_target` (+ new `dragon_studies`), legacy ids alias on PG load and queue completion, `startResearch` now validates against content, web research buttons render from `/content/research`. |
 
 ### Still open
 
