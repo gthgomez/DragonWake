@@ -95,6 +95,45 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     END
     $$;
   `);
+
+  // 4. M2 resource rename: cities columns + field_plots plot types.
+  //    Column renames are data-preserving; each guarded by existence check.
+  await client.query(`
+    DO $$
+    DECLARE
+      r RECORD;
+    BEGIN
+      FOR r IN
+        SELECT * FROM (VALUES
+          ('kelp','food'),
+          ('driftwood','timber'),
+          ('basalt','stone'),
+          ('slagiron','iron'),
+          ('tidegilt','coin')
+        ) AS m(old_name,new_name)
+      LOOP
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'cities' AND column_name = r.old_name
+        ) AND NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'cities' AND column_name = r.new_name
+        ) THEN
+          EXECUTE format('ALTER TABLE cities RENAME COLUMN %I TO %I', r.old_name, r.new_name);
+        END IF;
+      END LOOP;
+
+      UPDATE field_plots SET plot_type = CASE plot_type
+        WHEN 'kelp_farm'   THEN 'farm'
+        WHEN 'drift_dock'  THEN 'lumber_yard'
+        WHEN 'basalt_cut'  THEN 'quarry'
+        WHEN 'slag_pit'    THEN 'mine'
+        ELSE plot_type
+      END
+      WHERE plot_type IN ('kelp_farm','drift_dock','basalt_cut','slag_pit');
+    END
+    $$;
+  `);
 }
 
 export function findSchemaPath(): string | null {

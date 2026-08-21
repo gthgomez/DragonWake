@@ -56,8 +56,9 @@ describe("PG persistence (shipped PgStore + World)", () => {
     await world1.attachStore(store1!);
 
     const { player, city, token } = world1.createGuest(name, "brinecant");
-    expect(city.resources.kelp).toBeGreaterThan(0);
+    expect(city.resources.food).toBeGreaterThan(0);
     world1.adminGrant(player.id, { units: { bowman: 42 }, chronite: 7 });
+    world1.adminGrant(player.id, { resources: { food: 1234 } });
     await world1.flush();
     await store1!.close();
 
@@ -75,7 +76,9 @@ describe("PG persistence (shipped PgStore + World)", () => {
     expect(loadedCity).toBeTruthy();
     expect(loadedCity!.mapX).toBe(city.mapX);
     expect(loadedCity!.mapY).toBe(city.mapY);
-    expect(loadedCity!.resources.kelp).toBeGreaterThan(0);
+    expect(loadedCity!.resources.food).toBeGreaterThan(0);
+    // M2 round-trip: canonical resource keys survive the renamed columns.
+    expect(loadedCity!.resources.food).toBeGreaterThanOrEqual(1234);
     expect(loadedCity!.stacks.bowman).toBe(42);
 
     const viaSession = world2.sessionPlayer(token);

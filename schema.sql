@@ -47,11 +47,11 @@ CREATE TABLE cities (
   name            TEXT NOT NULL,
   map_x           INT NOT NULL,
   map_y           INT NOT NULL,
-  kelp            BIGINT NOT NULL DEFAULT 1000,
-  driftwood       BIGINT NOT NULL DEFAULT 1000,
-  basalt          BIGINT NOT NULL DEFAULT 1000,
-  slagiron        BIGINT NOT NULL DEFAULT 500,
-  tidegilt        BIGINT NOT NULL DEFAULT 500,
+  food            BIGINT NOT NULL DEFAULT 1000,
+  timber          BIGINT NOT NULL DEFAULT 1000,
+  stone           BIGINT NOT NULL DEFAULT 1000,
+  iron            BIGINT NOT NULL DEFAULT 500,
+  coin            BIGINT NOT NULL DEFAULT 500,
   tax_rate        NUMERIC(5,2) NOT NULL DEFAULT 10,
   happiness       NUMERIC(5,2) NOT NULL DEFAULT 100,
   defense_posture TEXT NOT NULL DEFAULT 'withdraw'
@@ -80,7 +80,7 @@ CREATE TABLE field_plots (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   city_id         UUID NOT NULL REFERENCES cities(id) ON DELETE CASCADE,
   slot_index      INT NOT NULL,
-  plot_type       TEXT, -- null = empty; kelp_farm, drift_dock, basalt_cut, slag_pit
+  plot_type       TEXT, -- null = empty; farm, lumber_yard, quarry, mine
   level           INT NOT NULL DEFAULT 0,
   UNIQUE (city_id, slot_index)
 );
