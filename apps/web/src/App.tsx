@@ -359,6 +359,9 @@ export function App() {
     { body: string; fromPlayerId: string; createdAt?: number }[]
   >([]);
   const [formulas, setFormulas] = useState<unknown>(null);
+  const [researchDefs, setResearchDefs] = useState<
+    { id: string; name: string; group: string }[]
+  >([]);
   const [readinessStatus, setReadinessStatus] = useState<any>(null);
   const [bestiaryEntries, setBestiaryEntries] = useState<any[]>([]);
   const [expeditionStatus, setExpeditionStatus] = useState<any>(null);
@@ -475,11 +478,14 @@ export function App() {
 
   const loadUnits = useCallback(async () => {
     try {
-      const data = await api<{ units: UnitDef[] }>(
-        "/api/v1/content/units",
-        null,
-      );
-      setUnits(data.units);
+      const [unitsData, researchData] = await Promise.all([
+        api<{ units: UnitDef[] }>("/api/v1/content/units", null),
+        api<{
+          research: { id: string; name: string; group: string }[];
+        }>("/api/v1/content/research", null),
+      ]);
+      setUnits(unitsData.units);
+      setResearchDefs(researchData.research);
     } catch {
       /* optional at boot */
     }
@@ -1329,16 +1335,24 @@ export function App() {
             <ul>
               {Object.entries(city.research).map(([k, v]) => (
                 <li key={k}>
-                  {k}: L{v}
+                  {researchDefs.find((r) => r.id === k)?.name ?? k}: L{v}
                 </li>
               ))}
               {Object.keys(city.research).length === 0 && (
                 <li className="muted">None yet</li>
               )}
             </ul>
-            <button type="button" onClick={() => void doResearch("longmark")}>
-              Research Longmark
-            </button>
+            <div className="grid">
+              {researchDefs.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => void doResearch(r.id)}
+                >
+                  Research {r.name}
+                </button>
+              ))}
+            </div>
 
             <h3>Stacks</h3>
             <ul className="grid">
