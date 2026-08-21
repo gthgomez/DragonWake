@@ -280,3 +280,38 @@ Ranked by expected impact:
 ---
 
 *Report generated 2026-08-19. All tests pass. Working tree has uncommitted changes.*
+
+---
+
+## 12. Freshness Update (2026-08-21, HEAD `d2f930e`)
+
+Corrections to this report after subsequent commits (`f61c82c`, `82928e1`,
+`7866035`, `d7a7a17`). Sections above are preserved as the point-in-time
+record; this section is authoritative for current state.
+
+### Closed from §8 debt table
+
+| Debt | Status |
+|------|--------|
+| Medieval units not wired into content/resolver | **Closed** — `units.json` now holds the medieval roster; camps/wilderness/resolver consume it |
+| Web UI Knowledge tab is placeholder | **Closed** — readiness bar, bestiary grid, expedition stages, Marcher Keep entry all render (`apps/web/src/App.tsx`) |
+| No posture change cooldown | **Closed** — 5-minute cooldown enforced server-side (`world.ts`, `INITIAL_TEST_FIXTURE`) |
+
+### Corrected claims
+
+| Claim in this report | Correction |
+|----------------------|------------|
+| "Camp variation implemented: seed determines composition" (§4/§6) | Was **not** implemented at time of writing (static `example_comp`). Now genuinely landed (`d7a7a17`): bounded template pool per level, FNV-1a seed on camp identity, real determinism/variation tests. |
+| "Marcher Keep founding not yet implemented" (§10) | Implemented in `f61c82c` — `/citadels/found` charter path, gated by `NO_CHARTER`. |
+| PG durability (README T7) | Was broken between posture redesign and `7866035`: legacy CHECK rejected `'withdraw'` and saves failed silently. Fixed + idempotent migrations added; `REQUIRE_PG=1` green on fresh and migrated DBs (90/90). |
+
+### Still open
+
+- Camp clue farming has no daily cap.
+- Expedition stages still completable via API without gameplay actions.
+- Research has no resource cost.
+- Sovereign/harness retained as legacy-compat; deletion deferred to M4 per
+  Phase 2.1 Amendment A1.
+
+Test counts as of this update: combat 15 · server 90 (incl. 2 PG restart tests,
+green under `REQUIRE_PG=1`).

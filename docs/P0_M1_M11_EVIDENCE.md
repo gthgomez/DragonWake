@@ -25,7 +25,7 @@ Coverage maps to ACCEPTANCE_MVP M1–M11 in `apps/server/src/acceptance.test.ts`
 | M5–M6 | Camp attack + wilderness occupy |
 | M7–M8 | Admin harness + Brinehold |
 | M9 | Tideband create/join + chat |
-| M10 | Harbor PvP |
+| M10 | PvP (withdraw posture) |
 | M11 | Codex formulas non-empty |
 
 ## Human two-browser residual
@@ -43,7 +43,7 @@ Coverage maps to ACCEPTANCE_MVP M1–M11 in `apps/server/src/acceptance.test.ts`
 - [ ] Guest A + B in two profiles
 - [ ] Build Habitation + Barracks under DEV_FAST_TIME
 - [ ] Camp L1 report appears in War with winner/losses/loot
-- [ ] Harbor vs Full posture readable in report
+- [ ] Withdraw vs Full posture readable in report
 - [ ] Toast on queue complete / march land without manual refresh
 - [ ] Invalid march composition shows error (not silent)
 

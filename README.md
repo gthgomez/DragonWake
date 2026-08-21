@@ -18,7 +18,7 @@ Multiplayer web MMORTS MVP beta (async city builder + map combat).
 ## Packages
 
 ```text
-apps/web          — City / Grounds / Map / War / Alliance / Shop / Codex / Settings
+apps/web          — Castle / Lands / Realm / War / Alliance / Knowledge / Settings
 apps/server       — API + sim loop (queues, marches, combat, alliances)
 packages/shared   — shared types
 packages/combat   — resolveBattle (deterministic)
@@ -34,7 +34,7 @@ packages/content  — JSON game data
 ## Setup
 
 ```powershell
-cd C:\Workspace\TideforgeEmpires
+cd C:\Workspace\Project_Games\TideforgeEmpires
 copy .env.example .env
 pnpm install
 ```
@@ -47,7 +47,7 @@ docker compose up -d db
 # or: pnpm --filter @tideforge/server migrate
 ```
 
-With `DATABASE_URL` reachable, the server **loads/saves the full realm to PostgreSQL** (players, cities, sessions, marches, reports, alliances, …). `/health` reports `db: "postgres"` only when the store is actually attached (not merely when the env var is set). If Postgres is unreachable, it falls back to an in-memory realm and `/health` reports `db: "memory"`.
+With `DATABASE_URL` reachable, the server **loads/saves the full realm to PostgreSQL** (players, cities, sessions, marches, reports, alliances, …). On boot against an **existing** database, idempotent migrations run automatically: population/manpower columns, dragon-foundation tables (`bestiary_entries`, `dragon_progress`), and the legacy posture backfill (`harbor`→`withdraw`, `partial`→`garrison`) with constraint swap. `/health` reports `db: "postgres"` only when the store is actually attached (not merely when the env var is set). If Postgres is unreachable, it falls back to an in-memory realm and `/health` reports `db: "memory"`.
 
 ### Dev
 
@@ -76,7 +76,7 @@ Env flags (`.env`):
 ```http
 POST /api/v1/admin/grant
 Authorization: Bearer <token>
-{ "units": { "reefbow": 200 }, "harness": true, "brineholdUnlock": true, "chronite": 100, "skipProtection": true }
+{ "units": { "levy": 200 }, "harness": true, "brineholdUnlock": true, "chronite": 100, "skipProtection": true }
 ```
 
 ## ACCEPTANCE_MVP manual path (M1–M11)
@@ -88,13 +88,13 @@ Environment: `pnpm dev` (or `docker compose up -d db` + server/web), two browser
 | M1 | Create guest A (Brinecant) | City at map coords, resources > 0 |
 | M2 | Create guest B (Ashcoil) | Different city tile |
 | M3 | A builds Habitation + Barracks | Queues complete under fast time |
-| M4 | A researches Longmark 1, trains Reefbows | Stack increases after tick |
+| M4 | A trains Levy + Bowmen | Stack increases after tick |
 | M5 | A Map → Attack Camp L1 | Report in War tab |
 | M6 | A occupies wilderness | Claim owned on map |
 | M7 | Admin grant harness | Harbinger harness complete on City |
 | M8 | Found Brinehold | Second city kind `brinehold` |
 | M9 | A creates Tideband; B joins via API or second client | Members + chat visible |
-| M10 | A attacks B (B Harbor posture) | Report; resources move on harbor |
+| M10 | A attacks B (B withdraw posture) | Report; resources plundered at 50% on withdraw |
 | M11 | Codex formulas page | Non-empty formulas JSON |
 
 Scripted equivalent (no browser):
@@ -128,9 +128,9 @@ pnpm --filter @tideforge/web typecheck                # T8
 | Gate | Status (local) |
 |------|----------------|
 | T1–T6, T8 | Green via `pnpm test` + typecheck/build |
-| T7 PG apply + restart survival | **B0 proven** with `docker compose up -d db` + `REQUIRE_PG=1` (skip when DB down; never silent pass) |
+| T7 PG apply + restart survival | **Green** (re-verified 2026-08-21) with `docker compose up -d db` + `REQUIRE_PG=1`; boot auto-migrates existing DBs (skip when DB down; never silent pass) |
 | M1–M11 | Green via `pnpm accept` |
-| Docker db smoke | **B0 proven** — compose `db` healthy; server `/health` `db:"postgres"` |
+| Docker db smoke | **Green** — compose `db` healthy; server `/health` `db:"postgres"` |
 
 ## Implementation board
 
@@ -142,7 +142,7 @@ pnpm --filter @tideforge/web typecheck                # T8
 | A3 Queues + DEV_FAST_TIME | Done |
 | A4 Map camps/wilderness | Done |
 | A5 Marches + reports | Done |
-| A6 PvP harbor/full + Saltvault + protection | Done |
+| A6 PvP postures + Saltvault + protection | Done |
 | A7 Harbinger harness + Brinehold | Done |
 | A8 Tideband + chat | Done |
 | A9 Web screens | Done |
@@ -158,18 +158,20 @@ Design plan (read-only authority):
 |-------|--------|--------|
 | **B0** | Residual closeout | **Done** |
 | **P0** | Playable polish | **Done** |
-| **S1.0–S1.1** | Freeze + **Stonekeel** citadel | **In progress / landed** |
+| **S1.0–S1.1** | Freeze + **Stonekeel** citadel | **Done** |
+| **Phase 2.1** | Medieval retheme slice 1A (population/manpower, research gates, dragon foundation, camp variation) | **Landed** (`docs/VERTICAL_SLICE_1A_RESULTS.md`) |
 | **S1.2+** | Cinderreach → Mnemolith, Arena, Tidebeast, Market… | Next |
 
 S1 design authority:  
 `research/dragons-of-atlantis/pre-implementation/PRODUCT_FREEZE_S1.md`  
 Board: `IMPLEMENTATION_BOARD_S1.md` · Accept: `ACCEPTANCE_S1.md`
 
-Found Stonekeel: `POST /api/v1/citadels/found` `{ "kind": "stonekeel", "unlock": true }`
+Found Stonekeel: `POST /api/v1/citadels/found` `{ "kind": "stonekeel", "unlock": true }`  
+Found Marcher Keep (requires expedition charter): `POST /api/v1/citadels/found` via charter path
 
-## OUT OF SCOPE (MVP; S1 only with new freeze)
+## OUT OF SCOPE (current freeze)
 
-Arena, world boss, citadels past Brinehold, Mnemolith/Echo, live market, native mobile, real IAP, Hardcore realms.
+Arena, world boss, cinderreach/galeari/mnemolith citadel chain completion, live market, native mobile, real IAP, Hardcore realms. Sovereign/harness is legacy-compat pending M4 deletion (`docs/design/PHASE_2_1_CORRECTION_FREEZE.md`, Amendment A1).
 
 ## License
 
