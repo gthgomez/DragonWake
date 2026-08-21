@@ -29,6 +29,7 @@ export async function applySchemaIfNeeded(client: pg.Client): Promise<void> {
     `SELECT to_regclass('public.realms') IS NOT NULL AS ok`,
   );
   if (check.rows[0]?.ok) {
+    await migrateExistingSchema(client);
     return;
   }
   const schemaPath = findSchemaPath();
@@ -37,6 +38,63 @@ export async function applySchemaIfNeeded(client: pg.Client): Promise<void> {
   }
   const sql = readFileSync(schemaPath, "utf8");
   await client.query(sql);
+}
+
+/**
+ * Idempotent migrations for databases created by an older schema.sql.
+ * Must be safe to run on every boot. Order matters: the legacy posture
+ * CHECK must be dropped BEFORE backfilling new values, then re-added.
+ */
+export async function migrateExistingSchema(client: pg.Client): Promise<void> {
+  // 1. Population/manpower columns (pre-Slice-1A DBs).
+  await client.query(`
+    ALTER TABLE cities ADD COLUMN IF NOT EXISTS population INT NOT NULL DEFAULT 0;
+    ALTER TABLE cities ADD COLUMN IF NOT EXISTS max_population INT NOT NULL DEFAULT 0;
+    ALTER TABLE cities ADD COLUMN IF NOT EXISTS used_manpower INT NOT NULL DEFAULT 0;
+  `);
+
+  // 2. Dragon foundation tables (added after most existing volumes were created).
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS bestiary_entries (
+      player_id       UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      entry_id        TEXT NOT NULL,
+      observation_level INT NOT NULL DEFAULT 0,
+      encounter_count INT NOT NULL DEFAULT 0,
+      PRIMARY KEY (player_id, entry_id)
+    );
+    CREATE TABLE IF NOT EXISTS dragon_progress (
+      player_id       UUID PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE,
+      bestiary_studied INT NOT NULL DEFAULT 0,
+      research_level  INT NOT NULL DEFAULT 0,
+      materials_collected INT NOT NULL DEFAULT 0,
+      camp_types_defeated TEXT[] NOT NULL DEFAULT '{}',
+      expedition_stage INT NOT NULL DEFAULT 0,
+      charter_earned  BOOLEAN NOT NULL DEFAULT FALSE
+    );
+  `);
+
+  // 3. Defense posture legacy → modern values, then swap the CHECK constraint.
+  //    Legacy rows keep their behavior via pg-store load mapping, but we
+  //    normalize here so saves with 'withdraw'/'garrison' never violate.
+  await client.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'cities_defense_posture_check'
+          AND pg_get_constraintdef(oid) LIKE '%harbor%'
+      ) THEN
+        ALTER TABLE cities DROP CONSTRAINT cities_defense_posture_check;
+        UPDATE cities SET defense_posture = 'withdraw' WHERE defense_posture = 'harbor';
+        UPDATE cities SET defense_posture = 'garrison' WHERE defense_posture = 'partial';
+        UPDATE cities SET defense_posture = 'withdraw'
+          WHERE defense_posture NOT IN ('withdraw','garrison','full');
+        ALTER TABLE cities ADD CONSTRAINT cities_defense_posture_check
+          CHECK (defense_posture IN ('withdraw','garrison','full'));
+      END IF;
+    END
+    $$;
+  `);
 }
 
 export function findSchemaPath(): string | null {
@@ -64,6 +122,8 @@ export async function migrate(url: string): Promise<{ ok: true; path: string }> 
     );
     if (!check.rows[0]?.ok) {
       await client.query(readFileSync(schemaPath, "utf8"));
+    } else {
+      await migrateExistingSchema(client);
     }
     return { ok: true, path: schemaPath };
   } finally {

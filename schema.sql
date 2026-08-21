@@ -54,8 +54,8 @@ CREATE TABLE cities (
   tidegilt        BIGINT NOT NULL DEFAULT 500,
   tax_rate        NUMERIC(5,2) NOT NULL DEFAULT 10,
   happiness       NUMERIC(5,2) NOT NULL DEFAULT 100,
-  defense_posture TEXT NOT NULL DEFAULT 'harbor'
-                  CHECK (defense_posture IN ('harbor','partial','full')),
+  defense_posture TEXT NOT NULL DEFAULT 'withdraw'
+                  CHECK (defense_posture IN ('withdraw','garrison','full')),
   last_resource_tick TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (realm_id, map_x, map_y)
