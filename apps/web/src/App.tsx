@@ -2,16 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
-const BUILD_COST = { kelp: 100, driftwood: 100 } as const;
-const PLOT_ASSIGN_COST = { kelp: 80, driftwood: 40 } as const;
-
-const RESOURCE_DISPLAY: Record<string, string> = {
-  kelp: "Food",
-  driftwood: "Timber",
-  basalt: "Stone",
-  slagiron: "Iron",
-  tidegilt: "Coin",
-};
+const BUILD_COST = { food: 100, timber: 100 } as const;
+const PLOT_ASSIGN_COST = { food: 80, timber: 40 } as const;
 
 const FACTION_META: Record<
   string,
@@ -59,11 +51,11 @@ type Tab =
   | "settings";
 
 type Resources = {
-  kelp: number;
-  driftwood: number;
-  basalt: number;
-  slagiron: number;
-  tidegilt: number;
+  food: number;
+  timber: number;
+  stone: number;
+  iron: number;
+  coin: number;
 };
 
 type City = {
@@ -162,11 +154,11 @@ type WorldEventDto = {
 type UnitDef = {
   id: string;
   name: string;
-  cost_kelp?: number;
-  cost_driftwood?: number;
-  cost_basalt?: number;
-  cost_slagiron?: number;
-  cost_tidegilt?: number;
+  cost_food?: number;
+  cost_timber?: number;
+  cost_stone?: number;
+  cost_iron?: number;
+  cost_coin?: number;
   train_sec_L1?: number;
   unlock?: string;
   role?: string;
@@ -244,11 +236,11 @@ function canAfford(res: Resources, cost: Partial<Resources>): boolean {
 
 function unitTrainCost(u: UnitDef, count: number): Partial<Resources> {
   return {
-    kelp: ((u as any).cost_food ?? u.cost_kelp ?? 0) * count,
-    driftwood: ((u as any).cost_timber ?? u.cost_driftwood ?? 0) * count,
-    basalt: ((u as any).cost_stone ?? u.cost_basalt ?? 0) * count,
-    slagiron: ((u as any).cost_iron ?? u.cost_slagiron ?? 0) * count,
-    tidegilt: ((u as any).cost_coin ?? u.cost_tidegilt ?? 0) * count,
+    food: (u.cost_food ?? 0) * count,
+    timber: (u.cost_timber ?? 0) * count,
+    stone: (u.cost_stone ?? 0) * count,
+    iron: (u.cost_iron ?? 0) * count,
+    coin: (u.cost_coin ?? 0) * count,
   };
 }
 
@@ -384,7 +376,7 @@ export function App() {
   const [pvpIntent, setPvpIntent] = useState<"attack" | "scout" | "reinforce">(
     "attack",
   );
-  const [plotPick, setPlotPick] = useState("kelp_farm");
+  const [plotPick, setPlotPick] = useState("farm");
   const [now, setNow] = useState(() => Date.now());
   const [mapFocus, setMapFocus] = useState({ x0: 0, y0: 0, x1: 19, y1: 19 });
   const [tutorial, setTutorial] = useState<{
@@ -607,7 +599,7 @@ export function App() {
   async function doBuild(buildingType: string) {
     if (!token || !city) return;
     if (!canAfford(city.resources, BUILD_COST)) {
-      setError(`Need ${BUILD_COST.kelp} kelp + ${BUILD_COST.driftwood} driftwood`);
+      setError(`Need ${BUILD_COST.food} food + ${BUILD_COST.timber} timber`);
       return;
     }
     await run(`Queued ${buildingType}`, async () => {
@@ -941,7 +933,7 @@ export function App() {
     if (!token || !city) return;
     if (!canAfford(city.resources, PLOT_ASSIGN_COST)) {
       setError(
-        `Need ${PLOT_ASSIGN_COST.kelp} kelp + ${PLOT_ASSIGN_COST.driftwood} driftwood`,
+        `Need ${PLOT_ASSIGN_COST.food} food + ${PLOT_ASSIGN_COST.timber} timber`,
       );
       return;
     }
@@ -956,9 +948,9 @@ export function App() {
 
   async function upgradePlot(slotIndex: number, level: number) {
     if (!token || !city) return;
-    const cost = { kelp: 50 * level, driftwood: 50 * level };
+    const cost = { food: 50 * level, timber: 50 * level };
     if (!canAfford(city.resources, cost)) {
-      setError(`Need ${cost.kelp} kelp + ${cost.driftwood} driftwood`);
+      setError(`Need ${cost.food} food + ${cost.timber} timber`);
       return;
     }
     await run(`Upgraded plot ${slotIndex}`, async () => {
@@ -1247,7 +1239,7 @@ export function App() {
             <ul className="res-grid">
               {(Object.keys(city.resources) as (keyof Resources)[]).map((k) => (
                 <li key={k}>
-                  <strong>{RESOURCE_DISPLAY[k] ?? k}</strong>
+                  <strong>k</strong>
                   <span className="res-val">{city.resources[k]}</span>
                   {rates && (
                     <span className="res-rate">+{rates[k]}/h</span>
@@ -1304,7 +1296,7 @@ export function App() {
               ))}
             </ul>
             <p className="muted tiny">
-              Build cost: {BUILD_COST.kelp} Food + {BUILD_COST.driftwood}{" "}
+              Build cost: {BUILD_COST.food} Food + {BUILD_COST.timber}{" "}
               Timber each
             </p>
             <div className="row">
@@ -1454,8 +1446,8 @@ export function App() {
           <section className="card">
             <h2>Lands</h2>
             <p className="muted">
-              Assign empty plots ({PLOT_ASSIGN_COST.kelp} Food +{" "}
-              {PLOT_ASSIGN_COST.driftwood} Timber). Upgrade scales 50×level
+              Assign empty plots ({PLOT_ASSIGN_COST.food} Food +{" "}
+              {PLOT_ASSIGN_COST.timber} Timber). Upgrade scales 50×level
               of each resource. Max L5.
             </p>
             <label>
@@ -1464,10 +1456,10 @@ export function App() {
                 value={plotPick}
                 onChange={(e) => setPlotPick(e.target.value)}
               >
-                <option value="kelp_farm">Kelp Farm</option>
-                <option value="drift_dock">Drift Dock</option>
-                <option value="basalt_cut">Basalt Cut</option>
-                <option value="slag_pit">Slag Pit</option>
+                <option value="farm">food Farm</option>
+                <option value="lumber_yard">Drift Dock</option>
+                <option value="quarry">stone Cut</option>
+                <option value="mine">Slag Pit</option>
               </select>
             </label>
             <ul className="plot-list">
@@ -1490,8 +1482,8 @@ export function App() {
                       type="button"
                       disabled={
                         !canAfford(city.resources, {
-                          kelp: 50 * p.level,
-                          driftwood: 50 * p.level,
+                          food: 50 * p.level,
+                          timber: 50 * p.level,
                         })
                       }
                       onClick={() => void upgradePlot(p.slotIndex, p.level)}
@@ -1506,8 +1498,8 @@ export function App() {
             </ul>
             {rates && (
               <p className="ok">
-                Live rates: Food +{rates.kelp}/h · Timber +{rates.driftwood}
-                /h · Stone +{rates.basalt}/h · Iron +{rates.slagiron}/h
+                Live rates: Food +{rates.food}/h · Timber +{rates.timber}
+                /h · Stone +{rates.stone}/h · Iron +{rates.iron}/h
               </p>
             )}
           </section>
@@ -2246,11 +2238,11 @@ export function App() {
                   void grantDev(
                     {
                       resources: {
-                        kelp: 2000,
-                        driftwood: 2000,
-                        basalt: 1000,
-                        slagiron: 500,
-                        tidegilt: 500,
+                        food: 2000,
+                        timber: 2000,
+                        stone: 1000,
+                        iron: 500,
+                        coin: 500,
                       },
                     },
                     "Granted resources",
