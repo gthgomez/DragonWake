@@ -141,10 +141,36 @@ describe("Research Unlock Enforcement", () => {
   it("research can be completed and level incremented", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("ResC", "brinecant");
-    const job = world.startResearch(city.id, player.id, "longmark");
+    const job = world.startResearch(city.id, player.id, "archery");
     job.finishesAt = world.now() - 1;
     world.processQueues(world.now());
-    expect(world.getCity(city.id)!.research.longmark).toBe(1);
+    expect(world.getCity(city.id)!.research.archery).toBe(1);
+  });
+
+  it("startResearch rejects unknown tech ids", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("ResD", "brinecant");
+    expect(() =>
+      world.startResearch(city.id, player.id, "not_a_tech"),
+    ).toThrowError(/unknown tech/);
+  });
+
+  it("pikeman is trainable end-to-end after researching Infantry Doctrine 1", () => {
+    // Proves PG-INV-003 is reachable through normal play: the gate id exists
+    // as a researchable tech and the queue path grants it.
+    const world = freshWorld();
+    const { player, city } = world.createGuest("ResE", "brinecant");
+    expect(isUnitUnlocked("pikeman", city.research)).toBe(false);
+    const job = world.startResearch(city.id, player.id, "infantry_doctrine");
+    job.finishesAt = world.now() - 1;
+    world.processQueues(world.now());
+    const updated = world.getCity(city.id)!;
+    expect(updated.research.infantry_doctrine).toBe(1);
+    world.adminGrant(player.id, { units: {}, skipProtection: true });
+    const train = world.startTrain(city.id, player.id, "pikeman", 2);
+    train.finishesAt = world.now() - 1;
+    world.processQueues(world.now());
+    expect(world.getCity(city.id)!.stacks.pikeman).toBe(2);
   });
 
   it("multiple units gated by same research at different levels", () => {
@@ -855,11 +881,11 @@ describe("Slice 1A Progression Path", () => {
     world.recalculateAllManpower();
     expect(world.getCity(city.id)!.maxPopulation).toBe(400);
 
-    // Step 3: Research longmark
-    const researchJob = world.startResearch(city.id, player.id, "longmark");
+    // Step 3: Research archery
+    const researchJob = world.startResearch(city.id, player.id, "archery");
     researchJob.finishesAt = world.now() - 1;
     world.processQueues(world.now());
-    expect(world.getCity(city.id)!.research.longmark).toBe(1);
+    expect(world.getCity(city.id)!.research.archery).toBe(1);
 
     // Step 4: Train troops (grant resources first since building consumed some)
     world.adminGrant(player.id, { resources: { kelp: 1500 } });

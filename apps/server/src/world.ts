@@ -15,6 +15,8 @@ import {
   getCitadelById,
   getUnitById,
   getUnitCost,
+  getResearch,
+  canonTechId,
   isUnitUnlocked,
   getBestiaryEntries,
   getDragonReadiness,
@@ -823,7 +825,8 @@ export class World {
       // Recalculate maxPopulation after build (exploit fix)
       city.maxPopulation = computeMaxPopulation(city);
     } else if (job.kind === "research") {
-      const techId = String(job.payload.techId);
+      // Canon aliases guard against legacy tech ids persisted in old queue rows.
+      const techId = canonTechId(String(job.payload.techId));
       city.research[techId] = (city.research[techId] ?? 0) + 1;
     } else if (job.kind === "train") {
       const unitId = String(job.payload.unitId);
@@ -887,6 +890,11 @@ export class World {
 
   startResearch(cityId: string, playerId: string, techId: string): QueueJob {
     this.requireCityOwner(cityId, playerId);
+    if (!getResearch().some((t) => t.id === canonTechId(techId))) {
+      throw Object.assign(new Error(`unknown tech: ${techId}`), {
+        code: "VALIDATION",
+      });
+    }
     const running = [...this.jobs.values()].filter(
       (j) =>
         j.cityId === cityId && j.kind === "research" && j.status === "running",

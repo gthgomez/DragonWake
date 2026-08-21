@@ -5,7 +5,7 @@
 import pg from "pg";
 import { createHash } from "node:crypto";
 import { applySchemaIfNeeded, findSchemaPath, tryConnectPg } from "./pg.js";
-import { getUnitById } from "@tideforge/content";
+import { getUnitById, canonTechId } from "@tideforge/content";
 import type {
   Alliance,
   AllianceMember,
@@ -216,7 +216,9 @@ export class PgStore {
       for (const row of research.rows) {
         const city = world.cities.get(row.city_id);
         if (!city) continue;
-        city.research[row.tech_id] = row.level;
+        // Legacy aquatic tech ids map to their medieval successors on load.
+        const techId = canonTechId(String(row.tech_id));
+        city.research[techId] = Math.max(city.research[techId] ?? 0, Number(row.level) || 0);
       }
 
       const sessions = await client.query(

@@ -91,20 +91,13 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
       cityAfterBuild.buildings.some((x) => x.buildingType === "barracks"),
     ).toBe(true);
 
-    // M4 — research Longmark + Archery + train Bowmen
+    // M4 — research Archery + train Bowmen
     const research = await json(app, `/api/v1/cities/${cityA}/research`, {
-      method: "POST",
-      token: tokenA,
-      body: JSON.stringify({ techId: "longmark" }),
-    });
-    world.jobs.get(research.body.job.id)!.finishesAt = 0;
-    world.tick();
-    const researchArch = await json(app, `/api/v1/cities/${cityA}/research`, {
       method: "POST",
       token: tokenA,
       body: JSON.stringify({ techId: "archery" }),
     });
-    world.jobs.get(researchArch.body.job.id)!.finishesAt = 0;
+    world.jobs.get(research.body.job.id)!.finishesAt = 0;
     world.tick();
     const train = await json(app, `/api/v1/cities/${cityA}/train`, {
       method: "POST",
@@ -113,7 +106,7 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
     });
     world.jobs.get(train.body.job.id)!.finishesAt = 0;
     world.tick();
-    expect(world.getCity(cityA)!.research.longmark).toBeGreaterThanOrEqual(1);
+    expect(world.getCity(cityA)!.research.archery).toBeGreaterThanOrEqual(1);
     expect(world.getCity(cityA)!.stacks.bowman).toBeGreaterThan(0);
 
     // M5 — attack Camp L1
