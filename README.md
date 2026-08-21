@@ -85,8 +85,8 @@ Environment: `pnpm dev` (or `docker compose up -d db` + server/web), two browser
 
 | Step | Action | Pass if |
 |------|--------|---------|
-| M1 | Create guest A (Brinecant) | City at map coords, resources > 0 |
-| M2 | Create guest B (Ashcoil) | Different city tile |
+| M1 | Create guest A (Northern Kingdom) | City at map coords, resources > 0 |
+| M2 | Create guest B (Mountain Realm) | Different city tile |
 | M3 | A builds Habitation + Barracks | Queues complete under fast time |
 | M4 | A researches Infantry Doctrine 1, trains Pikemen | Pikeman stack increases after tick |
 | M5 | A Map → Attack Camp L1 | Report in War tab |

@@ -25,7 +25,7 @@ describe("HTTP API two-session demo path", () => {
 
     const a = await json(app, "/api/v1/auth/guest", {
       method: "POST",
-      body: JSON.stringify({ displayName: "ApiA", faction: "brinecant" }),
+      body: JSON.stringify({ displayName: "ApiA", faction: "northern_kingdom" }),
     });
     expect(a.res.status).toBe(200);
     expect(a.body.city.resources.food).toBeGreaterThan(0);
@@ -34,7 +34,7 @@ describe("HTTP API two-session demo path", () => {
 
     const b = await json(app, "/api/v1/auth/guest", {
       method: "POST",
-      body: JSON.stringify({ displayName: "ApiB", faction: "ashcoil" }),
+      body: JSON.stringify({ displayName: "ApiB", faction: "mountain_realm" }),
     });
     expect(b.res.status).toBe(200);
     const tokenB = b.body.token as string;

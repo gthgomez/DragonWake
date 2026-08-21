@@ -134,6 +134,39 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     END
     $$;
   `);
+
+  // 5. Faction id rename: legacy aquatic ids → medieval ids, then swap the
+  //    players.faction CHECK. Drop-before-update mirrors step 3: the legacy
+  //    CHECK would reject the new ids while it is still attached.
+  await client.query(`
+    DO $$
+    DECLARE
+      faction_conname TEXT;
+    BEGIN
+      SELECT conname INTO faction_conname
+        FROM pg_constraint
+        WHERE conrelid = 'players'::regclass
+          AND contype = 'c'
+          AND conname ILIKE '%faction%'
+          AND pg_get_constraintdef(oid) LIKE '%brinecant%'
+        LIMIT 1;
+      IF faction_conname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE players DROP CONSTRAINT %I', faction_conname);
+        UPDATE players SET faction = CASE faction
+          WHEN 'brinecant' THEN 'northern_kingdom'
+          WHEN 'ashcoil' THEN 'mountain_realm'
+          WHEN 'skyshear' THEN 'forest_people'
+          WHEN 'mossvault' THEN 'coastal_lords'
+          ELSE faction
+        END
+        WHERE faction IN ('brinecant','ashcoil','skyshear','mossvault');
+        EXECUTE format('ALTER TABLE players ADD CONSTRAINT %I CHECK (faction IN (%L, %L, %L, %L))',
+          faction_conname,
+          'northern_kingdom', 'mountain_realm', 'forest_people', 'coastal_lords');
+      END IF;
+    END
+    $$;
+  `);
 }
 
 export function findSchemaPath(): string | null {

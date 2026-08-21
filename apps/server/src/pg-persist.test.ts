@@ -55,7 +55,7 @@ describe("PG persistence (shipped PgStore + World)", () => {
     const world1 = new World({ devFastTime: true, skipTutorial: true });
     await world1.attachStore(store1!);
 
-    const { player, city, token } = world1.createGuest(name, "brinecant");
+    const { player, city, token } = world1.createGuest(name, "northern_kingdom");
     expect(city.resources.food).toBeGreaterThan(0);
     world1.adminGrant(player.id, { units: { bowman: 42 }, chronite: 7 });
     world1.adminGrant(player.id, { resources: { food: 1234 } });
@@ -104,7 +104,7 @@ describe("PG persistence (shipped PgStore + World)", () => {
     await world1.attachStore(store1!);
     const { player, city } = world1.createGuest(
       `March_${Date.now()}`,
-      "ashcoil",
+      "mountain_realm",
     );
     world1.adminGrant(player.id, { units: { bowman: 200, levy: 100 } });
     const camp = [...world1.camps.values()].find((c) => c.level === 1)!;

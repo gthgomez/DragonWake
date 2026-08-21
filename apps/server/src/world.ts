@@ -240,7 +240,12 @@ export type WorldStore = {
   close?(): Promise<void>;
 };
 
-const FACTIONS: Faction[] = ["brinecant", "ashcoil", "skyshear", "mossvault"];
+const FACTIONS: Faction[] = [
+  "northern_kingdom",
+  "mountain_realm",
+  "forest_people",
+  "coastal_lords",
+];
 
 /** Population/manpower configuration constants. */
 const BASE_POPULATION = 200;

@@ -8,8 +8,8 @@ import { World } from "./world.js";
 
 const world = new World({ devFastTime: true, skipTutorial: true });
 
-const a = world.createGuest("DemoA", "brinecant");
-const b = world.createGuest("DemoB", "ashcoil");
+const a = world.createGuest("DemoA", "northern_kingdom");
+const b = world.createGuest("DemoB", "mountain_realm");
 
 world.adminGrant(a.player.id, {
   units: { levy: 200, reefbow: 150 },

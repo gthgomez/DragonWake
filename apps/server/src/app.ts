@@ -166,7 +166,7 @@ export function createApp(world: World) {
     if (!parsed.ok) {
       return err(c, parsed.code, parsed.message);
     }
-    const faction = (parsed.data.faction ?? "brinecant") as Faction;
+    const faction = (parsed.data.faction ?? "northern_kingdom") as Faction;
     if (!FACTIONS.includes(faction)) {
       return err(c, "BAD_FACTION", "invalid faction");
     }

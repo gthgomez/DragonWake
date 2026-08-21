@@ -34,7 +34,7 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
     // M1 — guest A Brinecant
     const a = await json(app, "/api/v1/auth/guest", {
       method: "POST",
-      body: JSON.stringify({ displayName: "AcceptA", faction: "brinecant" }),
+      body: JSON.stringify({ displayName: "AcceptA", faction: "northern_kingdom" }),
     });
     expect(a.res.status).toBe(200);
     expect(a.body.city.resources.food).toBeGreaterThan(0);
@@ -45,7 +45,7 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
     // M2 — guest B Ashcoil different tile
     const b = await json(app, "/api/v1/auth/guest", {
       method: "POST",
-      body: JSON.stringify({ displayName: "AcceptB", faction: "ashcoil" }),
+      body: JSON.stringify({ displayName: "AcceptB", faction: "mountain_realm" }),
     });
     expect(b.res.status).toBe(200);
     const tokenB = b.body.token as string;

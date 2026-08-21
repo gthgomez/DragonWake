@@ -9,22 +9,22 @@ const FACTION_META: Record<
   string,
   { label: string; blurb: string; accent: string }
 > = {
-  brinecant: {
+  northern_kingdom: {
     label: "Northern Kingdom",
     blurb: "Hardy soldiers and fortified keeps — defenders of the realm.",
     accent: "brine",
   },
-  ashcoil: {
+  mountain_realm: {
     label: "Mountain Realm",
     blurb: "Miners and smiths — iron and stone shape their destiny.",
     accent: "ash",
   },
-  skyshear: {
+  forest_people: {
     label: "Forest People",
     blurb: "Archers and scouts — the woods are their domain.",
     accent: "sky",
   },
-  mossvault: {
+  coastal_lords: {
     label: "Coastal Lords",
     blurb: "Ships and trade — they control the sea lanes.",
     accent: "moss",
@@ -363,7 +363,7 @@ export function App() {
     { id: string; sovereignType: string; harnessComplete: boolean }[]
   >([]);
   const [displayName, setDisplayName] = useState("Guest");
-  const [faction, setFaction] = useState("brinecant");
+  const [faction, setFaction] = useState("northern_kingdom");
   const [chatBody, setChatBody] = useState("");
   const [allyName, setAllyName] = useState("Alliance");
   const [allyTag, setAllyTag] = useState("TIDE");
@@ -407,7 +407,7 @@ export function App() {
     [cities, cityId],
   );
 
-  const factionMeta = FACTION_META[player?.faction ?? faction] ?? FACTION_META.brinecant!;
+  const factionMeta = FACTION_META[player?.faction ?? faction] ?? FACTION_META.northern_kingdom!;
 
   const refreshMe = useCallback(async (tok: string) => {
     const me = await api<{

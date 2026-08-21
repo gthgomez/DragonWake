@@ -15,7 +15,7 @@ CREATE TABLE players (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   realm_id        SMALLINT NOT NULL REFERENCES realms(id),
   display_name    TEXT NOT NULL,
-  faction         TEXT NOT NULL CHECK (faction IN ('brinecant','ashcoil','skyshear','mossvault')),
+  faction         TEXT NOT NULL CHECK (faction IN ('northern_kingdom','mountain_realm','forest_people','coastal_lords')),
   password_hash   TEXT, -- null for pure guest
   guest_token     TEXT UNIQUE,
   chronite        BIGINT NOT NULL DEFAULT 0,

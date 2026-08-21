@@ -69,7 +69,7 @@ describe("parseCampComp", () => {
 describe("World daily quests + tutorial", () => {
   it("marks build/train quests and claims chronite once", () => {
     const world = new World({ devFastTime: true });
-    const { player, city } = world.createGuest("QuestA", "brinecant");
+    const { player, city } = world.createGuest("QuestA", "northern_kingdom");
     world.startBuild(city.id, player.id, 2, "barracks");
     world.startTrain(city.id, player.id, "levy", 5);
     const list = world.listDailyQuests(player.id);
@@ -85,7 +85,7 @@ describe("World daily quests + tutorial", () => {
 
   it("advances tutorial to complete", () => {
     const world = new World({ devFastTime: true, skipTutorial: false });
-    const { player } = world.createGuest("TutA", "skyshear");
+    const { player } = world.createGuest("TutA", "forest_people");
     expect(world.tutorialView(player.id).completed).toBe(false);
     for (let i = 0; i < 10; i++) world.advanceTutorial(player.id);
     expect(world.tutorialView(player.id).completed).toBe(true);
@@ -95,7 +95,7 @@ describe("World daily quests + tutorial", () => {
 describe("World plots (grounds)", () => {
   it("assigns empty plot and upgrades with production gain", () => {
     const world = new World({ devFastTime: true });
-    const { player, city } = world.createGuest("Plotter", "mossvault");
+    const { player, city } = world.createGuest("Plotter", "coastal_lords");
     const before = world.effectiveProduction(city);
     const plot = world.assignPlot(city.id, player.id, 0, "farm");
     expect(plot.plotType).toBe("farm");
@@ -110,7 +110,7 @@ describe("World plots (grounds)", () => {
 
   it("rejects invalid plot type and double-assign", () => {
     const world = new World({ devFastTime: true });
-    const { player, city } = world.createGuest("PlotFail", "ashcoil");
+    const { player, city } = world.createGuest("PlotFail", "mountain_realm");
     expect(() =>
       world.assignPlot(city.id, player.id, 0, "not_a_plot"),
     ).toThrow(/invalid plot/);
@@ -124,7 +124,7 @@ describe("World plots (grounds)", () => {
 describe("World queues + marches (shipped paths)", () => {
   it("completes train job under DEV_FAST_TIME via processQueues", () => {
     const world = new World({ devFastTime: true });
-    const { player, city } = world.createGuest("Trainer", "brinecant");
+    const { player, city } = world.createGuest("Trainer", "northern_kingdom");
     const levyBefore = city.stacks.levy ?? 0;
     const job = world.startTrain(city.id, player.id, "levy", 5);
     // Force finish
@@ -137,7 +137,7 @@ describe("World queues + marches (shipped paths)", () => {
 
   it("march lands once and produces battle report for camp attack", () => {
     const world = new World({ devFastTime: true });
-    const { player, city } = world.createGuest("Attacker", "brinecant");
+    const { player, city } = world.createGuest("Attacker", "northern_kingdom");
     world.adminGrant(player.id, { units: { bowman: 200, levy: 100 } });
     const camp = [...world.camps.values()].find((c) => c.level === 1);
     expect(camp).toBeTruthy();
@@ -171,7 +171,7 @@ describe("World queues + marches (shipped paths)", () => {
 
   it("occupy wilderness claims land on win", () => {
     const world = new World({ devFastTime: true });
-    const { player, city } = world.createGuest("Settler", "ashcoil");
+    const { player, city } = world.createGuest("Settler", "mountain_realm");
     world.adminGrant(player.id, { units: { levy: 500, pikeman: 100 } });
     const wild = [...world.wilderness.values()][0]!;
     const march = world.createMarch(player.id, {
@@ -196,8 +196,8 @@ describe("World queues + marches (shipped paths)", () => {
 
   it("two guests get different city tiles", () => {
     const world = new World({ devFastTime: true });
-    const a = world.createGuest("Alpha", "brinecant");
-    const b = world.createGuest("Beta", "ashcoil");
+    const a = world.createGuest("Alpha", "northern_kingdom");
+    const b = world.createGuest("Beta", "mountain_realm");
     expect(a.city.mapX !== b.city.mapX || a.city.mapY !== b.city.mapY).toBe(
       true,
     );
@@ -207,8 +207,8 @@ describe("World queues + marches (shipped paths)", () => {
 
   it("withdraw pvp loots without fighting stacks", () => {
     const world = new World({ devFastTime: true });
-    const a = world.createGuest("Raider", "brinecant");
-    const b = world.createGuest("Victim", "ashcoil");
+    const a = world.createGuest("Raider", "northern_kingdom");
+    const b = world.createGuest("Victim", "mountain_realm");
     world.adminGrant(a.player.id, {
       units: { levy: 100 },
       skipProtection: true,
@@ -235,8 +235,8 @@ describe("World queues + marches (shipped paths)", () => {
 
   it("tideband create/join/chat", () => {
     const world = new World({ devFastTime: true });
-    const a = world.createGuest("Leader", "brinecant");
-    const b = world.createGuest("Member", "mossvault");
+    const a = world.createGuest("Leader", "northern_kingdom");
+    const b = world.createGuest("Member", "coastal_lords");
     const ally = world.createAlliance(a.player.id, "Salt League", "SALT");
     world.joinAlliance(b.player.id, ally.id);
     const msg = world.postChat(a.player.id, ally.id, "Welcome to the Tideband");
@@ -249,7 +249,7 @@ describe("World queues + marches (shipped paths)", () => {
 
   it("harness grant enables complete harness; brinehold found", () => {
     const world = new World({ devFastTime: true });
-    const { player } = world.createGuest("SovLord", "skyshear");
+    const { player } = world.createGuest("SovLord", "forest_people");
     world.adminGrant(player.id, { harness: true, brineholdUnlock: true });
     const sov = [...world.sovereigns.values()].find(
       (s) => s.playerId === player.id,
@@ -262,7 +262,7 @@ describe("World queues + marches (shipped paths)", () => {
 
   it("S1.1 stonekeel requires brinehold and grants exclusive stacks", () => {
     const world = new World({ devFastTime: true });
-    const { player } = world.createGuest("StoneLord", "mossvault");
+    const { player } = world.createGuest("StoneLord", "coastal_lords");
     world.adminGrant(player.id, {
       brineholdUnlock: true,
       stonekeelUnlock: true,
@@ -278,8 +278,8 @@ describe("World queues + marches (shipped paths)", () => {
 
   it("full posture pvp runs resolveBattle and can reduce defender stacks", () => {
     const world = new World({ devFastTime: true });
-    const a = world.createGuest("FullRaider", "brinecant");
-    const b = world.createGuest("FullWall", "ashcoil");
+    const a = world.createGuest("FullRaider", "northern_kingdom");
+    const b = world.createGuest("FullWall", "mountain_realm");
     world.adminGrant(a.player.id, {
       units: { bowman: 400, levy: 200 },
       skipProtection: true,
@@ -331,8 +331,8 @@ describe("World queues + marches (shipped paths)", () => {
 
   it("scout returns structured intel for camp and city", () => {
     const world = new World({ devFastTime: true });
-    const a = world.createGuest("ScoutA", "brinecant");
-    const b = world.createGuest("ScoutB", "ashcoil");
+    const a = world.createGuest("ScoutA", "northern_kingdom");
+    const b = world.createGuest("ScoutB", "mountain_realm");
     world.adminGrant(a.player.id, {
       units: { levy: 20 },
       skipProtection: true,
@@ -386,7 +386,7 @@ describe("World queues + marches (shipped paths)", () => {
 
   it("haul delivers cargo to own secondary city", () => {
     const world = new World({ devFastTime: true });
-    const { player, city } = world.createGuest("Hauler", "mossvault");
+    const { player, city } = world.createGuest("Hauler", "coastal_lords");
     world.adminGrant(player.id, {
       units: { levy: 30 },
       brineholdUnlock: true,
@@ -416,8 +416,8 @@ describe("World queues + marches (shipped paths)", () => {
 
   it("haul to foreign non-alliance city bounces cargo home", () => {
     const world = new World({ devFastTime: true });
-    const a = world.createGuest("HaulFailA", "brinecant");
-    const b = world.createGuest("HaulFailB", "ashcoil");
+    const a = world.createGuest("HaulFailA", "northern_kingdom");
+    const b = world.createGuest("HaulFailB", "mountain_realm");
     world.adminGrant(a.player.id, {
       units: { levy: 20 },
       resources: { timber: 300 },

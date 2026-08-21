@@ -3,10 +3,10 @@
 export const API_VERSION = "v1" as const;
 
 export const FACTIONS = [
-  "brinecant",
-  "ashcoil",
-  "skyshear",
-  "mossvault",
+  "northern_kingdom",
+  "mountain_realm",
+  "forest_people",
+  "coastal_lords",
 ] as const;
 
 export type Faction = (typeof FACTIONS)[number];

@@ -43,7 +43,7 @@ describe("P0 validation + events", () => {
     const app = createApp(world);
     const g = await json(app, "/api/v1/auth/guest", {
       method: "POST",
-      body: JSON.stringify({ displayName: "ValA", faction: "brinecant" }),
+      body: JSON.stringify({ displayName: "ValA", faction: "northern_kingdom" }),
     });
     const bad = await json(app, "/api/v1/marches", {
       method: "POST",
@@ -64,7 +64,7 @@ describe("P0 validation + events", () => {
     const app = createApp(world);
     const g = await json(app, "/api/v1/auth/guest", {
       method: "POST",
-      body: JSON.stringify({ displayName: "ValB", faction: "ashcoil" }),
+      body: JSON.stringify({ displayName: "ValB", faction: "mountain_realm" }),
     });
     const bad = await json(app, `/api/v1/cities/${g.body.city.id}/posture`, {
       method: "POST",
@@ -80,7 +80,7 @@ describe("P0 validation + events", () => {
     const app = createApp(world);
     const g = await json(app, "/api/v1/auth/guest", {
       method: "POST",
-      body: JSON.stringify({ displayName: "EvtA", faction: "brinecant" }),
+      body: JSON.stringify({ displayName: "EvtA", faction: "northern_kingdom" }),
     });
     const token = g.body.token as string;
     const cityId = g.body.city.id as string;
@@ -135,7 +135,7 @@ describe("P0 validation + events", () => {
         method: "POST",
         body: JSON.stringify({
           displayName: `RL${i}`,
-          faction: "brinecant",
+          faction: "northern_kingdom",
         }),
         headers: { "x-forwarded-for": "203.0.113.50" },
       });

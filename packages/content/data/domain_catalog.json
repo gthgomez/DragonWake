@@ -86,7 +86,8 @@
       "ashcoil": "mountain_realm",
       "skyshear": "forest_people",
       "mossvault": "coastal_lords"
-    }
+    },
+    "target": ["northern_kingdom", "mountain_realm", "forest_people", "coastal_lords"]
   },
   "plot_types": {
     "legacy_to_target": {

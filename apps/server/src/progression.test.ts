@@ -11,7 +11,7 @@ function freshWorld(): World {
 describe("Population and Manpower", () => {
   it("new player starts with base population and correct max", () => {
     const world = freshWorld();
-    const { city } = world.createGuest("PopA", "brinecant");
+    const { city } = world.createGuest("PopA", "northern_kingdom");
     expect(city.population).toBe(200);
     // forge_heart L1 + habitation L1 → maxPop = 200 + 100*1 = 300
     expect(city.maxPopulation).toBe(300);
@@ -19,7 +19,7 @@ describe("Population and Manpower", () => {
 
   it("habitation building increases maxPopulation", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("PopB", "ashcoil");
+    const { player, city } = world.createGuest("PopB", "mountain_realm");
     world.startBuild(city.id, player.id, 2, "habitation");
     const job = [...world.jobs.values()].find(
       (j) => j.cityId === city.id && j.kind === "build",
@@ -35,7 +35,7 @@ describe("Population and Manpower", () => {
 
   it("training troops consumes manpower", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("PopC", "brinecant");
+    const { player, city } = world.createGuest("PopC", "northern_kingdom");
     const before = world.getCity(city.id)!.usedManpower;
     const job = world.startTrain(city.id, player.id, "levy", 10);
     job.finishesAt = world.now() - 1;
@@ -47,7 +47,7 @@ describe("Population and Manpower", () => {
 
   it("training fails when manpower insufficient (NO_MANPOWER)", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("PopD", "skyshear");
+    const { player, city } = world.createGuest("PopD", "forest_people");
     // maxPop=300, current used=65 (50 levy +10 porter +5 scout), free=235
     // Try to train 300 levy (pop=300) — exceeds available manpower
     expect(() => world.startTrain(city.id, player.id, "levy", 300)).toThrow(
@@ -57,7 +57,7 @@ describe("Population and Manpower", () => {
 
   it("troops lost in battle free manpower", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("PopE", "mossvault");
+    const { player, city } = world.createGuest("PopE", "coastal_lords");
     world.adminGrant(player.id, { units: { levy: 100 }, skipProtection: true });
     const mid = world.getCity(city.id)!;
     const usedBefore = mid.usedManpower;
@@ -81,7 +81,7 @@ describe("Population and Manpower", () => {
 
   it("manpower never goes negative", () => {
     const world = freshWorld();
-    const { city } = world.createGuest("PopF", "brinecant");
+    const { city } = world.createGuest("PopF", "northern_kingdom");
     // Force manpower recalc
     world.recalculateAllManpower();
     expect(world.getCity(city.id)!.usedManpower).toBeGreaterThanOrEqual(0);
@@ -89,7 +89,7 @@ describe("Population and Manpower", () => {
 
   it("each city has its own population pool", () => {
     const world = freshWorld();
-    const { player, city: cap } = world.createGuest("PopG", "ashcoil");
+    const { player, city: cap } = world.createGuest("PopG", "mountain_realm");
     world.adminGrant(player.id, { brineholdUnlock: true });
     const brine = world.foundBrinehold(player.id, "PopG Hold");
     // Capital and brinehold have independent population
@@ -104,7 +104,7 @@ describe("Population and Manpower", () => {
 describe("Research Unlock Enforcement", () => {
   it("levy is always available (unlock: start)", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("ResA", "brinecant");
+    const { player, city } = world.createGuest("ResA", "northern_kingdom");
     // levy has unlock: "start" — should always work
     const job = world.startTrain(city.id, player.id, "levy", 1);
     expect(job.status).toBe("running");
@@ -112,7 +112,7 @@ describe("Research Unlock Enforcement", () => {
 
   it("unknown unit fails with BAD_UNIT before research check", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("ResB", "ashcoil");
+    const { player, city } = world.createGuest("ResB", "mountain_realm");
     expect(() =>
       world.startTrain(city.id, player.id, "nonexistent_unit", 1),
     ).toThrow(/unknown unit/);
@@ -140,7 +140,7 @@ describe("Research Unlock Enforcement", () => {
 
   it("research can be completed and level incremented", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("ResC", "brinecant");
+    const { player, city } = world.createGuest("ResC", "northern_kingdom");
     const job = world.startResearch(city.id, player.id, "archery");
     job.finishesAt = world.now() - 1;
     world.processQueues(world.now());
@@ -149,7 +149,7 @@ describe("Research Unlock Enforcement", () => {
 
   it("startResearch rejects unknown tech ids", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("ResD", "brinecant");
+    const { player, city } = world.createGuest("ResD", "northern_kingdom");
     expect(() =>
       world.startResearch(city.id, player.id, "not_a_tech"),
     ).toThrowError(/unknown tech/);
@@ -159,7 +159,7 @@ describe("Research Unlock Enforcement", () => {
     // Proves PG-INV-003 is reachable through normal play: the gate id exists
     // as a researchable tech and the queue path grants it.
     const world = freshWorld();
-    const { player, city } = world.createGuest("ResE", "brinecant");
+    const { player, city } = world.createGuest("ResE", "northern_kingdom");
     expect(isUnitUnlocked("pikeman", city.research)).toBe(false);
     const job = world.startResearch(city.id, player.id, "infantry_doctrine");
     job.finishesAt = world.now() - 1;
@@ -187,7 +187,7 @@ describe("Research Unlock Enforcement", () => {
 describe("Dragon Readiness", () => {
   it("initial readiness is 0/4", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("DrgA", "brinecant");
+    const { player } = world.createGuest("DrgA", "northern_kingdom");
     const status = world.checkDragonReadiness(player.id);
     expect(status.ready).toBe(false);
     expect(status.requirements).toHaveLength(4);
@@ -196,7 +196,7 @@ describe("Dragon Readiness", () => {
 
   it("studying 3 bestiary entries satisfies requirement 1", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("DrgB", "ashcoil");
+    const { player } = world.createGuest("DrgB", "mountain_realm");
     const entries = getBestiaryEntries();
     // Update 3 entries to observation level 1 (need 3 encounters each)
     for (let i = 0; i < 3 && i < entries.length; i++) {
@@ -209,7 +209,7 @@ describe("Dragon Readiness", () => {
 
   it("Dragon Studies L2 satisfies requirement 2", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("DrgC", "brinecant");
+    const { player, city } = world.createGuest("DrgC", "northern_kingdom");
     // Set dragon_studies research to level 2
     city.research["dragon_studies"] = 2;
     world.cities.set(city.id, city);
@@ -220,7 +220,7 @@ describe("Dragon Readiness", () => {
 
   it("collecting 5 materials satisfies requirement 3", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("DrgD", "skyshear");
+    const { player } = world.createGuest("DrgD", "forest_people");
     world.adminGrant(player.id, { items: { dragon_material: 5 } });
     const status = world.checkDragonReadiness(player.id);
     const materialReq = status.requirements.find((r) => r.id === "dragon_material")!;
@@ -229,7 +229,7 @@ describe("Dragon Readiness", () => {
 
   it("defeating 3 camp types satisfies requirement 4", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("DrgE", "mossvault");
+    const { player, city } = world.createGuest("DrgE", "coastal_lords");
     world.adminGrant(player.id, { units: { levy: 500 }, skipProtection: true });
     // Attack 3 different camp levels
     const camps = [...world.camps.values()].sort((a, b) => a.level - b.level);
@@ -268,7 +268,7 @@ describe("Dragon Readiness", () => {
 
   it("all 4 requirements met returns charter reward", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("DrgF", "brinecant");
+    const { player, city } = world.createGuest("DrgF", "northern_kingdom");
     // Fulfill bestiary requirement
     const entries = getBestiaryEntries();
     for (let i = 0; i < 3 && i < entries.length; i++) {
@@ -294,7 +294,7 @@ describe("Dragon Readiness", () => {
 
   it("readiness check returns correct status for each requirement", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("DrgG", "ashcoil");
+    const { player, city } = world.createGuest("DrgG", "mountain_realm");
     // Partially fulfill: only research
     city.research["dragon_studies"] = 3;
     world.cities.set(city.id, city);
@@ -311,14 +311,14 @@ describe("Dragon Readiness", () => {
 describe("Bestiary System", () => {
   it("initial bestiary is empty", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("BesA", "brinecant");
+    const { player } = world.createGuest("BesA", "northern_kingdom");
     const key = `${player.id}:${getBestiaryEntries()[0]!.id}`;
     expect(world.bestiary.has(key)).toBe(false);
   });
 
   it("first encounter at 3 sets observation_level to 1", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("BesB", "ashcoil");
+    const { player } = world.createGuest("BesB", "mountain_realm");
     const entryId = getBestiaryEntries()[0]!.id;
     world.updateBestiary(player.id, entryId, 3);
     const key = `${player.id}:${entryId}`;
@@ -327,7 +327,7 @@ describe("Bestiary System", () => {
 
   it("single encounter stays at observation_level 0", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("BesB2", "brinecant");
+    const { player } = world.createGuest("BesB2", "northern_kingdom");
     const entryId = getBestiaryEntries()[0]!.id;
     world.updateBestiary(player.id, entryId, 1);
     const key = `${player.id}:${entryId}`;
@@ -336,7 +336,7 @@ describe("Bestiary System", () => {
 
   it("multiple encounters increase observation level", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("BesC", "brinecant");
+    const { player } = world.createGuest("BesC", "northern_kingdom");
     const entryId = getBestiaryEntries()[0]!.id;
     const key = `${player.id}:${entryId}`;
     // 3 encounters → level 1
@@ -349,7 +349,7 @@ describe("Bestiary System", () => {
 
   it("observation level caps at 4 (max threshold 30 encounters)", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("BesD", "skyshear");
+    const { player } = world.createGuest("BesD", "forest_people");
     const entryId = getBestiaryEntries()[0]!.id;
     const key = `${player.id}:${entryId}`;
     // 30 encounters → level 4
@@ -362,7 +362,7 @@ describe("Bestiary System", () => {
 
   it("known traits unlock at observation thresholds", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("BesE", "mossvault");
+    const { player } = world.createGuest("BesE", "coastal_lords");
     const entry = getBestiaryEntries()[0]!;
     const key = `${player.id}:${entry.id}`;
     // Initially no known traits (data defines unknown_traits)
@@ -378,7 +378,7 @@ describe("Bestiary System", () => {
 
   it("encounter count increments correctly", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("BesF", "brinecant");
+    const { player } = world.createGuest("BesF", "northern_kingdom");
     const entryId = getBestiaryEntries()[0]!.id;
     const key = `${player.id}:${entryId}`;
     world.updateBestiary(player.id, entryId, 1);
@@ -395,7 +395,7 @@ describe("Bestiary System", () => {
 describe("Expedition System", () => {
   it("cannot start expedition without charter (no dragon progress)", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("ExpA", "brinecant");
+    const { player } = world.createGuest("ExpA", "northern_kingdom");
     const result = world.startExpedition(player.id, "first_dragon_expedition");
     // startExpedition returns null if no readiness
     expect(result).toBeNull();
@@ -403,7 +403,7 @@ describe("Expedition System", () => {
 
   it("starting expedition creates first stage", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("ExpB", "ashcoil");
+    const { player, city } = world.createGuest("ExpB", "mountain_realm");
     // Set up all readiness requirements
     // 1. Bestiary: study 3 entries
     world.bestiary.set(`${player.id}:valley_drake`, { entryId: "valley_drake", observationLevel: 3, encounterCount: 5 });
@@ -430,7 +430,7 @@ describe("Expedition System", () => {
 
   it("completing stage 1 advances to stage 2", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("ExpC", "brinecant");
+    const { player, city } = world.createGuest("ExpC", "northern_kingdom");
     // Set up readiness state
     world.bestiary.set(`${player.id}:valley_drake`, { entryId: "valley_drake", observationLevel: 3, encounterCount: 5 });
     world.bestiary.set(`${player.id}:ridgeback_wyvern`, { entryId: "ridgeback_wyvern", observationLevel: 2, encounterCount: 3 });
@@ -458,7 +458,7 @@ describe("Expedition System", () => {
 
   it("completing all stages grants settlement charter", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("ExpD", "skyshear");
+    const { player } = world.createGuest("ExpD", "forest_people");
     // 4 stages in first_dragon_expedition
     world.dragonProgress.set(player.id, {
       bestiaryStudied: 3,
@@ -480,7 +480,7 @@ describe("Expedition System", () => {
 
   it("expedition rewards are applied correctly", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("ExpE", "mossvault");
+    const { player } = world.createGuest("ExpE", "coastal_lords");
     // Stage 2 gives dragon_material x2
     world.dragonProgress.set(player.id, {
       bestiaryStudied: 3,
@@ -500,7 +500,7 @@ describe("Expedition System", () => {
 
   it("cannot skip stages", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("ExpF", "brinecant");
+    const { player } = world.createGuest("ExpF", "northern_kingdom");
     world.dragonProgress.set(player.id, {
       bestiaryStudied: 3,
       researchLevel: 2,
@@ -522,7 +522,7 @@ describe("Expedition System", () => {
 describe("Wilderness Specialization", () => {
   it("forest wilderness adds timber production", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("WilA", "brinecant");
+    const { player, city } = world.createGuest("WilA", "northern_kingdom");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
     const forest = [...world.wilderness.values()].find(
       (w) => w.resourceType === "forest",
@@ -537,7 +537,7 @@ describe("Wilderness Specialization", () => {
 
   it("fertile_land adds food production", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("WilB", "ashcoil");
+    const { player, city } = world.createGuest("WilB", "mountain_realm");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
     const fertile = [...world.wilderness.values()].find(
       (w) => w.resourceType === "fertile_land",
@@ -551,7 +551,7 @@ describe("Wilderness Specialization", () => {
 
   it("quarry adds stone production", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("WilC", "skyshear");
+    const { player, city } = world.createGuest("WilC", "forest_people");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
     const quarry = [...world.wilderness.values()].find(
       (w) => w.resourceType === "quarry",
@@ -565,7 +565,7 @@ describe("Wilderness Specialization", () => {
 
   it("iron_hills adds iron production", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("WilD", "mossvault");
+    const { player, city } = world.createGuest("WilD", "coastal_lords");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
     const iron = [...world.wilderness.values()].find(
       (w) => w.resourceType === "iron_hills",
@@ -579,7 +579,7 @@ describe("Wilderness Specialization", () => {
 
   it("crossroads provides no direct resource bonus", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("WilE", "brinecant");
+    const { player, city } = world.createGuest("WilE", "northern_kingdom");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
     const cross = [...world.wilderness.values()].find(
       (w) => w.resourceType === "crossroads",
@@ -599,7 +599,7 @@ describe("Wilderness Specialization", () => {
 
   it("multiple wilderness of same type stack", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("WilF", "ashcoil");
+    const { player, city } = world.createGuest("WilF", "mountain_realm");
     world.adminGrant(player.id, { units: { levy: 500 }, skipProtection: true });
     const forests = [...world.wilderness.values()].filter(
       (w) => w.resourceType === "forest",
@@ -617,7 +617,7 @@ describe("Wilderness Specialization", () => {
 
   it("wrong resource type is not affected", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("WilG", "brinecant");
+    const { player, city } = world.createGuest("WilG", "northern_kingdom");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
     const forest = [...world.wilderness.values()].find(
       (w) => w.resourceType === "forest",
@@ -635,7 +635,7 @@ describe("Wilderness Specialization", () => {
 
   it("wilderness capture updates production correctly", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("WilH", "skyshear");
+    const { player, city } = world.createGuest("WilH", "forest_people");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
     const fertile = [...world.wilderness.values()].find(
       (w) => w.resourceType === "fertile_land",
@@ -657,8 +657,8 @@ describe("Wilderness Specialization", () => {
 describe("Defense Posture", () => {
   it("withdraw posture allows free plunder (50% rate)", () => {
     const world = freshWorld();
-    const a = world.createGuest("DefA", "brinecant");
-    const b = world.createGuest("DefB", "ashcoil");
+    const a = world.createGuest("DefA", "northern_kingdom");
+    const b = world.createGuest("DefB", "mountain_realm");
     world.adminGrant(a.player.id, { units: { levy: 100 }, skipProtection: true });
     world.adminGrant(b.player.id, { skipProtection: true });
     world.setPosture(b.city.id, b.player.id, "withdraw");
@@ -681,8 +681,8 @@ describe("Defense Posture", () => {
 
   it("garrison posture uses only 30% of defenders", () => {
     const world = freshWorld();
-    const a = world.createGuest("DefC", "brinecant");
-    const b = world.createGuest("DefD", "ashcoil");
+    const a = world.createGuest("DefC", "northern_kingdom");
+    const b = world.createGuest("DefD", "mountain_realm");
     world.adminGrant(a.player.id, {
       units: { bowman: 200, levy: 100 },
       skipProtection: true,
@@ -711,8 +711,8 @@ describe("Defense Posture", () => {
 
   it("full posture uses all defenders", () => {
     const world = freshWorld();
-    const a = world.createGuest("DefE", "brinecant");
-    const b = world.createGuest("DefF", "skyshear");
+    const a = world.createGuest("DefE", "northern_kingdom");
+    const b = world.createGuest("DefF", "forest_people");
     world.adminGrant(a.player.id, {
       units: { bowman: 200, levy: 100 },
       skipProtection: true,
@@ -747,7 +747,7 @@ describe("Defense Posture", () => {
 
   it("posture is persisted on the city object", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("DefH", "brinecant");
+    const { player, city } = world.createGuest("DefH", "northern_kingdom");
     expect(city.defensePosture).toBe("withdraw");
     world.setPosture(city.id, player.id, "full");
     expect(world.getCity(city.id)!.defensePosture).toBe("full");
@@ -789,7 +789,7 @@ describe("Camp Variation", () => {
 
   it("landMarch uses the seeded template, not a fixed comp", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("VarA", "brinecant");
+    const { player } = world.createGuest("VarA", "northern_kingdom");
     world.adminGrant(player.id, { units: { bowman: 500 }, skipProtection: true });
     const camp = [...world.camps.values()].find((c) => c.level === 1)!;
     const march = world.createMarch(player.id, {
@@ -830,7 +830,7 @@ describe("Camp Variation", () => {
 
   it("dragon clue grant updates bestiary entry", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("CmpA", "brinecant");
+    const { player } = world.createGuest("CmpA", "northern_kingdom");
     const clues = getDragonClues();
     const clue = clues[0]!; // shed_scale → bestiary_unlock: "shed_scale_phenomenon"
     world.grantDragonClue(player.id, clue.id);
@@ -842,7 +842,7 @@ describe("Camp Variation", () => {
 
   it("dragon clue grant adds dragon_clue to inventory", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("CmpC", "brinecant");
+    const { player } = world.createGuest("CmpC", "northern_kingdom");
     const clues = getDragonClues();
     world.grantDragonClue(player.id, clues[0]!.id);
     const inv = world.inventory.get(player.id) ?? {};
@@ -851,7 +851,7 @@ describe("Camp Variation", () => {
 
   it("multiple clue grants accumulate in bestiary", () => {
     const world = freshWorld();
-    const { player } = world.createGuest("CmpD", "ashcoil");
+    const { player } = world.createGuest("CmpD", "mountain_realm");
     const clues = getDragonClues();
     // Grant same clue 3 times → should reach observation level 1
     for (let i = 0; i < 3; i++) {
@@ -870,7 +870,7 @@ describe("Slice 1A Progression Path", () => {
     const world = freshWorld();
 
     // Step 1: Create player
-    const { player, city } = world.createGuest("Slice1A", "brinecant");
+    const { player, city } = world.createGuest("Slice1A", "northern_kingdom");
     expect(city.population).toBe(200);
     expect(city.maxPopulation).toBe(300);
 
@@ -977,7 +977,7 @@ describe("Slice 1A Progression Path", () => {
 describe("Unit-ID Integrity", () => {
   it("all starter stack unit IDs resolve through getUnitById", () => {
     const world = freshWorld();
-    const { city } = world.createGuest("IntegA", "brinecant");
+    const { city } = world.createGuest("IntegA", "northern_kingdom");
     for (const [unitId, count] of Object.entries(city.stacks)) {
       if (count <= 0) continue;
       const unit = getUnitById(unitId);
@@ -1031,7 +1031,7 @@ describe("Unit-ID Integrity", () => {
 describe("Posture Cooldown", () => {
   it("posture change is persisted", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("PostA", "brinecant");
+    const { player, city } = world.createGuest("PostA", "northern_kingdom");
     world.setPosture(city.id, player.id, "garrison");
     const updated = world.getCity(city.id)!;
     expect(updated.defensePosture).toBe("garrison");
@@ -1039,7 +1039,7 @@ describe("Posture Cooldown", () => {
 
   it("garrison posture uses partial defenders", () => {
     const world = freshWorld();
-    const { player, city } = world.createGuest("PostB", "brinecant");
+    const { player, city } = world.createGuest("PostB", "northern_kingdom");
     city.stacks = { levy: 100, pikeman: 50 };
     city.defensePosture = "garrison";
     world.cities.set(city.id, city);

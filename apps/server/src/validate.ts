@@ -7,7 +7,7 @@ import { z } from "zod";
 export const guestBodySchema = z.object({
   displayName: z.string().trim().min(1).max(32).optional(),
   faction: z
-    .enum(["brinecant", "ashcoil", "skyshear", "mossvault"])
+    .enum(["northern_kingdom", "mountain_realm", "forest_people", "coastal_lords"])
     .optional(),
 });
 
