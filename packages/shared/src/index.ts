@@ -20,12 +20,26 @@ export type HealthResponse = {
 };
 
 export type ResourceBag = {
-  kelp: number;
-  driftwood: number;
-  basalt: number;
-  slagiron: number;
-  tidegilt: number;
+  food: number;
+  timber: number;
+  stone: number;
+  iron: number;
+  coin: number;
 };
+
+/** Canonical resource order (M2 medieval set). */
+export const RESOURCES = ["food", "timber", "stone", "iron", "coin"] as const;
+
+export type ResourceId = (typeof RESOURCES)[number];
+
+/** Legacy aquatic resource ids → medieval successors (M2 transition window). */
+export const LEGACY_RESOURCE_ALIASES = {
+  kelp: "food",
+  driftwood: "timber",
+  basalt: "stone",
+  slagiron: "iron",
+  tidegilt: "coin",
+} as const satisfies Record<string, ResourceId>;
 
 export type DefensePosture = "withdraw" | "garrison" | "full";
 
@@ -82,7 +96,7 @@ export type CityPublic = {
   research: Record<string, number>;
 };
 
-export const SALTVAULT_PROTECT_RATIO = 0.5; // 50% of non-tidegilt protected at L1 baseline
+export const SALTVAULT_PROTECT_RATIO = 0.5; // 50% of non-coin protected at L1 baseline
 export const NEW_PLAYER_PROTECTION_MS = 72 * 60 * 60 * 1000;
 export const MAP_W = 40;
 export const MAP_H = 40;
