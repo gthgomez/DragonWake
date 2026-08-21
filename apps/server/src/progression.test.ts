@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { World } from "./world.js";
-import { isUnitUnlocked, getBestiaryEntries, getDragonReadiness, getDragonClues, getUnitById, getUnits } from "@tideforge/content";
+import { World, pickCampTemplate, resolveCampDefGroups } from "./world.js";
+import { isUnitUnlocked, getBestiaryEntries, getDragonReadiness, getDragonClues, getUnitById, getUnits, getCamps } from "@tideforge/content";
 
 function freshWorld(): World {
   return new World({ devFastTime: true, skipTutorial: true });
@@ -732,14 +732,65 @@ describe("Defense Posture", () => {
 
 describe("Camp Variation", () => {
   it("same seed produces same camp composition", () => {
+    const def = getCamps().find((c) => c.camp_level === 5)!;
+    expect(def.comps && def.comps.length).toBeGreaterThanOrEqual(3);
+    const a = pickCampTemplate(def.comps!, "camp-uuid-a");
+    const b = pickCampTemplate(def.comps!, "camp-uuid-a");
+    expect(a).toBe(b);
+  });
+
+  it("bounded templates vary across camps of the same level", () => {
+    const def = getCamps().find((c) => c.camp_level === 5)!;
+    const seen = new Set<string>();
+    for (let i = 0; i < 24; i++) {
+      seen.add(pickCampTemplate(def.comps!, `camp-uuid-${i}`));
+    }
+    // With 3+ templates and 24 seeds, at least two distinct comps must appear.
+    expect(seen.size).toBeGreaterThanOrEqual(2);
+  });
+
+  it("resolved defender groups only contain valid unit ids", () => {
+    const valid = new Set(getUnits().map((u) => u.id));
+    for (const level of [1, 4, 7, 10]) {
+      const def = getCamps().find((c) => c.camp_level === level)!;
+      for (let i = 0; i < 12; i++) {
+        const groups = resolveCampDefGroups(def, `seed-${level}-${i}`);
+        expect(groups.length).toBeGreaterThan(0);
+        for (const g of groups) expect(valid.has(g.unitId)).toBe(true);
+      }
+    }
+  });
+
+  it("landMarch uses the seeded template, not a fixed comp", () => {
     const world = freshWorld();
-    // getDragonReadiness config is deterministic
+    const { player } = world.createGuest("VarA", "brinecant");
+    world.adminGrant(player.id, { units: { bowman: 500 }, skipProtection: true });
+    const camp = [...world.camps.values()].find((c) => c.level === 1)!;
+    const march = world.createMarch(player.id, {
+      fromCityId: world.cities.values().next().value!.id,
+      intent: "attack",
+      targetType: "camp",
+      targetId: camp.id,
+      targetX: camp.x,
+      targetY: camp.y,
+      composition: { bowman: 100 },
+    });
+    march.arriveAt = 0;
+    const report = world.landMarch(march, world.now());
+    expect(report).not.toBeNull();
+    // Defender composition must come from one of the L1 templates
+    const l1Templates = getCamps().find((c) => c.camp_level === 1)!.comps!;
+    expect(l1Templates.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("dragon readiness config is deterministic", () => {
     const readiness = getDragonReadiness();
     expect(readiness.requirements).toHaveLength(4);
-    // Dragon clues are deterministic content
+  });
+
+  it("dragon clues are deterministic content", () => {
     const clues = getDragonClues();
     expect(clues.length).toBeGreaterThan(0);
-    // Each clue has a fixed rarity
     expect(clues[0]!.rarity).toBe("common");
   });
 

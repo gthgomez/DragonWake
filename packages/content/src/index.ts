@@ -67,6 +67,8 @@ export type CampDef = {
   camp_level: number;
   def_power_approx: number;
   example_comp: string;
+  /** Bounded composition templates for this level; seed picks one. */
+  comps?: string[];
   recommended_player_power: number;
   loot_notes: string;
   harness_drop: string;

@@ -3,6 +3,11 @@
     "camp_level": 1,
     "def_power_approx": 50,
     "example_comp": "40 Levy",
+    "comps": [
+      "40 Levy",
+      "50 Levy",
+      "30 Levy + 10 Pikeman"
+    ],
     "recommended_player_power": 80,
     "loot_notes": "kelp, tiny scrap",
     "harness_drop": "no"
@@ -11,6 +16,11 @@
     "camp_level": 2,
     "def_power_approx": 120,
     "example_comp": "80 Levy + 20 Pikeman",
+    "comps": [
+      "80 Levy + 20 Pikeman",
+      "70 Levy + 30 Bowman",
+      "90 Levy + 15 Pikeman"
+    ],
     "recommended_player_power": 200,
     "loot_notes": "kelp",
     "harness_drop": "no"
@@ -19,6 +29,11 @@
     "camp_level": 3,
     "def_power_approx": 300,
     "example_comp": "150 Pikeman",
+    "comps": [
+      "150 Pikeman",
+      "120 Pikeman + 40 Bowman",
+      "180 Levy + 60 Bowman"
+    ],
     "recommended_player_power": 500,
     "loot_notes": "kelp, mats low",
     "harness_drop": "no"
@@ -27,6 +42,11 @@
     "camp_level": 4,
     "def_power_approx": 700,
     "example_comp": "200 Pikeman + 50 Bowman",
+    "comps": [
+      "200 Pikeman + 50 Bowman",
+      "150 Man-at-Arms + 60 Bowman",
+      "250 Pikeman + 30 Crossbowman"
+    ],
     "recommended_player_power": 1200,
     "loot_notes": "mats",
     "harness_drop": "rare shard"
@@ -35,6 +55,11 @@
     "camp_level": 5,
     "def_power_approx": 1500,
     "example_comp": "300 Man-at-Arms + 100 Bowman",
+    "comps": [
+      "300 Man-at-Arms + 100 Bowman",
+      "350 Pikeman + 80 Longbowman",
+      "250 Man-at-Arms + 50 Shieldman + 75 Crossbowman"
+    ],
     "recommended_player_power": 2500,
     "loot_notes": "Harbinger harness piece chance",
     "harness_drop": "yes low"
@@ -43,6 +68,11 @@
     "camp_level": 6,
     "def_power_approx": 3000,
     "example_comp": "400 Man-at-Arms + 200 Bowman",
+    "comps": [
+      "400 Man-at-Arms + 200 Bowman",
+      "500 Pikeman + 150 Longbowman",
+      "300 Halberdier + 250 Crossbowman"
+    ],
     "recommended_player_power": 5000,
     "loot_notes": "harness",
     "harness_drop": "yes"
@@ -51,6 +81,11 @@
     "camp_level": 7,
     "def_power_approx": 6000,
     "example_comp": "300 Halberdier + 300 Bowman",
+    "comps": [
+      "300 Halberdier + 300 Bowman",
+      "450 Longbowman + 350 Shieldman",
+      "500 Man-at-Arms + 200 Knight"
+    ],
     "recommended_player_power": 10000,
     "loot_notes": "talismans if Sov present",
     "harness_drop": "yes"
@@ -58,7 +93,12 @@
   {
     "camp_level": 8,
     "def_power_approx": 12000,
-    "example_comp": "mixed mid elite",
+    "example_comp": "800 Halberdier + 600 Longbowman",
+    "comps": [
+      "800 Halberdier + 600 Longbowman",
+      "700 Man-at-Arms + 400 Knight + 300 Crossbowman",
+      "1000 Pikeman + 500 Heavy Crossbowman"
+    ],
     "recommended_player_power": 20000,
     "loot_notes": "talismans",
     "harness_drop": "yes"
@@ -66,7 +106,12 @@
   {
     "camp_level": 9,
     "def_power_approx": 22000,
-    "example_comp": "heavy mixed",
+    "example_comp": "1500 Halberdier + 1000 Longbowman",
+    "comps": [
+      "1500 Halberdier + 1000 Longbowman",
+      "1200 Knight + 800 Crossbowman + 500 Shieldman",
+      "1800 Man-at-Arms + 900 Longbowman"
+    ],
     "recommended_player_power": 35000,
     "loot_notes": "talismans high",
     "harness_drop": "yes"
@@ -74,7 +119,12 @@
   {
     "camp_level": 10,
     "def_power_approx": 40000,
-    "example_comp": "near player mid-game army",
+    "example_comp": "3000 Man-at-Arms + 2000 Halberdier + 1500 Crossbowman",
+    "comps": [
+      "3000 Man-at-Arms + 2000 Halberdier + 1500 Crossbowman",
+      "2500 Halberdier + 1500 Heavy Crossbowman + 1000 Shieldman",
+      "2000 Knight + 2500 Longbowman + 1500 Pikeman"
+    ],
     "recommended_player_power": 60000,
     "loot_notes": "best talisman rate",
     "harness_drop": "yes"

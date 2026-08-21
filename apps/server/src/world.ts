@@ -354,6 +354,38 @@ export function parseCampComp(example: string): BattleGroup[] {
   return groups;
 }
 
+/** Stable FNV-1a string hash → unsigned 32-bit int (camp seeds survive restarts). */
+export function hashCampSeed(key: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+/** Pick a composition template deterministically from a bounded set. */
+export function pickCampTemplate(comps: string[], seedKey: string): string {
+  if (comps.length === 0) return "40 Levy";
+  return comps[hashCampSeed(seedKey) % comps.length]!;
+}
+
+/**
+ * Resolve a camp's defensive groups: seed-selected template from the level's
+ * bounded comp pool, falling back to example_comp (then "40 Levy").
+ */
+export function resolveCampDefGroups(
+  def: { example_comp?: string; comps?: string[] } | undefined,
+  seedKey: string,
+): BattleGroup[] {
+  const comps = def?.comps;
+  const comp =
+    comps && comps.length > 0
+      ? pickCampTemplate(comps, seedKey)
+      : (def?.example_comp ?? "40 Levy");
+  return parseCampComp(comp);
+}
+
 export function productionPerHour(city: City): ResourceBag {
   const rates: ResourceBag = {
     kelp: 120,
@@ -1548,7 +1580,9 @@ export class World {
         null;
       const level = camp?.level ?? 1;
       const def = getCamps().find((c: { camp_level: number }) => c.camp_level === level);
-      defGroups = parseCampComp(def?.example_comp ?? "40 Levy");
+      // Seed on camp identity so composition is deterministic per camp but
+      // varies across camps of the same level (anti "solved army" farming).
+      defGroups = resolveCampDefGroups(def, camp ? `${camp.id}:${camp.x},${camp.y}` : `lvl${level}`);
       this.markDaily(march.playerId, "camp");
     } else if (march.targetType === "wilderness") {
       wild =
