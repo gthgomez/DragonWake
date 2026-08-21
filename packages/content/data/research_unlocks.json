@@ -78,12 +78,6 @@
     "kind": "unit"
   },
   {
-    "research_id": "metallurgy",
-    "research_level": 5,
-    "unlocks": ["heavy_pikeman"],
-    "kind": "unit"
-  },
-  {
     "research_id": "siegecraft",
     "research_level": 2,
     "unlocks": ["sapper"],

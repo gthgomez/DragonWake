@@ -369,3 +369,13 @@ export function isBuildingUnlocked(buildingId: string, cityResearch: Record<stri
 export function clearContentCache(): void {
   cache = {};
 }
+
+/**
+ * Canonicalize a tech id: maps legacy aquatic research ids to their medieval
+ * successors using domain_catalog.research.legacy_to_target. Unknown ids
+ * (unlock flags like brinehold_unlock) pass through unchanged.
+ */
+export function canonTechId(id: string): string {
+  const legacy = getDomainCatalog().research?.legacy_to_target;
+  return legacy?.[id] ?? id;
+}

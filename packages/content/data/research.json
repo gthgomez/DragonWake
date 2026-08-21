@@ -1,49 +1,49 @@
 [
   {
-    "id": "tidefarming",
-    "name": "Tidefarming",
+    "id": "agriculture",
+    "name": "Agriculture",
     "per_level": 0.08,
     "max_level": 10,
     "group": "production"
   },
   {
-    "id": "timberwright",
-    "name": "Timberwright",
+    "id": "forestry",
+    "name": "Forestry",
     "per_level": 0.08,
     "max_level": 10,
     "group": "production"
   },
   {
-    "id": "stonecunning",
-    "name": "Stonecunning",
+    "id": "masonry",
+    "name": "Masonry",
     "per_level": 0.08,
     "max_level": 10,
     "group": "production"
   },
   {
-    "id": "alloywright",
-    "name": "Alloywright",
+    "id": "metallurgy",
+    "name": "Metallurgy",
     "per_level": 0.08,
     "max_level": 10,
     "group": "production"
   },
   {
-    "id": "forced_cadence",
-    "name": "Forced Cadence",
+    "id": "infantry_doctrine",
+    "name": "Infantry Doctrine",
     "per_level": 0.05,
     "max_level": 10,
     "group": "combat"
   },
   {
-    "id": "longmark",
-    "name": "Longmark",
+    "id": "archery",
+    "name": "Archery",
     "per_level": 0.05,
     "max_level": 10,
     "group": "combat"
   },
   {
-    "id": "hardening",
-    "name": "Hardening",
+    "id": "fortification",
+    "name": "Fortification",
     "per_level": 0.05,
     "max_level": 10,
     "group": "combat"
@@ -56,29 +56,29 @@
     "group": "combat"
   },
   {
-    "id": "leviathanry",
-    "name": "Leviathanry",
+    "id": "cavalry",
+    "name": "Cavalry",
     "per_level": 0.05,
     "max_level": 10,
     "group": "combat"
   },
   {
-    "id": "sky_duel",
-    "name": "Sky Duel",
+    "id": "siegecraft",
+    "name": "Siegecraft",
     "per_level": 0.05,
     "max_level": 10,
     "group": "combat"
   },
   {
-    "id": "buoyancy",
-    "name": "Buoyancy",
+    "id": "logistics_res",
+    "name": "Logistics",
     "per_level": 0.08,
     "max_level": 10,
     "group": "utility"
   },
   {
-    "id": "deep_sight",
-    "name": "Deep Sight",
+    "id": "scouting",
+    "name": "Scouting",
     "per_level": 1,
     "max_level": 10,
     "group": "utility"
@@ -88,6 +88,13 @@
     "name": "Rationing",
     "per_level": 0.05,
     "max_level": 10,
+    "group": "utility"
+  },
+  {
+    "id": "dragon_studies",
+    "name": "Dragon Studies",
+    "per_level": 0,
+    "max_level": 5,
     "group": "utility"
   }
 ]
