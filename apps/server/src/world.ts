@@ -70,6 +70,8 @@ export type City = {
   resources: ResourceBag;
   defensePosture: DefensePosture;
   lastResourceTick: number;
+  /** Epoch ms of the last posture change (5-min cooldown survives restarts). */
+  lastPostureChange: number;
   buildings: Building[];
   plots: Plot[];
   stacks: Record<string, number>;
@@ -741,6 +743,7 @@ export class World {
       resources: emptyResources(1500),
       defensePosture: "withdraw",
       lastResourceTick: now,
+      lastPostureChange: 0,
       buildings: [
         { slotIndex: 0, buildingType: "forge_heart", level: 1 },
         { slotIndex: 1, buildingType: "habitation", level: 1 },
@@ -1035,14 +1038,14 @@ export class World {
     const city = this.requireCityOwner(cityId, playerId);
     // Posture cooldown: 5 minutes between changes (INITIAL_TEST_FIXTURE)
     const POSTURE_COOLDOWN_MS = 5 * 60 * 1000;
-    const lastChange = (city as any)._lastPostureChange ?? 0;
+    const lastChange = city.lastPostureChange;
     if (this.now() - lastChange < POSTURE_COOLDOWN_MS) {
       throw Object.assign(new Error("posture change on cooldown"), {
         code: "POSTURE_COOLDOWN",
       });
     }
     city.defensePosture = posture;
-    (city as any)._lastPostureChange = this.now();
+    city.lastPostureChange = this.now();
     this.cities.set(city.id, city);
     return city;
   }
@@ -1230,11 +1233,10 @@ export class World {
 
     // materialsCollected is grant-maintained (see grantDragonClue) and no longer
     // clobbered from inventory; the readiness gate reads inventory directly.
-    this.dragonProgress.set(playerId, {
-      ...existing,
-      bestiaryStudied: studied.size,
-      researchLevel: maxResearch,
-    });
+    // Mutate in place — spreading a stale snapshot would revert fresh recalcs.
+    existing.bestiaryStudied = studied.size;
+    existing.researchLevel = maxResearch;
+    this.dragonProgress.set(playerId, existing);
   }
 
   /** Check dragon readiness and return status. */
@@ -1314,7 +1316,10 @@ export class World {
     const first = expedition.stages[0]!;
     this.requireStageRequirements(existing, first);
 
-    this.dragonProgress.set(playerId, { ...existing, expeditionStage: 1 });
+    // Mutate in place: `existing` was captured before checkDragonReadiness()
+    // recalced the record, so spreading it would revert those fresh values.
+    existing.expeditionStage = 1;
+    this.dragonProgress.set(playerId, existing);
     return { stage: first.stage, name: first.name };
   }
 
@@ -1341,11 +1346,9 @@ export class World {
       if (next) this.requireStageRequirements(progress, next);
     }
 
-    this.dragonProgress.set(playerId, {
-      ...progress,
-      expeditionStage: isLast ? 0 : stageNumber + 1,
-      charterEarned: isLast ? true : progress.charterEarned,
-    });
+    progress.expeditionStage = isLast ? 0 : stageNumber + 1;
+    if (isLast) progress.charterEarned = true;
+    this.dragonProgress.set(playerId, progress);
 
     // Grant reward items
     const reward = stageDef.completion_reward;
@@ -1357,10 +1360,8 @@ export class World {
       // Material grants keep the persisted counter aligned with inventory
       if (reward.item.startsWith("dragon_material")) {
         const p = this.ensureDragonProgress(playerId);
-        this.dragonProgress.set(playerId, {
-          ...p,
-          materialsCollected: p.materialsCollected + count,
-        });
+        p.materialsCollected += count;
+        this.dragonProgress.set(playerId, p);
       }
     }
 
@@ -1385,10 +1386,8 @@ export class World {
 
     // Increment readiness materials so the persisted counter tracks real grants
     const progress = this.ensureDragonProgress(playerId);
-    this.dragonProgress.set(playerId, {
-      ...progress,
-      materialsCollected: progress.materialsCollected + 1,
-    });
+    progress.materialsCollected += 1;
+    this.dragonProgress.set(playerId, progress);
 
     this.pushEvent(playerId, "info", `Dragon clue discovered: ${clue.name}`);
     return clue;
@@ -1570,10 +1569,8 @@ export class World {
     if (march.intent === "scout") {
       // Persistent gameplay counter (expedition stage gates)
       const progress = this.ensureDragonProgress(march.playerId);
-      this.dragonProgress.set(march.playerId, {
-        ...progress,
-        scoutsSent: progress.scoutsSent + 1,
-      });
+      progress.scoutsSent += 1;
+      this.dragonProgress.set(march.playerId, progress);
       report = this.makeReport(march, {
         type: "scout",
         target: { x: march.targetX, y: march.targetY, type: march.targetType },
@@ -2278,6 +2275,7 @@ export class World {
       resources: emptyResources(800),
       defensePosture: "withdraw",
       lastResourceTick: this.now(),
+      lastPostureChange: 0,
       buildings: [
         { slotIndex: 0, buildingType: "forge_heart", level: 1 },
         { slotIndex: 1, buildingType: "barracks", level: 1 },

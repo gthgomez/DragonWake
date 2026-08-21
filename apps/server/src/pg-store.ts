@@ -158,6 +158,7 @@ export class PgStore {
           },
           defensePosture: row.defense_posture === "harbor" ? "withdraw" : row.defense_posture === "partial" ? "garrison" : row.defense_posture,
           lastResourceTick: new Date(row.last_resource_tick).getTime(),
+          lastPostureChange: Number(row.last_posture_change ?? 0),
           buildings: [],
           plots: [],
           stacks: {},
@@ -386,6 +387,37 @@ export class PgStore {
         });
       }
 
+      // Daily quest + clue-cap state. Clear first (stale rows must never
+      // survive a reload), then hydrate only rows whose day_key matches the
+      // current UTC day — ensureDaily/ensureDailyClueUsage tolerate absence.
+      world.dailyQuests.clear();
+      world.dailyClues.clear();
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const dailyRows = await client.query(
+        `SELECT * FROM daily_state WHERE player_id IN (SELECT id FROM players WHERE realm_id = $1)`,
+        [world.realmId],
+      );
+      for (const row of dailyRows.rows) {
+        if (row.day_key !== todayKey) continue;
+        if (row.quests && typeof row.quests === "object") {
+          const q = row.quests as {
+            dayKey?: unknown;
+            done?: Record<string, boolean>;
+            claimed?: Record<string, boolean>;
+          };
+          world.dailyQuests.set(row.player_id, {
+            dayKey:
+              typeof q.dayKey === "string" ? q.dayKey : String(row.day_key),
+            done: { ...(q.done ?? {}) },
+            claimed: { ...(q.claimed ?? {}) },
+          });
+        }
+        world.dailyClues.set(row.player_id, {
+          dayKey: String(row.day_key),
+          used: Number(row.clue_used ?? 0),
+        });
+      }
+
       const allies = await client.query(`SELECT * FROM alliances WHERE realm_id = $1`, [
         world.realmId,
       ]);
@@ -555,9 +587,9 @@ export class PgStore {
           `INSERT INTO cities (
              id, player_id, realm_id, kind, name, map_x, map_y,
              food, timber, stone, iron, coin,
-             defense_posture, last_resource_tick, population, max_population, used_manpower
+             defense_posture, last_posture_change, last_resource_tick, population, max_population, used_manpower
            ) VALUES (
-             $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,to_timestamp($14/1000.0),$15,$16,$17
+             $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,to_timestamp($15/1000.0),$16,$17,$18
            )
            ON CONFLICT (id) DO UPDATE SET
              kind=EXCLUDED.kind,
@@ -568,6 +600,7 @@ export class PgStore {
              iron=EXCLUDED.iron,
              coin=EXCLUDED.coin,
              defense_posture=EXCLUDED.defense_posture,
+             last_posture_change=EXCLUDED.last_posture_change,
              last_resource_tick=EXCLUDED.last_resource_tick,
              population=EXCLUDED.population,
              max_population=EXCLUDED.max_population,
@@ -586,6 +619,7 @@ export class PgStore {
             c.resources.iron,
             c.resources.coin,
             c.defensePosture,
+            c.lastPostureChange,
             c.lastResourceTick,
             c.population,
             c.maxPopulation,
@@ -815,6 +849,29 @@ export class PgStore {
             progress.campsDefeated,
             progress.scoutsSent,
           ],
+        );
+      }
+
+      // Daily quest + clue-cap state — one row per player present in either
+      // map. Written as-is (upsert keeps one current-day row per player);
+      // ensureDaily/ensureDailyClueUsage discard stale day keys on load.
+      const dailyPlayers = new Set<string>([
+        ...world.dailyQuests.keys(),
+        ...world.dailyClues.keys(),
+      ]);
+      for (const playerId of dailyPlayers) {
+        const q = world.dailyQuests.get(playerId);
+        const clue = world.dailyClues.get(playerId);
+        const dayKey = q?.dayKey ?? clue?.dayKey;
+        if (!dayKey) continue;
+        await client.query(
+          `INSERT INTO daily_state (player_id, day_key, quests, clue_used)
+           VALUES ($1, $2, $3::jsonb, $4)
+           ON CONFLICT (player_id) DO UPDATE SET
+             day_key=EXCLUDED.day_key,
+             quests=EXCLUDED.quests,
+             clue_used=EXCLUDED.clue_used`,
+          [playerId, dayKey, JSON.stringify(q ?? null), clue?.used ?? 0],
         );
       }
 

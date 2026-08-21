@@ -56,6 +56,7 @@ CREATE TABLE cities (
   happiness       NUMERIC(5,2) NOT NULL DEFAULT 100,
   defense_posture TEXT NOT NULL DEFAULT 'withdraw'
                   CHECK (defense_posture IN ('withdraw','garrison','full')),
+  last_posture_change BIGINT NOT NULL DEFAULT 0,
   last_resource_tick TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (realm_id, map_x, map_y)
@@ -273,6 +274,14 @@ CREATE TABLE quest_progress (
   progress        INT NOT NULL DEFAULT 0,
   completed       BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (player_id, quest_id)
+);
+
+-- One row per player = current UTC day (PK bounds growth).
+CREATE TABLE IF NOT EXISTS daily_state (
+  player_id UUID PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE,
+  day_key   TEXT NOT NULL,
+  quests    JSONB,
+  clue_used INT NOT NULL DEFAULT 0
 );
 
 -- Seed realm 1

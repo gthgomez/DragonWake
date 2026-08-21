@@ -59,6 +59,42 @@ describe("PG persistence (shipped PgStore + World)", () => {
     expect(city.resources.food).toBeGreaterThan(0);
     world1.adminGrant(player.id, { units: { bowman: 42 }, chronite: 7 });
     world1.adminGrant(player.id, { resources: { food: 1234 } });
+
+    // Posture cooldown armed on world1 — an immediate second change must throw.
+    world1.setPosture(city.id, player.id, "garrison");
+    expect(() => world1.setPosture(city.id, player.id, "full")).toThrow(
+      /posture change on cooldown/,
+    );
+
+    // Daily quest state via public paths: queue a build (marks done.build),
+    // then claim it (marks claimed.build).
+    world1.startBuild(city.id, player.id, 5, "habitation");
+    world1.claimDailyQuest(player.id, "build");
+
+    // Daily clue usage via public path: land camp attacks until a clue drops
+    // (L4 camps drop on ~70% of wins; 30 attempts make failure negligible).
+    const camp = [...world1.camps.values()].find((c) => c.level === 4)!;
+    for (let i = 0; i < 30 && world1.dailyClueUsage(player.id).used < 1; i++) {
+      world1.adminGrant(player.id, { units: { bowman: 900 } });
+      const m = world1.createMarch(player.id, {
+        fromCityId: city.id,
+        intent: "attack",
+        targetType: "camp",
+        targetId: camp.id,
+        targetX: camp.x,
+        targetY: camp.y,
+        composition: { bowman: 450 },
+      });
+      m.arriveAt = 0;
+      const report = world1.landMarch(m, world1.now());
+      expect(report).not.toBeNull();
+    }
+    expect(world1.dailyClueUsage(player.id).used).toBeGreaterThanOrEqual(1);
+
+    // Snapshot pre-restart state for exact round-trip assertions.
+    const expectedBowman = world1.getCity(city.id)!.stacks.bowman;
+    const expectedPosture = world1.getCity(city.id)!.defensePosture;
+
     await world1.flush();
     await store1!.close();
 
@@ -79,12 +115,29 @@ describe("PG persistence (shipped PgStore + World)", () => {
     expect(loadedCity!.resources.food).toBeGreaterThan(0);
     // M2 round-trip: canonical resource keys survive the renamed columns.
     expect(loadedCity!.resources.food).toBeGreaterThanOrEqual(1234);
-    expect(loadedCity!.stacks.bowman).toBe(42);
+    expect(loadedCity!.stacks.bowman).toBe(expectedBowman);
+    expect(loadedCity!.defensePosture).toBe(expectedPosture);
 
     const viaSession = world2.sessionPlayer(token);
     expect(viaSession).not.toBeNull();
     expect(viaSession!.id).toBe(player.id);
     expect(world2.dbMode).toBe("postgres");
+
+    // Posture cooldown survived the restart — immediate change still throws.
+    expect(() => world2.setPosture(city.id, player.id, "full")).toThrow(
+      /posture change on cooldown/,
+    );
+
+    // Daily clue usage survived the restart.
+    const usage = world2.dailyClueUsage(player.id);
+    expect(usage.used).toBeGreaterThanOrEqual(1);
+
+    // Daily quest progress survived the restart.
+    const buildQuest = world2
+      .listDailyQuests(player.id)
+      .find((q) => q.id === "build");
+    expect(buildQuest?.done).toBe(true);
+    expect(buildQuest?.claimed).toBe(true);
 
     await store2!.close();
   });

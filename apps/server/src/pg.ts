@@ -174,6 +174,23 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     ALTER TABLE dragon_progress ADD COLUMN IF NOT EXISTS camps_defeated INT NOT NULL DEFAULT 0;
     ALTER TABLE dragon_progress ADD COLUMN IF NOT EXISTS scouts_sent INT NOT NULL DEFAULT 0;
   `);
+
+  // 7. Posture-change cooldown (epoch ms) so the 5-minute posture cooldown
+  //    survives process restarts instead of resetting to 0.
+  await client.query(`
+    ALTER TABLE cities ADD COLUMN IF NOT EXISTS last_posture_change BIGINT NOT NULL DEFAULT 0;
+  `);
+
+  // 8. Daily quest + clue-cap state — one row per player for the current UTC
+  //    day; PK bounds growth and stale days are discarded on load.
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS daily_state (
+      player_id UUID PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE,
+      day_key   TEXT NOT NULL,
+      quests    JSONB,
+      clue_used INT NOT NULL DEFAULT 0
+    );
+  `);
 }
 
 export function findSchemaPath(): string | null {
