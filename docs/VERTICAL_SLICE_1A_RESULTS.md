@@ -306,13 +306,21 @@ record; this section is authoritative for current state.
 | PG durability (README T7) | Was broken between posture redesign and `7866035`: legacy CHECK rejected `'withdraw'` and saves failed silently. Fixed + idempotent migrations added; `REQUIRE_PG=1` green on fresh and migrated DBs (90/90). |
 | "Research unlock enforcement implemented" (§4) | Was only half-true: gates referenced `infantry_doctrine`/`archery`, but those ids did not exist as researchable techs (`research.json` held legacy ids), so gates were unreachable via normal play. Fixed (`98fd7cc`+): medieval tech ids landed per `domain_catalog.research.legacy_to_target` (+ new `dragon_studies`), legacy ids alias on PG load and queue completion, `startResearch` now validates against content, web research buttons render from `/content/research`. |
 
-### Still open
+### Closed by this session's debt batch
 
-- Camp clue farming has no daily cap.
-- Expedition stages still completable via API without gameplay actions.
-- Research has no resource cost.
+| Debt | Status |
+|------|--------|
+| Camp clue farming has no daily cap | **Closed** — 3 drops/day/player, enforced at camp-drop time; exposed as `dailyClueCap` in `GET /dragon/clues` |
+| Expedition stages not tied to gameplay actions | **Closed** — persistent `campsDefeated`/`scoutsSent` counters; per-stage cumulative `requires` (stage1 `{scouts:2}`, stage2 `{scouts:2,camps:3}`, stage3 `{scouts:3,camps:6}`, stage4 `{scouts:4,camps:10}`); blocked advancement errors `EXPEDITION_REQ`; progress exposed in expedition status |
+| Research has no resource cost | **Closed** — per-tech `cost` in `research.json` scaled by next level; insufficient funds error `RESEARCH_COST`; deducted on enqueue |
+| `materialsCollected` in dragonProgress is dead code | **Closed** — readiness materials requirement now counts distinct dragon-material items in inventory; counter maintained on grants |
+
+### Still open (unchanged)
+
 - Sovereign/harness retained as legacy-compat; deletion deferred to M4 per
   Phase 2.1 Amendment A1.
+- Content-only buildings awaiting design-phase mechanics (`skyreost`,
+  `rivetworks`, `command_gallery`, `lookout`, `training_camp`).
 
 Test counts as of this update: combat 15 · server 90 (incl. 2 PG restart tests,
 green under `REQUIRE_PG=1`).

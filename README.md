@@ -71,6 +71,13 @@ Env flags (`.env`):
 | `DATABASE_URL` | Postgres URL for schema verify |
 | `VITE_API_URL` | Web → API base (default `http://localhost:3001`) |
 
+### Beta economy guards
+
+- Research costs resources scaled by tech level (`RESEARCH_COST` on shortfall).
+- Camp clue drops capped at 3/day/player.
+- Expedition stages require cumulative scout/camp actions (`EXPEDITION_REQ`).
+- Dev citadel self-unlock defaults on; set `DEV_CITADEL_UNLOCK=0` to disable.
+
 ### Admin grant (dev)
 
 ```http
