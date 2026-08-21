@@ -324,3 +324,11 @@ record; this section is authoritative for current state.
 
 Test counts as of this update: combat 15 · server 90 (incl. 2 PG restart tests,
 green under `REQUIRE_PG=1`).
+
+### Persistence hardening (this session)
+
+| Defect | Fix |
+|--------|-----|
+| Posture-change cooldown reset on restart | Timestamp promoted to persisted `cities.last_posture_change` column |
+| Daily quest progress / clue-cap usage lost on reload | Persisted in new `daily_state` table (one row per player for the current UTC day); load now clears + rehydrates the in-memory maps |
+| Expedition start applied stale dragon-progress snapshot | Stale-snapshot spread removed; stage writes mutate the recalculated record in place |
