@@ -167,6 +167,13 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     END
     $$;
   `);
+
+  // 6. Expedition gameplay counters (debt batch): cumulative scout marches and
+  //    camp victories that gate expedition stage advancement.
+  await client.query(`
+    ALTER TABLE dragon_progress ADD COLUMN IF NOT EXISTS camps_defeated INT NOT NULL DEFAULT 0;
+    ALTER TABLE dragon_progress ADD COLUMN IF NOT EXISTS scouts_sent INT NOT NULL DEFAULT 0;
+  `);
 }
 
 export function findSchemaPath(): string | null {

@@ -6,6 +6,57 @@ function freshWorld(): World {
   return new World({ devFastTime: true, skipTutorial: true });
 }
 
+/** Send one scout march (no combat — always lands). */
+function sendScoutMarch(world: World, playerId: string, cityId: string): void {
+  const target = [...world.camps.values()][0]!;
+  const march = world.createMarch(playerId, {
+    fromCityId: cityId,
+    intent: "scout",
+    targetType: "camp",
+    targetId: target.id,
+    targetX: target.x,
+    targetY: target.y,
+    composition: { scout: 1 },
+  });
+  march.arriveAt = 0;
+  world.landMarch(march, world.now());
+}
+
+/** Attack the L1 camp with overwhelming force (near-certain win). */
+function winCampBattle(world: World, playerId: string, cityId: string): void {
+  world.adminGrant(playerId, { units: { bowman: 300 } });
+  const camp = [...world.camps.values()].find((c) => c.level === 1)!;
+  const march = world.createMarch(playerId, {
+    fromCityId: cityId,
+    intent: "attack",
+    targetType: "camp",
+    targetId: camp.id,
+    targetX: camp.x,
+    targetY: camp.y,
+    composition: { bowman: 150 },
+  });
+  march.arriveAt = 0;
+  world.landMarch(march, world.now());
+}
+
+/** Drive persistent counters to the expedition chain's worst-case gates. */
+function driveGameplayCounters(
+  world: World,
+  playerId: string,
+  cityId: string,
+  needScouts: number,
+  needCamps: number,
+): void {
+  while ((world.dragonProgress.get(playerId)?.scoutsSent ?? 0) < needScouts) {
+    sendScoutMarch(world, playerId, cityId);
+  }
+  let attempts = 0;
+  while ((world.dragonProgress.get(playerId)?.campsDefeated ?? 0) < needCamps) {
+    expect(attempts++).toBeLessThan(25);
+    winCampBattle(world, playerId, cityId);
+  }
+}
+
 // ── 1. Population / Manpower ──────────────────────────────────────────────
 
 describe("Population and Manpower", () => {
@@ -182,6 +233,81 @@ describe("Research Unlock Enforcement", () => {
   });
 });
 
+// ── 2b. Research Resource Costs ───────────────────────────────────────────
+
+describe("Research Resource Costs", () => {
+  function errorCode(err: unknown): string {
+    return (err as { code?: string }).code ?? "";
+  }
+
+  it("affordable research deducts exactly cost × next level number", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CostA", "northern_kingdom");
+    const before = { ...world.getCity(city.id)!.resources };
+    // archery L1 base cost: timber 600 + coin 50
+    const job = world.startResearch(city.id, player.id, "archery");
+    expect(job.status).toBe("running");
+    let after = world.getCity(city.id)!.resources;
+    expect(after.timber).toBe(before.timber - 600);
+    expect(after.coin).toBe(before.coin - 50);
+    expect(after.food).toBe(before.food);
+    expect(after.stone).toBe(before.stone);
+    expect(after.iron).toBe(before.iron);
+
+    // Finish L1; L2 costs ×2
+    job.finishesAt = world.now() - 1;
+    world.processQueues(world.now());
+    world.adminGrant(player.id, { resources: { timber: 2000 } });
+    const before2 = { ...world.getCity(city.id)!.resources };
+    const job2 = world.startResearch(city.id, player.id, "archery");
+    job2.finishesAt = world.now() - 1;
+    world.processQueues(world.now());
+    after = world.getCity(city.id)!.resources;
+    expect(after.timber).toBe(before2.timber - 1200);
+    expect(after.coin).toBe(before2.coin - 100);
+    expect(world.getCity(city.id)!.research.archery).toBe(2);
+  });
+
+  it("unaffordable research throws RESEARCH_COST listing missing resources", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CostB", "northern_kingdom");
+    city.resources.timber = 0;
+    city.resources.coin = 0;
+    world.cities.set(city.id, city);
+    try {
+      world.startResearch(city.id, player.id, "archery"); // timber 600 + coin 50
+      throw new Error("expected startResearch to throw RESEARCH_COST");
+    } catch (e) {
+      expect(errorCode(e)).toBe("RESEARCH_COST");
+      expect((e as Error).message).toContain("timber");
+      expect((e as Error).message).toContain("coin");
+    }
+    // No job enqueued, no resources deducted
+    expect(
+      [...world.jobs.values()].filter((j) => j.kind === "research" && j.status === "running"),
+    ).toHaveLength(0);
+  });
+
+  it("cost scaling can price higher levels out of reach", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CostC", "northern_kingdom");
+    // scouting L1 = food 300 — affordable from a drained city
+    city.resources.food = 350;
+    world.cities.set(city.id, city);
+    const job = world.startResearch(city.id, player.id, "scouting");
+    job.finishesAt = world.now() - 1;
+    world.processQueues(world.now());
+    expect(world.getCity(city.id)!.resources.food).toBe(50);
+    // scouting L2 = food 600 > remaining 50 → RESEARCH_COST
+    try {
+      world.startResearch(city.id, player.id, "scouting");
+      throw new Error("expected startResearch to throw RESEARCH_COST");
+    } catch (e) {
+      expect(errorCode(e)).toBe("RESEARCH_COST");
+    }
+  });
+});
+
 // ── 3. Dragon Readiness ───────────────────────────────────────────────────
 
 describe("Dragon Readiness", () => {
@@ -218,13 +344,34 @@ describe("Dragon Readiness", () => {
     expect(researchReq.met).toBe(true);
   });
 
-  it("collecting 5 materials satisfies requirement 3", () => {
+  it("collecting 5 distinct dragon-material items satisfies requirement 3", () => {
     const world = freshWorld();
     const { player } = world.createGuest("DrgD", "forest_people");
+    // Duplicates of a single item do not count — readiness counts DISTINCT items
     world.adminGrant(player.id, { items: { dragon_material: 5 } });
+    expect(
+      world.checkDragonReadiness(player.id).requirements.find((r) => r.id === "dragon_material")!
+        .met,
+    ).toBe(false);
+    // Real material grants (clue items + dragon_material) reach the threshold
+    world.adminGrant(player.id, {
+      items: { shed_scale: 1, burned_livestock: 1, claw_marks: 1, dragon_bone: 1 },
+    });
     const status = world.checkDragonReadiness(player.id);
     const materialReq = status.requirements.find((r) => r.id === "dragon_material")!;
     expect(materialReq.met).toBe(true);
+  });
+
+  it("grantDragonClue increments materialsCollected so the counter stops drifting", () => {
+    const world = freshWorld();
+    const { player } = world.createGuest("DrgDrift", "northern_kingdom");
+    expect(world.dragonProgress.get(player.id)).toBeUndefined();
+    const clue = getDragonClues()[0]!;
+    world.grantDragonClue(player.id, clue.id);
+    // Counter exists and advanced even though no progress record pre-existed
+    expect(world.dragonProgress.get(player.id)!.materialsCollected).toBe(1);
+    world.grantDragonClue(player.id, clue.id);
+    expect(world.dragonProgress.get(player.id)!.materialsCollected).toBe(2);
   });
 
   it("defeating 3 camp types satisfies requirement 4", () => {
@@ -257,6 +404,7 @@ describe("Dragon Readiness", () => {
         ...(progress ?? {
           bestiaryStudied: 0, researchLevel: 0, materialsCollected: 0,
           expeditionStage: 0, charterEarned: false,
+          campsDefeated: 0, scoutsSent: 0,
         }),
         campTypesDefeated: new Set(["camp_l1", "camp_l2", "camp_l3"]),
       });
@@ -277,13 +425,16 @@ describe("Dragon Readiness", () => {
     // Fulfill research requirement
     city.research["dragon_studies"] = 2;
     world.cities.set(city.id, city);
-    // Fulfill materials requirement
-    world.adminGrant(player.id, { items: { dragon_material: 5 } });
+    // Fulfill materials requirement — distinct dragon-material items
+    world.adminGrant(player.id, {
+      items: { shed_scale: 1, burned_livestock: 1, claw_marks: 1, dragon_bone: 1, dragon_material: 2 },
+    });
     // Fulfill camp types requirement — manually set for reliability
     world.dragonProgress.set(player.id, {
       ...(world.dragonProgress.get(player.id) ?? {
         bestiaryStudied: 0, researchLevel: 0, materialsCollected: 0,
         expeditionStage: 0, charterEarned: false,
+        campsDefeated: 0, scoutsSent: 0,
       }),
       campTypesDefeated: new Set(["camp_l1", "camp_l2", "camp_l3"]),
     });
@@ -411,8 +562,8 @@ describe("Expedition System", () => {
     world.bestiary.set(`${player.id}:ash_drake`, { entryId: "ash_drake", observationLevel: 1, encounterCount: 1 });
     // 2. Research: Dragon Studies L2
     city.research["dragon_studies"] = 2;
-    // 3. Materials: 5 dragon_material in inventory
-    world.inventory.set(player.id, { dragon_material: 5 });
+    // 3. Materials: 5 distinct dragon-material items in inventory
+    world.inventory.set(player.id, { shed_scale: 1, burned_livestock: 1, claw_marks: 1, dragon_bone: 1, dragon_material: 2 });
     // 4. Camp types: 3 different types defeated
     world.dragonProgress.set(player.id, {
       bestiaryStudied: 3,
@@ -421,6 +572,8 @@ describe("Expedition System", () => {
       campTypesDefeated: new Set(["bandit_camp", "raider_fort", "beast_den"]),
       expeditionStage: 0,
       charterEarned: false,
+      campsDefeated: 3,
+      scoutsSent: 2,
     });
     const result = world.startExpedition(player.id, "first_dragon_expedition");
     expect(result).not.toBeNull();
@@ -436,7 +589,7 @@ describe("Expedition System", () => {
     world.bestiary.set(`${player.id}:ridgeback_wyvern`, { entryId: "ridgeback_wyvern", observationLevel: 2, encounterCount: 3 });
     world.bestiary.set(`${player.id}:ash_drake`, { entryId: "ash_drake", observationLevel: 1, encounterCount: 1 });
     city.research["dragon_studies"] = 2;
-    world.inventory.set(player.id, { dragon_material: 5 });
+    world.inventory.set(player.id, { shed_scale: 1, burned_livestock: 1, claw_marks: 1, dragon_bone: 1, dragon_material: 2 });
     world.dragonProgress.set(player.id, {
       bestiaryStudied: 3,
       researchLevel: 2,
@@ -444,6 +597,8 @@ describe("Expedition System", () => {
       campTypesDefeated: new Set(["bandit_camp", "raider_fort", "beast_den"]),
       expeditionStage: 1,
       charterEarned: false,
+      campsDefeated: 3,
+      scoutsSent: 2,
     });
     const result = world.completeExpeditionStage(
       player.id,
@@ -459,7 +614,7 @@ describe("Expedition System", () => {
   it("completing all stages grants settlement charter", () => {
     const world = freshWorld();
     const { player } = world.createGuest("ExpD", "forest_people");
-    // 4 stages in first_dragon_expedition
+    // 4 stages in first_dragon_expedition — final completion has no next-stage gate
     world.dragonProgress.set(player.id, {
       bestiaryStudied: 3,
       researchLevel: 2,
@@ -467,6 +622,8 @@ describe("Expedition System", () => {
       campTypesDefeated: new Set(["camp_l1", "camp_l2", "camp_l3"]),
       expeditionStage: 4,
       charterEarned: false,
+      campsDefeated: 10,
+      scoutsSent: 4,
     });
     const result = world.completeExpeditionStage(
       player.id,
@@ -489,6 +646,8 @@ describe("Expedition System", () => {
       campTypesDefeated: new Set(["camp_l1", "camp_l2", "camp_l3"]),
       expeditionStage: 2,
       charterEarned: false,
+      campsDefeated: 6,
+      scoutsSent: 3,
     });
     const beforeCount = (world.inventory.get(player.id) ?? {})["dragon_material"] ?? 0;
     const result = world.completeExpeditionStage(player.id, "first_dragon_expedition", 2);
@@ -496,6 +655,8 @@ describe("Expedition System", () => {
     expect(result!.reward).toEqual({ item: "dragon_material", count: 2 });
     const afterCount = (world.inventory.get(player.id) ?? {})["dragon_material"] ?? 0;
     expect(afterCount).toBe(beforeCount + 2);
+    // Material grants keep the persisted counter aligned with reality
+    expect(world.dragonProgress.get(player.id)!.materialsCollected).toBe(7);
   });
 
   it("cannot skip stages", () => {
@@ -508,12 +669,99 @@ describe("Expedition System", () => {
       campTypesDefeated: new Set(["camp_l1", "camp_l2", "camp_l3"]),
       expeditionStage: 1,
       charterEarned: false,
+      campsDefeated: 0,
+      scoutsSent: 2,
     });
     // Try to complete stage 3 when on stage 1
     const result = world.completeExpeditionStage(player.id, "first_dragon_expedition", 3);
     expect(result).toBeNull();
     // Stage should still be 1
     expect(world.dragonProgress.get(player.id)!.expeditionStage).toBe(1);
+  });
+});
+
+// ── 5b. Expedition Stage Gameplay Gates ───────────────────────────────────
+
+describe("Expedition Stage Gameplay Gates", () => {
+  /** Player who meets the dragon readiness gate but has zero gameplay counters. */
+  function readyButInactivePlayer(world: World): {
+    player: ReturnType<World["createGuest"]>["player"];
+    city: ReturnType<World["createGuest"]>["city"];
+  } {
+    const { player, city } = world.createGuest("GateExp", "northern_kingdom");
+    world.bestiary.set(`${player.id}:valley_drake`, { entryId: "valley_drake", observationLevel: 3, encounterCount: 5 });
+    world.bestiary.set(`${player.id}:ridgeback_wyvern`, { entryId: "ridgeback_wyvern", observationLevel: 2, encounterCount: 3 });
+    world.bestiary.set(`${player.id}:ash_drake`, { entryId: "ash_drake", observationLevel: 1, encounterCount: 1 });
+    city.research["dragon_studies"] = 2;
+    world.cities.set(city.id, city);
+    world.adminGrant(player.id, {
+      items: { shed_scale: 1, burned_livestock: 1, claw_marks: 1, dragon_bone: 1, dragon_material: 2 },
+    });
+    // Readiness satisfied via real inventory + seeded camp-type variety;
+    // gameplay counters (scouts/camps) start at zero.
+    world.dragonProgress.set(player.id, {
+      bestiaryStudied: 3,
+      researchLevel: 2,
+      materialsCollected: 6,
+      campTypesDefeated: new Set(["camp_l1", "camp_l2", "camp_l3"]),
+      expeditionStage: 0,
+      charterEarned: false,
+      campsDefeated: 0,
+      scoutsSent: 0,
+    });
+    return { player, city };
+  }
+
+  function errorCode(err: unknown): string {
+    return (err as { code?: string }).code ?? "";
+  }
+
+  it("stage 1 start blocked with EXPEDITION_REQ until required scouts land", () => {
+    const world = freshWorld();
+    const { player, city } = readyButInactivePlayer(world);
+    try {
+      world.startExpedition(player.id, "first_dragon_expedition");
+      throw new Error("expected EXPEDITION_REQ");
+    } catch (e) {
+      expect(errorCode(e)).toBe("EXPEDITION_REQ");
+    }
+    sendScoutMarch(world, player.id, city.id); // scoutsSent = 1 < 2 — still blocked
+    expect(() =>
+      world.startExpedition(player.id, "first_dragon_expedition"),
+    ).toThrowError(/requirements not met/);
+    sendScoutMarch(world, player.id, city.id); // scoutsSent = 2 — gate passes
+    expect(world.dragonProgress.get(player.id)!.scoutsSent).toBe(2);
+    const result = world.startExpedition(player.id, "first_dragon_expedition");
+    expect(result).not.toBeNull();
+    expect(result!.stage).toBe(1);
+  });
+
+  it("advancing to stage 2 blocked with EXPEDITION_REQ until camp wins land", () => {
+    const world = freshWorld();
+    const { player, city } = readyButInactivePlayer(world);
+    driveGameplayCounters(world, player.id, city.id, 2, 0); // stage-1 gate only
+    expect(world.startExpedition(player.id, "first_dragon_expedition")).not.toBeNull();
+
+    // Completing stage 1 advances into stage 2 ({scouts:2,camps:3}) — blocked at 0 camp wins
+    try {
+      world.completeExpeditionStage(player.id, "first_dragon_expedition", 1);
+      throw new Error("expected EXPEDITION_REQ");
+    } catch (e) {
+      expect(errorCode(e)).toBe("EXPEDITION_REQ");
+    }
+    // Failed advance must not mutate state
+    expect(world.dragonProgress.get(player.id)!.expeditionStage).toBe(1);
+
+    winCampBattle(world, player.id, city.id);
+    winCampBattle(world, player.id, city.id); // campsDefeated = 2 < 3 — still blocked
+    expect(() =>
+      world.completeExpeditionStage(player.id, "first_dragon_expedition", 1),
+    ).toThrowError(/requirements not met/);
+
+    winCampBattle(world, player.id, city.id); // campsDefeated = 3 — passes
+    const result = world.completeExpeditionStage(player.id, "first_dragon_expedition", 1);
+    expect(result).not.toBeNull();
+    expect(world.dragonProgress.get(player.id)!.expeditionStage).toBe(2);
   });
 });
 
@@ -863,6 +1111,72 @@ describe("Camp Variation", () => {
   });
 });
 
+// ── 8b. Daily Clue Farming Cap ────────────────────────────────────────────
+
+describe("Daily Clue Farming Cap", () => {
+  function todayKey(world: World): string {
+    return new Date(world.now()).toISOString().slice(0, 10);
+  }
+
+  function fightCamp(world: World, playerId: string, cityId: string): void {
+    world.adminGrant(playerId, { units: { bowman: 900 } });
+    const camp = [...world.camps.values()].find((c) => c.level === 4)!;
+    const march = world.createMarch(playerId, {
+      fromCityId: cityId,
+      intent: "attack",
+      targetType: "camp",
+      targetId: camp.id,
+      targetX: camp.x,
+      targetY: camp.y,
+      composition: { bowman: 450 },
+    });
+    march.arriveAt = 0;
+    const report = world.landMarch(march, world.now());
+    expect(report).not.toBeNull(); // report still succeeds even when capped
+  }
+
+  it("drops are suppressed once the daily cap is reached (report still succeeds)", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CapA", "northern_kingdom");
+    // Simulate an already-capped day
+    world.dailyClues.set(player.id, { dayKey: todayKey(world), used: 3 });
+    const before = (world.inventory.get(player.id) ?? {})["dragon_clue"] ?? 0;
+    for (let i = 0; i < 12; i++) {
+      fightCamp(world, player.id, city.id);
+      const usage = world.dailyClueUsage(player.id);
+      expect(usage.used).toBe(3);
+      expect(usage.cap).toBe(3);
+    }
+    const after = (world.inventory.get(player.id) ?? {})["dragon_clue"] ?? 0;
+    expect(after).toBe(before); // zero clue grants while capped
+  });
+
+  it("usage resets on a new UTC day (same day-key rotation as dailies)", () => {
+    const world = freshWorld();
+    const { player } = world.createGuest("CapB", "northern_kingdom");
+    world.dailyClues.set(player.id, { dayKey: "2000-01-01", used: 3 });
+    const usage = world.dailyClueUsage(player.id);
+    expect(usage).toEqual({ used: 0, cap: 3 });
+    expect(world.dailyClues.get(player.id)!.dayKey).toBe(todayKey(world));
+  });
+
+  it("below-cap camp drops consume the budget and stop hard at the cap", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CapC", "northern_kingdom");
+    let observedDrops = 0;
+    for (let i = 0; i < 30; i++) {
+      fightCamp(world, player.id, city.id);
+      const usage = world.dailyClueUsage(player.id);
+      expect(usage.used).toBeLessThanOrEqual(usage.cap);
+      observedDrops = usage.used;
+    }
+    // L4 camps drop clues on ~70% of wins — the 30-win budget must hit the cap
+    expect(observedDrops).toBe(3);
+    const inv = (world.inventory.get(player.id) ?? {})["dragon_clue"] ?? 0;
+    expect(inv).toBe(3);
+  });
+});
+
 // ── 9. Integration: Slice 1A Path ────────────────────────────────────────
 
 describe("Slice 1A Progression Path", () => {
@@ -887,8 +1201,8 @@ describe("Slice 1A Progression Path", () => {
     world.processQueues(world.now());
     expect(world.getCity(city.id)!.research.archery).toBe(1);
 
-    // Step 4: Train troops (grant resources first since building consumed some)
-    world.adminGrant(player.id, { resources: { food: 1500 } });
+    // Step 4: Train troops (grant resources first since build + research costs consumed some)
+    world.adminGrant(player.id, { resources: { food: 1500, timber: 1500 } });
     const trainJob = world.startTrain(city.id, player.id, "levy", 50);
     trainJob.finishesAt = world.now() - 1;
     world.processQueues(world.now());
@@ -928,13 +1242,16 @@ describe("Slice 1A Progression Path", () => {
     const updatedCity = world.getCity(city.id)!;
     updatedCity.research["dragon_studies"] = 2;
     world.cities.set(city.id, updatedCity);
-    world.adminGrant(player.id, { items: { dragon_material: 5 } });
+    world.adminGrant(player.id, {
+      items: { shed_scale: 1, burned_livestock: 1, claw_marks: 1, dragon_bone: 1, dragon_material: 2 },
+    });
     // Ensure camp types defeated for readiness
     const currentProgress = world.dragonProgress.get(player.id);
     world.dragonProgress.set(player.id, {
       ...(currentProgress ?? {
         bestiaryStudied: 0, researchLevel: 0, materialsCollected: 0,
         expeditionStage: 0, charterEarned: false,
+        campsDefeated: 0, scoutsSent: 0,
       }),
       campTypesDefeated: new Set(["camp_l1", "camp_l2", "camp_l3"]),
     });
@@ -948,17 +1265,21 @@ describe("Slice 1A Progression Path", () => {
     world.dragonProgress.set(player.id, {
       bestiaryStudied: readiness.requirements.find((r) => r.id === "bestiary_knowledge")!.met ? 3 : 0,
       researchLevel: 2,
-      materialsCollected: 5,
+      materialsCollected: 6,
       campTypesDefeated: new Set(["camp_l1", "camp_l2", "camp_l3"]),
       expeditionStage: 0,
       charterEarned: false,
+      campsDefeated: 3,
+      scoutsSent: 2,
     });
     const expResult = world.startExpedition(player.id, "first_dragon_expedition");
     expect(expResult).not.toBeNull();
     expect(expResult!.stage).toBe(1);
 
-    // Step 11: Complete all 4 expedition stages
+    // Step 11: Complete all 4 expedition stages, performing the real gameplay
+    // actions (scout marches / camp wins) each next stage's gates demand.
     for (let s = 1; s <= 4; s++) {
+      driveGameplayCounters(world, player.id, city.id, 4, 10);
       const stageResult = world.completeExpeditionStage(
         player.id,
         "first_dragon_expedition",

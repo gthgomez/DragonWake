@@ -10,6 +10,7 @@
         "description": "Scout the reported dragon tracks near the border",
         "type": "scout",
         "target_level": 3,
+        "requires": { "scouts": 2 },
         "completion_reward": {
           "bestiary_progress": "ridgeback_wyvern",
           "knowledge_gain": 1
@@ -21,6 +22,7 @@
         "description": "Raiders have established a camp near the dragon's territory. Drive them out.",
         "type": "battle",
         "target_level": 4,
+        "requires": { "scouts": 2, "camps": 3 },
         "completion_reward": {
           "item": "dragon_material",
           "count": 2
@@ -32,6 +34,7 @@
         "description": "Travel to the location where the dragon was last sighted.",
         "type": "battle",
         "target_level": 6,
+        "requires": { "scouts": 3, "camps": 6 },
         "completion_reward": {
           "bestiary_progress": "valley_drake",
           "knowledge_gain": 2
@@ -43,6 +46,7 @@
         "description": "A young drake blocks your path. You must drive it off without killing it — this is not a hunt, it is a survival test.",
         "type": "encounter",
         "target_level": 7,
+        "requires": { "scouts": 4, "camps": 10 },
         "completion_reward": {
           "settlement_charter": true,
           "bestiary_progress": "ash_drake",

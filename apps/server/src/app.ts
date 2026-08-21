@@ -595,6 +595,11 @@ export function createApp(world: World) {
     };
     const kind = body.kind ?? "";
     if (!kind) return err(c, "VALIDATION", "kind required");
+    // Dev unlock path is a beta affordance; operators can disable it.
+    const devUnlockEnabled = process.env.DEV_CITADEL_UNLOCK !== "0";
+    if (body.unlock !== false && !devUnlockEnabled) {
+      return err(c, "DEV_DISABLED", "dev citadel unlock disabled (DEV_CITADEL_UNLOCK=0)");
+    }
     try {
       if (body.unlock !== false) {
         // Dev/demo unlock for this citadel (and brinehold prereq if needed)
@@ -855,6 +860,10 @@ export function createApp(world: World) {
       stages: expedition?.stages ?? [],
       currentStage: progress?.expeditionStage ?? 0,
       charterEarned: progress?.charterEarned ?? false,
+      progress: {
+        campsDefeated: progress?.campsDefeated ?? 0,
+        scoutsSent: progress?.scoutsSent ?? 0,
+      },
     });
   });
 
@@ -864,7 +873,16 @@ export function createApp(world: World) {
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
     const body = (await c.req.json().catch(() => ({}))) as { expeditionId?: string };
     const expeditionId = body.expeditionId ?? "first_dragon_expedition";
-    const result = world.startExpedition(player.id, expeditionId);
+    let result: ReturnType<World["startExpedition"]>;
+    try {
+      result = world.startExpedition(player.id, expeditionId);
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "EXPEDITION_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
     if (!result) return err(c, "EXPEDITION_FAIL", "cannot start expedition — check readiness");
     return c.json(result);
   });
@@ -876,7 +894,16 @@ export function createApp(world: World) {
     const expeditionId = body.expeditionId ?? "first_dragon_expedition";
     const stageNumber = Number(body.stageNumber);
     if (!stageNumber || stageNumber < 1) return err(c, "VALIDATION", "stageNumber required");
-    const result = world.completeExpeditionStage(player.id, expeditionId, stageNumber);
+    let result: ReturnType<World["completeExpeditionStage"]>;
+    try {
+      result = world.completeExpeditionStage(player.id, expeditionId, stageNumber);
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "EXPEDITION_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
     if (!result) return err(c, "EXPEDITION_FAIL", "cannot complete stage");
     return c.json(result);
   });
@@ -896,7 +923,11 @@ export function createApp(world: World) {
         count: inv[clue.id] ?? 0,
       }));
     const dragonMaterials = inv["dragon_material"] ?? 0;
-    return c.json({ clues: collected, dragonMaterials });
+    return c.json({
+      clues: collected,
+      dragonMaterials,
+      dailyClueCap: world.dailyClueUsage(player.id),
+    });
   });
 
   app.route("/api/v1", api);

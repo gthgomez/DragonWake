@@ -232,6 +232,26 @@ export type DailyProgress = {
   claimed: Record<string, boolean>;
 };
 
+/** Max dragon-clue drops farmable from camps per player per UTC day. */
+export const DAILY_CLUE_CAP = 3; // INITIAL_TEST_FIXTURE
+
+/** Per-player daily clue-drop usage — resets with the same UTC day key as dailies. */
+export type DailyClueUsage = { dayKey: string; used: number };
+
+/** Dragon expedition readiness progress for a player. */
+export type DragonProgress = {
+  bestiaryStudied: number;
+  researchLevel: number;
+  materialsCollected: number;
+  campTypesDefeated: Set<string>;
+  expeditionStage: number;
+  charterEarned: boolean;
+  /** Cumulative camp-attack victories that landed successfully. */
+  campsDefeated: number;
+  /** Cumulative scout-intent marches that landed. */
+  scoutsSent: number;
+};
+
 /** Minimal store surface so World can flush without circular import at type level. */
 export type WorldStore = {
   mode: "postgres" | "memory";
@@ -502,17 +522,12 @@ export class World {
   tutorials = new Map<string, Tutorial>();
   /** Minimal daily quest stubs (reset by UTC day key). */
   dailyQuests = new Map<string, DailyProgress>();
+  /** Per-player daily clue-drop counters (same UTC day-key reset as dailies). */
+  dailyClues = new Map<string, DailyClueUsage>();
   /** Bestiary observation state — keyed by "playerId:entryId". */
   bestiary = new Map<string, { entryId: string; observationLevel: number; encounterCount: number }>();
   /** Dragon expedition readiness progress — keyed by playerId. */
-  dragonProgress = new Map<string, {
-    bestiaryStudied: number;
-    researchLevel: number;
-    materialsCollected: number;
-    campTypesDefeated: Set<string>;
-    expeditionStage: number;
-    charterEarned: boolean;
-  }>();
+  dragonProgress = new Map<string, DragonProgress>();
   usedTiles = new Set<string>();
   devFastTime: boolean;
   skipTutorial: boolean;
@@ -895,7 +910,7 @@ export class World {
   }
 
   startResearch(cityId: string, playerId: string, techId: string): QueueJob {
-    this.requireCityOwner(cityId, playerId);
+    const city = this.requireCityOwner(cityId, playerId);
     if (!getResearch().some((t) => t.id === canonTechId(techId))) {
       throw Object.assign(new Error(`unknown tech: ${techId}`), {
         code: "VALIDATION",
@@ -909,6 +924,34 @@ export class World {
       throw Object.assign(new Error("research queue full"), {
         code: "QUEUE_FULL",
       });
+    }
+    // Resource cost = base cost × next level number (L1 = base).
+    const canonId = canonTechId(techId);
+    const def = getResearch().find((t) => t.id === canonId)!;
+    const nextLevel = (city.research[canonId] ?? 0) + 1;
+    if (def.cost) {
+      const missing: string[] = [];
+      for (const [res, base] of Object.entries(def.cost)) {
+        const key = res as keyof ResourceBag;
+        const total = Math.floor((base ?? 0) * nextLevel);
+        if (total <= 0) continue;
+        if ((city.resources[key] ?? 0) < total) {
+          missing.push(`${key} need ${total} have ${city.resources[key] ?? 0}`);
+        }
+      }
+      if (missing.length > 0) {
+        throw Object.assign(
+          new Error(
+            `cannot afford research ${canonId} L${nextLevel}: ${missing.join("; ")}`,
+          ),
+          { code: "RESEARCH_COST" },
+        );
+      }
+      for (const [res, base] of Object.entries(def.cost)) {
+        const key = res as keyof ResourceBag;
+        city.resources[key] -= Math.floor((base ?? 0) * nextLevel);
+      }
+      this.cities.set(city.id, city);
     }
     const now = this.now();
     const job: QueueJob = {
@@ -1131,6 +1174,43 @@ export class World {
     }
   }
 
+  /** Existing progress or a fresh zeroed record (also registers it). */
+  private ensureDragonProgress(playerId: string): DragonProgress {
+    let progress = this.dragonProgress.get(playerId);
+    if (!progress) {
+      progress = {
+        bestiaryStudied: 0,
+        researchLevel: 0,
+        materialsCollected: 0,
+        campTypesDefeated: new Set<string>(),
+        expeditionStage: 0,
+        charterEarned: false,
+        campsDefeated: 0,
+        scoutsSent: 0,
+      };
+      this.dragonProgress.set(playerId, progress);
+    }
+    return progress;
+  }
+
+  /**
+   * Distinct dragon-material item ids present (>0) in a player's inventory.
+   * Materials are represented as inventory keys (see /dragon/clues): the
+   * generic "dragon_material" stack plus named clue items dropped from camps.
+   */
+  countDistinctDragonMaterials(playerId: string): number {
+    const inv = this.inventory.get(playerId) ?? {};
+    const clueIds = new Set(getDragonClues().map((c) => c.id));
+    const distinct = new Set<string>();
+    for (const [itemId, count] of Object.entries(inv)) {
+      if (!Number(count)) continue;
+      if (itemId.startsWith("dragon_material") || clueIds.has(itemId)) {
+        distinct.add(itemId);
+      }
+    }
+    return distinct.size;
+  }
+
   /** Recalculate a player's dragon readiness from current state. */
   private recalcDragonReadiness(playerId: string): void {
     const studied = new Set<string>();
@@ -1146,23 +1226,14 @@ export class World {
       0,
     );
 
-    const inv = this.inventory.get(playerId) ?? {};
-    const materials = inv["dragon_material"] ?? 0;
+    const existing = this.ensureDragonProgress(playerId);
 
-    const existing = this.dragonProgress.get(playerId) ?? {
-      bestiaryStudied: 0,
-      researchLevel: 0,
-      materialsCollected: 0,
-      campTypesDefeated: new Set<string>(),
-      expeditionStage: 0,
-      charterEarned: false,
-    };
-
+    // materialsCollected is grant-maintained (see grantDragonClue) and no longer
+    // clobbered from inventory; the readiness gate reads inventory directly.
     this.dragonProgress.set(playerId, {
       ...existing,
       bestiaryStudied: studied.size,
       researchLevel: maxResearch,
-      materialsCollected: materials,
     });
   }
 
@@ -1185,7 +1256,7 @@ export class World {
           met = (progress?.researchLevel ?? 0) >= req.threshold;
           break;
         case "item_count":
-          met = (progress?.materialsCollected ?? 0) >= req.threshold;
+          met = this.countDistinctDragonMaterials(playerId) >= req.threshold;
           break;
         case "camps_defeated":
           met = (progress?.campTypesDefeated.size ?? 0) >= req.threshold;
@@ -1195,6 +1266,36 @@ export class World {
     });
     const ready = requirements.every((r) => r.met);
     return { ready, requirements, reward: ready ? config.reward : undefined };
+  }
+
+  /** True when cumulative gameplay counters satisfy a stage's requirements. */
+  private expeditionRequirementsMet(
+    progress: DragonProgress,
+    requires: { scouts?: number; camps?: number } | undefined,
+  ): boolean {
+    if (!requires) return true;
+    if (requires.scouts !== undefined && progress.scoutsSent < requires.scouts) {
+      return false;
+    }
+    if (requires.camps !== undefined && progress.campsDefeated < requires.camps) {
+      return false;
+    }
+    return true;
+  }
+
+  /** Throw EXPEDITION_REQ unless the stage's gameplay counters are met. */
+  private requireStageRequirements(
+    progress: DragonProgress,
+    stageDef: { stage: number; requires?: { scouts?: number; camps?: number } },
+  ): void {
+    if (this.expeditionRequirementsMet(progress, stageDef.requires)) return;
+    const r = stageDef.requires ?? {};
+    throw Object.assign(
+      new Error(
+        `stage ${stageDef.stage} requirements not met (scouts ${progress.scoutsSent}/${r.scouts ?? 0}, camps ${progress.campsDefeated}/${r.camps ?? 0})`,
+      ),
+      { code: "EXPEDITION_REQ" },
+    );
   }
 
   /** Start an expedition for a player. Returns the first stage info. */
@@ -1210,8 +1311,10 @@ export class World {
     const readiness = this.checkDragonReadiness(playerId);
     if (!readiness.ready) return null;
 
+    const first = expedition.stages[0]!;
+    this.requireStageRequirements(existing, first);
+
     this.dragonProgress.set(playerId, { ...existing, expeditionStage: 1 });
-    const first = expedition.stages[0];
     return { stage: first.stage, name: first.name };
   }
 
@@ -1232,6 +1335,12 @@ export class World {
     if (!stageDef) return null;
 
     const isLast = stageNumber >= expedition.stages.length;
+    // Entering the next stage is gated on persistent gameplay counters.
+    if (!isLast) {
+      const next = expedition.stages.find((s) => s.stage === stageNumber + 1);
+      if (next) this.requireStageRequirements(progress, next);
+    }
+
     this.dragonProgress.set(playerId, {
       ...progress,
       expeditionStage: isLast ? 0 : stageNumber + 1,
@@ -1241,9 +1350,18 @@ export class World {
     // Grant reward items
     const reward = stageDef.completion_reward;
     if (reward.item && typeof reward.item === "string") {
+      const count = Number(reward.count) || 1;
       const inv = this.inventory.get(playerId) ?? {};
-      inv[reward.item] = (inv[reward.item] ?? 0) + (Number(reward.count) || 1);
+      inv[reward.item] = (inv[reward.item] ?? 0) + count;
       this.inventory.set(playerId, inv);
+      // Material grants keep the persisted counter aligned with inventory
+      if (reward.item.startsWith("dragon_material")) {
+        const p = this.ensureDragonProgress(playerId);
+        this.dragonProgress.set(playerId, {
+          ...p,
+          materialsCollected: p.materialsCollected + count,
+        });
+      }
     }
 
     return { completed: isLast, stageName: stageDef.name, reward };
@@ -1265,14 +1383,12 @@ export class World {
       this.updateBestiary(playerId, clue.bestiary_unlock, 1);
     }
 
-    // Increment readiness materials
-    const progress = this.dragonProgress.get(playerId);
-    if (progress) {
-      this.dragonProgress.set(playerId, {
-        ...progress,
-        materialsCollected: progress.materialsCollected + 1,
-      });
-    }
+    // Increment readiness materials so the persisted counter tracks real grants
+    const progress = this.ensureDragonProgress(playerId);
+    this.dragonProgress.set(playerId, {
+      ...progress,
+      materialsCollected: progress.materialsCollected + 1,
+    });
 
     this.pushEvent(playerId, "info", `Dragon clue discovered: ${clue.name}`);
     return clue;
@@ -1452,6 +1568,12 @@ export class World {
     let report: BattleReport | null = null;
 
     if (march.intent === "scout") {
+      // Persistent gameplay counter (expedition stage gates)
+      const progress = this.ensureDragonProgress(march.playerId);
+      this.dragonProgress.set(march.playerId, {
+        ...progress,
+        scoutsSent: progress.scoutsSent + 1,
+      });
       report = this.makeReport(march, {
         type: "scout",
         target: { x: march.targetX, y: march.targetY, type: march.targetType },
@@ -1721,21 +1843,19 @@ export class World {
           timber: 30 * camp.level,
           stone: 10 * camp.level,
         };
-        // Roll for dragon clue drop
-        clueDrop = this.rollCampClueDrop(camp.level, seed + 1);
-        if (clueDrop) {
-          this.grantDragonClue(march.playerId, clueDrop.id);
+        // Roll for dragon clue drop — capped per UTC day (silent skip at cap)
+        const clueUsage = this.ensureDailyClueUsage(march.playerId);
+        if (clueUsage.used < DAILY_CLUE_CAP) {
+          clueDrop = this.rollCampClueDrop(camp.level, seed + 1);
+          if (clueDrop) {
+            clueUsage.used += 1;
+            this.grantDragonClue(march.playerId, clueDrop.id);
+          }
         }
-        // Track camp type defeat for readiness gate
-        const progress = this.dragonProgress.get(march.playerId) ?? {
-          bestiaryStudied: 0,
-          researchLevel: 0,
-          materialsCollected: 0,
-          campTypesDefeated: new Set<string>(),
-          expeditionStage: 0,
-          charterEarned: false,
-        };
+        // Track camp defeat: bestiary readiness type set + expedition counter
+        const progress = this.ensureDragonProgress(march.playerId);
         progress.campTypesDefeated.add(`camp_l${camp.level}`);
+        progress.campsDefeated += 1;
         this.dragonProgress.set(march.playerId, progress);
         // Update bestiary for camp creatures
         const campDef = getCamps().find((c) => c.camp_level === camp.level);
@@ -2266,6 +2386,22 @@ export class World {
   markDaily(playerId: string, questId: string): void {
     const d = this.ensureDaily(playerId);
     d.done[questId] = true;
+  }
+
+  /** Today's clue-drop record, rotating on a new UTC day (mirrors ensureDaily). */
+  private ensureDailyClueUsage(playerId: string): DailyClueUsage {
+    const key = this.dayKey();
+    let d = this.dailyClues.get(playerId);
+    if (!d || d.dayKey !== key) {
+      d = { dayKey: key, used: 0 };
+      this.dailyClues.set(playerId, d);
+    }
+    return d;
+  }
+
+  /** Current daily clue-drop usage against the cap (for API display). */
+  dailyClueUsage(playerId: string): { used: number; cap: number } {
+    return { used: this.ensureDailyClueUsage(playerId).used, cap: DAILY_CLUE_CAP };
   }
 
   listDailyQuests(playerId: string) {

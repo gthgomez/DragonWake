@@ -381,6 +381,8 @@ export class PgStore {
           campTypesDefeated: new Set(row.camp_types_defeated ?? []),
           expeditionStage: row.expedition_stage,
           charterEarned: row.charter_earned,
+          campsDefeated: Number(row.camps_defeated ?? 0),
+          scoutsSent: Number(row.scouts_sent ?? 0),
         });
       }
 
@@ -791,15 +793,17 @@ export class PgStore {
       // Dragon progress
       for (const [playerId, progress] of world.dragonProgress.entries()) {
         await client.query(
-          `INSERT INTO dragon_progress (player_id, bestiary_studied, research_level, materials_collected, camp_types_defeated, expedition_stage, charter_earned)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `INSERT INTO dragon_progress (player_id, bestiary_studied, research_level, materials_collected, camp_types_defeated, expedition_stage, charter_earned, camps_defeated, scouts_sent)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            ON CONFLICT (player_id) DO UPDATE SET
              bestiary_studied=EXCLUDED.bestiary_studied,
              research_level=EXCLUDED.research_level,
              materials_collected=EXCLUDED.materials_collected,
              camp_types_defeated=EXCLUDED.camp_types_defeated,
              expedition_stage=EXCLUDED.expedition_stage,
-             charter_earned=EXCLUDED.charter_earned`,
+             charter_earned=EXCLUDED.charter_earned,
+             camps_defeated=EXCLUDED.camps_defeated,
+             scouts_sent=EXCLUDED.scouts_sent`,
           [
             playerId,
             progress.bestiaryStudied,
@@ -808,6 +812,8 @@ export class PgStore {
             [...progress.campTypesDefeated],
             progress.expeditionStage,
             progress.charterEarned,
+            progress.campsDefeated,
+            progress.scoutsSent,
           ],
         );
       }

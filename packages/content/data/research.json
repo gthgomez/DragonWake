@@ -4,97 +4,111 @@
     "name": "Agriculture",
     "per_level": 0.08,
     "max_level": 10,
-    "group": "production"
+    "group": "production",
+    "cost": { "food": 500 }
   },
   {
     "id": "forestry",
     "name": "Forestry",
     "per_level": 0.08,
     "max_level": 10,
-    "group": "production"
+    "group": "production",
+    "cost": { "timber": 500 }
   },
   {
     "id": "masonry",
     "name": "Masonry",
     "per_level": 0.08,
     "max_level": 10,
-    "group": "production"
+    "group": "production",
+    "cost": { "stone": 500 }
   },
   {
     "id": "metallurgy",
     "name": "Metallurgy",
     "per_level": 0.08,
     "max_level": 10,
-    "group": "production"
+    "group": "production",
+    "cost": { "iron": 400, "coin": 100 }
   },
   {
     "id": "infantry_doctrine",
     "name": "Infantry Doctrine",
     "per_level": 0.05,
     "max_level": 10,
-    "group": "combat"
+    "group": "combat",
+    "cost": { "food": 600, "timber": 200 }
   },
   {
     "id": "archery",
     "name": "Archery",
     "per_level": 0.05,
     "max_level": 10,
-    "group": "combat"
+    "group": "combat",
+    "cost": { "timber": 600, "coin": 50 }
   },
   {
     "id": "fortification",
     "name": "Fortification",
     "per_level": 0.05,
     "max_level": 10,
-    "group": "combat"
+    "group": "combat",
+    "cost": { "stone": 600 }
   },
   {
     "id": "field_medicine",
     "name": "Field Medicine",
     "per_level": 0.05,
     "max_level": 10,
-    "group": "combat"
+    "group": "combat",
+    "cost": { "food": 300, "coin": 50 }
   },
   {
     "id": "cavalry",
     "name": "Cavalry",
     "per_level": 0.05,
     "max_level": 10,
-    "group": "combat"
+    "group": "combat",
+    "cost": { "food": 800, "coin": 100 }
   },
   {
     "id": "siegecraft",
     "name": "Siegecraft",
     "per_level": 0.05,
     "max_level": 10,
-    "group": "combat"
+    "group": "combat",
+    "cost": { "timber": 500, "iron": 300 }
   },
   {
     "id": "logistics_res",
     "name": "Logistics",
     "per_level": 0.08,
     "max_level": 10,
-    "group": "utility"
+    "group": "utility",
+    "cost": { "timber": 400, "iron": 200 }
   },
   {
     "id": "scouting",
     "name": "Scouting",
     "per_level": 1,
     "max_level": 10,
-    "group": "utility"
+    "group": "utility",
+    "cost": { "food": 300 }
   },
   {
     "id": "rationing",
     "name": "Rationing",
     "per_level": 0.05,
     "max_level": 10,
-    "group": "utility"
+    "group": "utility",
+    "cost": { "food": 400 }
   },
   {
     "id": "dragon_studies",
     "name": "Dragon Studies",
     "per_level": 0,
     "max_level": 5,
-    "group": "utility"
+    "group": "utility",
+    "cost": { "coin": 150 }
   }
 ]

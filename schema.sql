@@ -262,7 +262,9 @@ CREATE TABLE dragon_progress (
   materials_collected INT NOT NULL DEFAULT 0,
   camp_types_defeated TEXT[] NOT NULL DEFAULT '{}',
   expedition_stage INT NOT NULL DEFAULT 0,
-  charter_earned  BOOLEAN NOT NULL DEFAULT FALSE
+  charter_earned  BOOLEAN NOT NULL DEFAULT FALSE,
+  camps_defeated  INT NOT NULL DEFAULT 0,
+  scouts_sent     INT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE quest_progress (

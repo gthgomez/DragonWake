@@ -76,12 +76,19 @@ export type BuildingDef = {
   max_level: number;
 };
 
+/** Resource cost bag for research (subset of the canonical resource set). */
+export type ResearchCost = Partial<
+  Record<"food" | "timber" | "stone" | "iron" | "coin", number>
+>;
+
 export type ResearchDef = {
   id: string;
   name: string;
   per_level: number;
   max_level: number;
   group: string;
+  /** Base resource cost; total scales with the next level number (L1 = base). */
+  cost?: ResearchCost;
 };
 
 export type SovereignDef = {
@@ -198,6 +205,11 @@ export type Expedition = {
     description: string;
     type: string;
     target_level: number;
+    /**
+     * Cumulative gameplay counters required to enter this stage
+     * (scouts = scout marches landed, camps = camp victories landed).
+     */
+    requires?: { scouts?: number; camps?: number };
     completion_reward: Record<string, unknown>;
   }>;
 };
