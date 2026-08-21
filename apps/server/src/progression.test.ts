@@ -520,7 +520,7 @@ describe("Expedition System", () => {
 // ── 6. Wilderness Specialization ──────────────────────────────────────────
 
 describe("Wilderness Specialization", () => {
-  it("forest wilderness adds timber (driftwood) production", () => {
+  it("forest wilderness adds timber production", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("WilA", "brinecant");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
@@ -531,11 +531,11 @@ describe("Wilderness Specialization", () => {
     forest.ownerPlayerId = player.id;
     world.wilderness.set(forest.id, forest);
     const after = world.effectiveProduction(world.getCity(city.id)!);
-    // forest boosts driftwood by 30
-    expect(after.driftwood).toBeGreaterThan(100);
+    // forest boosts timber by 30/hr
+    expect(after.timber).toBeGreaterThan(100);
   });
 
-  it("fertile_land adds food (kelp) production", () => {
+  it("fertile_land adds food production", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("WilB", "ashcoil");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
@@ -545,11 +545,11 @@ describe("Wilderness Specialization", () => {
     fertile.ownerPlayerId = player.id;
     world.wilderness.set(fertile.id, fertile);
     const after = world.effectiveProduction(world.getCity(city.id)!);
-    // fertile_land boosts kelp by 40
-    expect(after.kelp).toBeGreaterThan(120);
+    // fertile_land boosts food by 40
+    expect(after.food).toBeGreaterThan(120);
   });
 
-  it("quarry adds stone (basalt) production", () => {
+  it("quarry adds stone production", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("WilC", "skyshear");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
@@ -559,11 +559,11 @@ describe("Wilderness Specialization", () => {
     quarry.ownerPlayerId = player.id;
     world.wilderness.set(quarry.id, quarry);
     const after = world.effectiveProduction(world.getCity(city.id)!);
-    // quarry boosts basalt by 25
-    expect(after.basalt).toBeGreaterThan(80);
+    // quarry boosts stone by 25
+    expect(after.stone).toBeGreaterThan(80);
   });
 
-  it("iron_hills adds iron (slagiron) production", () => {
+  it("iron_hills adds iron production", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("WilD", "mossvault");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
@@ -573,8 +573,8 @@ describe("Wilderness Specialization", () => {
     iron.ownerPlayerId = player.id;
     world.wilderness.set(iron.id, iron);
     const after = world.effectiveProduction(world.getCity(city.id)!);
-    // iron_hills boosts slagiron by 15
-    expect(after.slagiron).toBeGreaterThan(40);
+    // iron_hills boosts iron by 15
+    expect(after.iron).toBeGreaterThan(40);
   });
 
   it("crossroads provides no direct resource bonus", () => {
@@ -591,10 +591,10 @@ describe("Wilderness Specialization", () => {
     world.wilderness.set(cross.id, cross);
     const after = world.effectiveProduction(world.getCity(city.id)!);
     // crossroads has rate 0 — no resource bonus
-    expect(after.kelp).toBe(before.kelp);
-    expect(after.driftwood).toBe(before.driftwood);
-    expect(after.basalt).toBe(before.basalt);
-    expect(after.slagiron).toBe(before.slagiron);
+    expect(after.food).toBe(before.food);
+    expect(after.timber).toBe(before.timber);
+    expect(after.stone).toBe(before.stone);
+    expect(after.iron).toBe(before.iron);
   });
 
   it("multiple wilderness of same type stack", () => {
@@ -611,8 +611,8 @@ describe("Wilderness Specialization", () => {
       world.wilderness.set(forests[i]!.id, forests[i]!);
     }
     const after = world.effectiveProduction(world.getCity(city.id)!);
-    // Two forests: 30*2 = 60 extra driftwood
-    expect(after.driftwood).toBeGreaterThanOrEqual(100 + 60);
+    // Two forests: 30*2 = 60 extra timber
+    expect(after.timber).toBeGreaterThanOrEqual(100 + 60);
   });
 
   it("wrong resource type is not affected", () => {
@@ -627,10 +627,10 @@ describe("Wilderness Specialization", () => {
     forest.ownerPlayerId = player.id;
     world.wilderness.set(forest.id, forest);
     const after = world.effectiveProduction(world.getCity(city.id)!);
-    // forest boosts driftwood, not kelp/basalt/slagiron
-    expect(after.kelp).toBe(before.kelp);
-    expect(after.basalt).toBe(before.basalt);
-    expect(after.slagiron).toBe(before.slagiron);
+    // forest boosts timber, not food/stone/iron
+    expect(after.food).toBe(before.food);
+    expect(after.stone).toBe(before.stone);
+    expect(after.iron).toBe(before.iron);
   });
 
   it("wilderness capture updates production correctly", () => {
@@ -648,7 +648,7 @@ describe("Wilderness Specialization", () => {
     world.wilderness.set(fertile.id, fertile);
     expect(world.ownedWildernessCount(player.id)).toBe(1);
     const afterProd = world.effectiveProduction(world.getCity(city.id)!);
-    expect(afterProd.kelp).toBeGreaterThan(beforeProd.kelp);
+    expect(afterProd.food).toBeGreaterThan(beforeProd.food);
   });
 });
 
@@ -662,7 +662,7 @@ describe("Defense Posture", () => {
     world.adminGrant(a.player.id, { units: { levy: 100 }, skipProtection: true });
     world.adminGrant(b.player.id, { skipProtection: true });
     world.setPosture(b.city.id, b.player.id, "withdraw");
-    const beforeKelp = world.getCity(b.city.id)!.resources.kelp;
+    const beforeKelp = world.getCity(b.city.id)!.resources.food;
     const march = world.createMarch(a.player.id, {
       fromCityId: a.city.id,
       intent: "attack",
@@ -675,8 +675,8 @@ describe("Defense Posture", () => {
     march.arriveAt = 0;
     const report = world.landMarch(march, world.now());
     expect(report!.result.harborLoot).toBe(true);
-    // kelp should have been looted (reduced)
-    expect(world.getCity(b.city.id)!.resources.kelp).toBeLessThan(beforeKelp);
+    // food should have been looted (reduced)
+    expect(world.getCity(b.city.id)!.resources.food).toBeLessThan(beforeKelp);
   });
 
   it("garrison posture uses only 30% of defenders", () => {
@@ -888,7 +888,7 @@ describe("Slice 1A Progression Path", () => {
     expect(world.getCity(city.id)!.research.archery).toBe(1);
 
     // Step 4: Train troops (grant resources first since building consumed some)
-    world.adminGrant(player.id, { resources: { kelp: 1500 } });
+    world.adminGrant(player.id, { resources: { food: 1500 } });
     const trainJob = world.startTrain(city.id, player.id, "levy", 50);
     trainJob.finishesAt = world.now() - 1;
     world.processQueues(world.now());

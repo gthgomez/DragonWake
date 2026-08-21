@@ -41,11 +41,11 @@ export const marchBodySchema = z.object({
   composition: z.record(z.string(), z.number().int().min(0).max(1_000_000)).default({}),
   cargo: z
     .object({
-      kelp: z.number().int().min(0).optional(),
-      driftwood: z.number().int().min(0).optional(),
-      basalt: z.number().int().min(0).optional(),
-      slagiron: z.number().int().min(0).optional(),
-      tidegilt: z.number().int().min(0).optional(),
+      food: z.number().int().min(0).optional(),
+      timber: z.number().int().min(0).optional(),
+      stone: z.number().int().min(0).optional(),
+      iron: z.number().int().min(0).optional(),
+      coin: z.number().int().min(0).optional(),
     })
     .optional(),
   sovereignId: z.string().uuid().optional(),

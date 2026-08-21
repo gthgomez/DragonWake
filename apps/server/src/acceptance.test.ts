@@ -37,7 +37,7 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
       body: JSON.stringify({ displayName: "AcceptA", faction: "brinecant" }),
     });
     expect(a.res.status).toBe(200);
-    expect(a.body.city.resources.kelp).toBeGreaterThan(0);
+    expect(a.body.city.resources.food).toBeGreaterThan(0);
     expect(typeof a.body.city.mapX).toBe("number");
     const tokenA = a.body.token as string;
     const cityA = a.body.city.id as string;

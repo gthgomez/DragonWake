@@ -404,8 +404,8 @@ export function createApp(world: World) {
           .map((w) => w[0]!.toUpperCase() + w.slice(1))
           .join(" "),
       })),
-      assignCost: { kelp: 80, driftwood: 40 },
-      upgradeCostPerLevel: { kelp: 50, driftwood: 50 },
+      assignCost: { food: 80, timber: 40 },
+      upgradeCostPerLevel: { food: 50, timber: 50 },
       maxLevel: 5,
     }),
   );
