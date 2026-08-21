@@ -9,7 +9,7 @@
       "30 Levy + 10 Pikeman"
     ],
     "recommended_player_power": 80,
-    "loot_notes": "kelp, tiny scrap",
+    "loot_notes": "food, tiny scrap",
     "harness_drop": "no"
   },
   {
@@ -22,7 +22,7 @@
       "90 Levy + 15 Pikeman"
     ],
     "recommended_player_power": 200,
-    "loot_notes": "kelp",
+    "loot_notes": "food",
     "harness_drop": "no"
   },
   {
@@ -35,7 +35,7 @@
       "180 Levy + 60 Bowman"
     ],
     "recommended_player_power": 500,
-    "loot_notes": "kelp, mats low",
+    "loot_notes": "food, mats low",
     "harness_drop": "no"
   },
   {
