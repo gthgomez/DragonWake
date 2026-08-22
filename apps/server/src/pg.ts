@@ -197,6 +197,13 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     ALTER TABLE commanders ADD COLUMN IF NOT EXISTS xp BIGINT NOT NULL DEFAULT 0;
     ALTER TABLE commanders ADD COLUMN IF NOT EXISTS wounded_until TIMESTAMPTZ;
   `);
+
+  // 10. Fractional production carry (economy fix): sub-unit remainders so
+  //     per-second ticks don't truncate gains or over-grow population.
+  await client.query(`
+    ALTER TABLE cities ADD COLUMN IF NOT EXISTS res_fraction JSONB NOT NULL DEFAULT '{}'::jsonb;
+    ALTER TABLE cities ADD COLUMN IF NOT EXISTS pop_fraction DOUBLE PRECISION NOT NULL DEFAULT 0;
+  `);
 }
 
 export function findSchemaPath(): string | null {

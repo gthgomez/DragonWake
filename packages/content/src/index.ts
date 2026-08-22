@@ -247,7 +247,6 @@ let cache: {
   dragonReadiness?: DragonReadinessConfig;
   expeditions?: Expedition[];
   dragonClues?: DragonClue[];
-  medievalUnits?: UnitDef[];
   commanderNames?: CommanderName[];
 } = {};
 
@@ -407,4 +406,113 @@ export function canonTechId(id: string): string {
 export function canonResourceId(id: string): string {
   const legacy = getDomainCatalog().resources?.legacy_to_target;
   return legacy?.[id] ?? id;
+}
+
+// ── Content integrity (boot-time fail-fast) ─────────────────────────────────
+
+export type ContentIssue = {
+  file: string;
+  where: string;
+  problem: string;
+  severity: "error" | "warning";
+};
+
+/**
+ * Cross-reference every gameplay-load-bearing id in the data files.
+ * Errors = broken promises players can hit (phantom units granted at
+ * founding, research gates pointing nowhere); warnings = descriptive
+ * metadata referencing not-yet-shipped content.
+ *
+ * Callers should refuse to boot on any "error" issue.
+ */
+export function contentIntegrityIssues(): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  const unitIds = new Set(getUnits().map((u) => u.id));
+  const unitNames = new Set(getUnits().map((u) => u.name.toLowerCase()));
+  // Research ids plus synthetic unlock flags minted by admin/dev grants
+  // (e.g. brinehold_unlock, marcher_keep_charter) — citadels key off these.
+  const researchIds = new Set([
+    ...getResearch().map((r) => r.id),
+    ...getCitadels().map((c) => c.unlock_research),
+  ]);
+  const buildingIds = new Set(getBuildings().map((b) => b.id));
+  const citadelIds = new Set(getCitadels().map((c) => c.id));
+  const err = (file: string, where: string, problem: string) =>
+    issues.push({ file, where, problem, severity: "error" });
+  const warn = (file: string, where: string, problem: string) =>
+    issues.push({ file, where, problem, severity: "warning" });
+
+  // Citadels: starter_stacks grant real units at founding time.
+  for (const c of getCitadels()) {
+    for (const [uid, count] of Object.entries(c.starter_stacks ?? {})) {
+      if (!unitIds.has(uid)) {
+        err("citadels.json", `${c.id}.starter_stacks.${uid}`, `unknown unit id (${count} would silently vanish)`);
+      }
+    }
+    for (const uid of c.exclusive_units ?? []) {
+      if (!unitIds.has(uid)) {
+        warn(
+          "citadels.json",
+          `${c.id}.exclusive_units.${uid}`,
+          "references a unit that does not exist yet (ok for unshipped ladder rungs)",
+        );
+      }
+    }
+    for (const req of c.requires ?? []) {
+      if (!getCitadels().some((x) => x.id === req)) {
+        err("citadels.json", `${c.id}.requires.${req}`, "unknown prerequisite citadel");
+      }
+    }
+  }
+
+  // Research unlocks: unit gates are battle-critical (error on phantom
+  // targets); building/capability gates referencing unshipped structures
+  // (e.g. dragon_watch) stay visible as warnings.
+  for (const gate of getResearchUnlocks()) {
+    if (!researchIds.has(gate.research_id)) {
+      err("research_unlocks.json", `${gate.research_id}`, "gate references unknown research id");
+    }
+    for (const target of gate.unlocks) {
+      const known =
+        gate.kind === "unit"
+          ? unitIds.has(target)
+          : gate.kind === "building"
+            ? buildingIds.has(target) || citadelIds.has(target)
+            : true; // capability gates are free-form
+      if (!known) {
+        warn(
+          "research_unlocks.json",
+          `${gate.research_id}.unlocks.${target}`,
+          `unknown ${gate.kind} id (ok only for unshipped content)`,
+        );
+      }
+    }
+  }
+
+  // Units: authoritative unit gates live in research_unlocks.json (validated
+  // above). The units.unlock string is display prose like "Archery 1" —
+  // flag non-ids as warnings so drift stays visible without failing boot.
+  for (const u of getUnits()) {
+    if (u.unlock && u.unlock !== "start" && !researchIds.has(String(u.unlock))) {
+      warn(
+        "units.json",
+        `${u.id}.unlock`,
+        `"${String(u.unlock)}" is prose, not a research id (gate enforced via research_unlocks.json)`,
+      );
+    }
+  }
+
+  // Camps: composition strings must resolve to known units by name.
+  for (const camp of getCamps()) {
+    const comps = [...(camp.comps ?? []), camp.example_comp];
+    for (const comp of comps) {
+      for (const part of comp.split("+")) {
+        const name = part.trim().replace(/^\d+\s*/, "").toLowerCase();
+        if (!name || unitNames.has(name)) continue;
+        warn("camps.json", `L${camp.camp_level}`, `composition mentions unknown unit name "${name}"`);
+      }
+    }
+  }
+
+  return issues;
 }

@@ -85,6 +85,23 @@ function err(c: { json: (b: unknown, s: number) => Response }, code: string, mes
   return c.json({ error: { code, message } }, status);
 }
 
+/**
+ * Real admin gate: operators set ADMIN_TOKEN and present it via the
+ * x-admin-token header. Without a configured token, admin endpoints are
+ * dev-only (NODE_ENV !== "production") — never reachable in production,
+ * and the old ALLOW_ADMIN=1 prod bypass is gone.
+ */
+function adminAuthorized(c: { req: { header: (k: string) => string | undefined } }): boolean {
+  const token = process.env.ADMIN_TOKEN;
+  if (token) return c.req.header("x-admin-token") === token;
+  return process.env.NODE_ENV !== "production";
+}
+
+/** Server-advertised flag so the web UI can hide dev tooling. */
+function devModeEnabled(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
+
 /** LOCKED wire shape for commanders — the web UI builds against this. */
 function publicCommander(world: World, cmd: Commander) {
   const now = world.now();
@@ -135,9 +152,10 @@ export function createApp(world: World) {
       c.req.header("Authorization")?.replace(/^Bearer\s+/i, "");
     c.set("player", world.sessionPlayer(token ?? null));
     await next();
-    // Write-through after every request so PG survives restarts
+    // Delta persist after mutations; serialized + debounced by the World's
+    // persist chain (full dumps only happen at boot).
     if (world.store) {
-      await world.flush();
+      void world.flush();
     }
   });
 
@@ -303,6 +321,7 @@ export function createApp(world: World) {
       tutorial: world.tutorialView(player.id),
       dailyQuests: world.listDailyQuests(player.id),
       serverNow: Date.now(),
+      devMode: devModeEnabled(),
       sovereigns: [...world.sovereigns.values()]
         .filter((s) => s.playerId === player.id)
         .map((s) => ({
@@ -482,6 +501,8 @@ export function createApp(world: World) {
   });
 
   api.get("/map/viewport", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
     const x0 = Number(c.req.query("x0") ?? 0);
     const y0 = Number(c.req.query("y0") ?? 0);
     const x1 = Number(c.req.query("x1") ?? 39);
@@ -490,6 +511,8 @@ export function createApp(world: World) {
   });
 
   api.get("/map/tile", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
     const x = Number(c.req.query("x"));
     const y = Number(c.req.query("y"));
     const city = [...world.cities.values()].find(
@@ -560,7 +583,14 @@ export function createApp(world: World) {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
     const report = world.reports.get(c.req.param("id"));
-    if (!report) return err(c, "NO_REPORT", "not found", 404);
+    // Ownership check — 404 (not 403) so existence isn't leaked.
+    if (
+      !report ||
+      (report.attackerPlayerId !== player.id &&
+        report.defenderPlayerId !== player.id)
+    ) {
+      return err(c, "NO_REPORT", "not found", 404);
+    }
     return c.json({ report });
   });
 
@@ -623,8 +653,16 @@ export function createApp(world: World) {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
     const body = (await c.req.json().catch(() => ({}))) as { name?: string };
+    // Dev unlock path — same gates as the generic found route. This route
+    // previously granted brinehold_unlock to ANY player unconditionally.
+    if (!adminAuthorized(c) || process.env.DEV_CITADEL_UNLOCK === "0") {
+      return err(
+        c,
+        "DEV_DISABLED",
+        "dev citadel unlock disabled (requires admin or non-production with DEV_CITADEL_UNLOCK)",
+      );
+    }
     try {
-      // Dev unlock path (MVP affordance)
       world.adminGrant(player.id, { brineholdUnlock: true });
       const city = world.foundBrinehold(player.id, body.name);
       return c.json({ city: publicCity(city, world) });
@@ -648,10 +686,16 @@ export function createApp(world: World) {
     };
     const kind = body.kind ?? "";
     if (!kind) return err(c, "VALIDATION", "kind required");
-    // Dev unlock path is a beta affordance; operators can disable it.
-    const devUnlockEnabled = process.env.DEV_CITADEL_UNLOCK !== "0";
+    // Dev unlock path is a beta affordance; requires dev mode or admin token,
+    // and operators can disable it entirely with DEV_CITADEL_UNLOCK=0.
+    const devUnlockEnabled =
+      process.env.DEV_CITADEL_UNLOCK !== "0" && adminAuthorized(c);
     if (body.unlock !== false && !devUnlockEnabled) {
-      return err(c, "DEV_DISABLED", "dev citadel unlock disabled (DEV_CITADEL_UNLOCK=0)");
+      return err(
+        c,
+        "DEV_DISABLED",
+        "dev citadel unlock disabled (requires admin token in production, or DEV_CITADEL_UNLOCK)",
+      );
     }
     try {
       if (body.unlock !== false) {
@@ -751,6 +795,8 @@ export function createApp(world: World) {
   });
 
   api.get("/alliances/:id", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
     const alliance = world.alliances.get(c.req.param("id"));
     if (!alliance) return err(c, "NO_ALLY", "not found", 404);
     const members = [...world.allianceMembers.values()]
@@ -791,7 +837,14 @@ export function createApp(world: World) {
   });
 
   api.get("/alliances/:id/chat", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
     const allianceId = c.req.param("id");
+    // Members only — chat history was previously readable by anyone.
+    const mem = world.allianceMembers.get(player.id);
+    if (!mem || mem.allianceId !== allianceId) {
+      return err(c, "FORBIDDEN", "not an alliance member", 403);
+    }
     const since = Number(c.req.query("since") ?? 0);
     const messages = world.chat.filter(
       (m) => m.allianceId === allianceId && m.createdAt >= since,
@@ -824,7 +877,7 @@ export function createApp(world: World) {
   });
 
   api.post("/admin/grant", async (c) => {
-    if (process.env.NODE_ENV === "production" && process.env.ALLOW_ADMIN !== "1") {
+    if (!adminAuthorized(c)) {
       return err(c, "FORBIDDEN", "admin disabled", 403);
     }
     const player = c.get("player");
@@ -880,7 +933,11 @@ export function createApp(world: World) {
   });
 
   api.post("/sim/tick", (c) => {
-    // Dev helper to force sim
+    // Dev helper to force sim — authenticated admins/dev only.
+    const player = c.get("player");
+    if (!player || !adminAuthorized(c)) {
+      return err(c, "FORBIDDEN", "sim tick requires an admin session", 403);
+    }
     world.tick();
     return c.json({ ok: true, time: new Date().toISOString() });
   });

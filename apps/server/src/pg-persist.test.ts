@@ -9,6 +9,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { PgStore } from "./pg-store.js";
 import { World } from "./world.js";
+import { getBestiaryEntries, getShop } from "@tideforge/content";
 
 const DATABASE_URL =
   process.env.DATABASE_URL ??
@@ -280,4 +281,115 @@ describe("PG persistence (shipped PgStore + World)", () => {
     expect(m!.battleReportId).toBe(reportId);
     await store2!.close();
   }, 20_000); // PG round-trip under load; default 5s is too tight
+
+  /**
+   * Delta-persistence coverage: exercise every subsystem's public mutation
+   * path, flush ONCE (saveDelta — not the boot full dump), restart, and
+   * assert nothing was lost to a missed dirty mark.
+   */
+  it("delta flush persists mutations across every subsystem", async ({ skip }) => {
+    if (!canRun) {
+      skip(
+        probeError
+          ? `${probeError} (set REQUIRE_PG=1 to fail hard)`
+          : "Postgres not available",
+      );
+      return;
+    }
+
+    const store1 = await PgStore.connect(DATABASE_URL);
+    const world1 = new World({ devFastTime: true, skipTutorial: true });
+    await world1.attachStore(store1!);
+
+    const a = world1.createGuest(`DeltaA_${Date.now()}`, "northern_kingdom");
+    const b = world1.createGuest(`DeltaB_${Date.now()}`, "forest_people");
+    const cityA = world1.getCity(a.city.id)!;
+
+    // Alliances + members + chat (unique tag per run — tags are UNIQUE in PG)
+    const tag = `D${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+    const ally = world1.createAlliance(a.player.id, "Delta Hold", tag);
+    world1.joinAlliance(b.player.id, ally.id);
+    world1.postChat(a.player.id, ally.id, "delta message one");
+
+    // Plots (children rewrite path)
+    world1.assignPlot(cityA.id, a.player.id, 0, "farm");
+
+    // Wilderness ownership (occupy → owner_player_id change)
+    world1.adminGrant(a.player.id, { units: { levy: 200 } });
+    const wild = [...world1.wilderness.values()]
+      .filter((w) => !w.ownerPlayerId)
+      .sort((x, y) => x.level - y.level)[0]!;
+    const occ = world1.createMarch(a.player.id, {
+      fromCityId: cityA.id,
+      intent: "occupy",
+      targetType: "wilderness",
+      targetId: wild.id,
+      targetX: wild.x,
+      targetY: wild.y,
+      composition: { levy: 80 },
+    });
+    occ.arriveAt = 0;
+    world1.landMarch(occ, world1.now());
+    expect(world1.wilderness.get(wild.id)!.ownerPlayerId).toBe(a.player.id);
+
+    // Shop / inventory / chronite
+    world1.adminGrant(a.player.id, { chronite: 500 });
+    const shopItem = getShop()[0]!;
+    const bought = world1.shopBuy(a.player.id, shopItem.id);
+    expect(bought.itemId).toBe(shopItem.id);
+
+    // Tutorial progress
+    world1.advanceTutorial(a.player.id);
+
+    // Bestiary observations
+    const entry = getBestiaryEntries()[0]!;
+    world1.updateBestiary(a.player.id, entry.id, 3);
+
+    // Snapshot expectations, then a single DELTA flush.
+    const expectedChatLen = world1.chat.length;
+    expect(expectedChatLen).toBeGreaterThanOrEqual(1);
+    const expectedTutorial = world1.tutorials.get(a.player.id)!.step;
+
+    await world1.flush();
+    await store1!.close();
+
+    const store2 = await PgStore.connect(DATABASE_URL);
+    const world2 = new World({ devFastTime: true, skipTutorial: true });
+    await world2.attachStore(store2!);
+
+    // Alliance + membership survived.
+    expect(world2.alliances.get(ally.id)?.tag).toBe(tag);
+    const memberIds = [...world2.allianceMembers.values()]
+      .filter((m) => m.allianceId === ally.id)
+      .map((m) => m.playerId)
+      .sort();
+    expect(memberIds).toEqual([a.player.id, b.player.id].sort());
+
+    // Chat tail survived.
+    expect(
+      world2.chat.some(
+        (m) => m.allianceId === ally.id && m.body === "delta message one",
+      ),
+    ).toBe(true);
+    expect(world2.chat.length).toBe(expectedChatLen);
+
+    // City children survived (plot row).
+    const loadedCity = world2.cities.get(cityA.id)!;
+    const farmPlot = loadedCity.plots.find((p) => p.slotIndex === 0);
+    expect(farmPlot?.plotType).toBe("farm");
+
+    // Wilderness claim survived.
+    expect(world2.wilderness.get(wild.id)!.ownerPlayerId).toBe(a.player.id);
+
+    // Inventory + chronite survived.
+    expect(world2.inventory.get(a.player.id)?.[shopItem.id]).toBeGreaterThan(0);
+    expect(world2.players.get(a.player.id)!.chronite).toBe(bought.chronite);
+
+    // Tutorial + bestiary survived.
+    expect(world2.tutorials.get(a.player.id)!.step).toBe(expectedTutorial);
+    const bestKey = `${a.player.id}:${entry.id}`;
+    expect(world2.bestiary.get(bestKey)?.observationLevel).toBeGreaterThan(0);
+
+    await store2!.close();
+  }, 20_000);
 });

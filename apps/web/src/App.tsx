@@ -242,6 +242,12 @@ function fmtTime(ts: number): string {
   }
 }
 
+/** Whole-number display with light thousands separators. */
+function fmtNum(n: number | undefined | null): string {
+  const v = Math.floor(Number(n ?? 0));
+  return v.toLocaleString("en-US");
+}
+
 function canAfford(res: Resources, cost: Partial<Resources>): boolean {
   return (Object.keys(cost) as (keyof Resources)[]).every(
     (k) => (res[k] ?? 0) >= (cost[k] ?? 0),
@@ -344,6 +350,8 @@ export function App() {
     () => localStorage.getItem("tideforge_token"),
   );
   const [player, setPlayer] = useState<Player | null>(null);
+  /** Server-advertised dev mode — hides grant tooling in real deployments. */
+  const [devMode, setDevMode] = useState(false);
   const [cities, setCities] = useState<City[]>([]);
   const [cityId, setCityId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -450,8 +458,10 @@ export function App() {
         done: boolean;
         claimed: boolean;
       }[];
+      devMode?: boolean;
     }>("/api/v1/me", tok);
     setPlayer(me.player);
+    setDevMode(Boolean(me.devMode));
     setCities(me.cities);
     setCityId((id) => id ?? me.cities[0]?.id ?? null);
     setAlliance(me.alliance);
@@ -536,20 +546,52 @@ export function App() {
 
   useEffect(() => {
     if (!token) return;
-    const tick = () => {
-      void refreshMe(token)
-        .then(() =>
-          Promise.all([
-            refreshQueues(token, cityId),
-            refreshMarches(token),
-          ]),
-        )
-        .catch((e) => setError(String(e.message ?? e)));
-      setNow(Date.now());
+    let busy = false;
+    let failures = 0;
+    let timer = 0;
+    let disposed = false;
+
+    const step = () => {
+      if (disposed) return;
+      // Pause entirely on hidden tabs; never overlap an in-flight cycle.
+      if (!document.hidden && !busy) {
+        busy = true;
+        setNow(Date.now());
+        void refreshMe(token)
+          .then(() =>
+            Promise.all([
+              refreshQueues(token, cityId),
+              refreshMarches(token),
+            ]),
+          )
+          .then(() => {
+            failures = 0;
+          })
+          .catch((e) => {
+            failures += 1;
+            setError(String(e.message ?? e));
+          })
+          .finally(() => {
+            busy = false;
+          });
+      }
+      // Back off when the API is unhappy instead of hammering every 2s.
+      const delay = document.hidden ? 4000 : failures >= 3 ? 10_000 : 2000;
+      timer = window.setTimeout(step, delay);
     };
-    tick();
-    const id = window.setInterval(tick, 2000);
-    return () => window.clearInterval(id);
+    step();
+    const onVisibility = () => {
+      if (!document.hidden) {
+        window.clearTimeout(timer);
+        step();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [token, cityId, refreshMe, refreshQueues, refreshMarches]);
 
   // P0.2: poll sim events for toasts without relying on full-page refresh
@@ -557,6 +599,7 @@ export function App() {
     if (!token) return;
     let cancelled = false;
     let since = eventSince;
+    let timer = 0;
     const poll = async () => {
       try {
         const data = await api<{
@@ -591,11 +634,16 @@ export function App() {
         /* ignore poll blips */
       }
     };
-    void poll();
-    const id = window.setInterval(() => void poll(), 2000);
+    const loop = () => {
+      if (cancelled) return;
+      // Hidden tabs don't need toast traffic either.
+      if (!document.hidden) void poll();
+      timer = window.setTimeout(loop, document.hidden ? 4000 : 2000);
+    };
+    loop();
     return () => {
       cancelled = true;
-      window.clearInterval(id);
+      window.clearTimeout(timer);
     };
     // eventSince intentionally not in deps — we keep local since cursor
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1297,10 +1345,10 @@ export function App() {
             <ul className="res-grid">
               {(Object.keys(city.resources) as (keyof Resources)[]).map((k) => (
                 <li key={k}>
-                  <strong>k</strong>
-                  <span className="res-val">{city.resources[k]}</span>
+                  <strong>{k.charAt(0).toUpperCase() + k.slice(1)}</strong>
+                  <span className="res-val">{fmtNum(city.resources[k])}</span>
                   {rates && (
-                    <span className="res-rate">+{rates[k]}/h</span>
+                    <span className="res-rate">+{fmtNum(rates[k])}/h</span>
                   )}
                 </li>
               ))}
@@ -2339,63 +2387,67 @@ export function App() {
               </button>
             </div>
 
-            <h3>Dev tools</h3>
-            <p className="muted">
-              Explicit grants only — Map attacks no longer inject free troops.
-              DEV_FAST_TIME accelerates queues/marches when enabled on the
-              server.
-            </p>
-            <div className="row">
-              <button
-                type="button"
-                onClick={() =>
-                  void grantDev(
-                    { units: { levy: 100, bowman: 50 } },
-                    "Granted demo troops",
-                  )
-                }
-              >
-                Grant demo troops
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  void grantDev(
-                    { harness: true, brineholdUnlock: true, chronite: 50 },
-                    "Harness granted",
-                  )
-                }
-              >
-                Grant harness + chronite
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  void grantDev(
-                    {
-                      resources: {
-                        food: 2000,
-                        timber: 2000,
-                        stone: 1000,
-                        iron: 500,
-                        coin: 500,
-                      },
-                    },
-                    "Granted resources",
-                  )
-                }
-              >
-                Grant resources
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  void grantDev({ skipProtection: true }, "Protection cleared")
-                }
-              >
-                Skip protection
-              </button>
-            </div>
+            {devMode && (
+              <>
+                <h3>Dev tools</h3>
+                <p className="muted">
+                  Explicit grants only — Map attacks no longer inject free
+                  troops. DEV_FAST_TIME accelerates queues/marches when enabled
+                  on the server.
+                </p>
+                <div className="row">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void grantDev(
+                        { units: { levy: 100, bowman: 50 } },
+                        "Granted demo troops",
+                      )
+                    }
+                  >
+                    Grant demo troops
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void grantDev(
+                        { harness: true, brineholdUnlock: true, chronite: 50 },
+                        "Harness granted",
+                      )
+                    }
+                  >
+                    Grant harness + chronite
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void grantDev(
+                        {
+                          resources: {
+                            food: 2000,
+                            timber: 2000,
+                            stone: 1000,
+                            iron: 500,
+                            coin: 500,
+                          },
+                        },
+                        "Granted resources",
+                      )
+                    }
+                  >
+                    Grant resources
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void grantDev({ skipProtection: true }, "Protection cleared")
+                    }
+                  >
+                    Skip protection
+                  </button>
+                </div>
+              </>
+            )}
 
             <button type="button" className="danger" onClick={logout}>
               Log out

@@ -66,6 +66,10 @@ ALTER TABLE cities ADD COLUMN IF NOT EXISTS population INT NOT NULL DEFAULT 0;
 ALTER TABLE cities ADD COLUMN IF NOT EXISTS max_population INT NOT NULL DEFAULT 0;
 ALTER TABLE cities ADD COLUMN IF NOT EXISTS used_manpower INT NOT NULL DEFAULT 0;
 
+-- Fractional production carry (economy fix): sub-unit remainders.
+ALTER TABLE cities ADD COLUMN IF NOT EXISTS res_fraction JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE cities ADD COLUMN IF NOT EXISTS pop_fraction DOUBLE PRECISION NOT NULL DEFAULT 0;
+
 CREATE INDEX cities_player_idx ON cities(player_id);
 
 CREATE TABLE buildings (

@@ -47,7 +47,7 @@ docker compose up -d db
 # or: pnpm --filter @tideforge/server migrate
 ```
 
-With `DATABASE_URL` reachable, the server **loads/saves the full realm to PostgreSQL** (players, cities, sessions, marches, reports, alliances, …). On boot against an **existing** database, idempotent migrations run automatically: population/manpower columns, dragon-foundation tables (`bestiary_entries`, `dragon_progress`), and the legacy posture backfill (`harbor`→`withdraw`, `partial`→`garrison`) with constraint swap. `/health` reports `db: "postgres"` only when the store is actually attached (not merely when the env var is set). If Postgres is unreachable, it falls back to an in-memory realm and `/health` reports `db: "memory"`.
+With `DATABASE_URL` reachable, the server **loads/saves the full realm to PostgreSQL** (players, cities, sessions, marches, reports, alliances, …). Boot applies idempotent migrations to existing databases; saves are **delta-based** — only entities touched since the last flush are written (full dump happens once at boot). If Postgres is unreachable, it falls back to an in-memory realm and `/health` reports `db: "memory"`.
 
 ### Dev
 
@@ -80,11 +80,19 @@ Env flags (`.env`):
 
 ### Admin grant (dev)
 
+`POST /api/v1/admin/grant` is gated by a real admin check:
+
+- Set `ADMIN_TOKEN` in `.env` (any environment) → requests must send it via the `x-admin-token` header.
+- Without `ADMIN_TOKEN`, admin/sim/dev-unlock endpoints work only when `NODE_ENV !== "production"`.
+
 ```http
 POST /api/v1/admin/grant
-Authorization: Bearer <token>
+Authorization: Bearer <session token>
+x-admin-token: <ADMIN_TOKEN>
 { "units": { "levy": 200 }, "harness": true, "brineholdUnlock": true, "chronite": 100, "skipProtection": true }
 ```
+
+Dev citadel unlocks (`/citadels/found`, `/citadels/found-brinehold`) follow the same rule and can be disabled entirely with `DEV_CITADEL_UNLOCK=0`.
 
 ## ACCEPTANCE_MVP manual path (M1–M11)
 

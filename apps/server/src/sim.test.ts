@@ -272,7 +272,7 @@ describe("World queues + marches (shipped paths)", () => {
     const stone = world.foundStonekeel(player.id, "Keel Rock");
     expect(stone.kind).toBe("stonekeel");
     expect(stone.stacks.sapper).toBeGreaterThan(0);
-    expect(stone.stacks.heavy_pikeman).toBeGreaterThan(0);
+    expect(stone.stacks.halberdier).toBeGreaterThan(0);
     expect(() => world.foundStonekeel(player.id)).toThrow(/already own/);
   });
 

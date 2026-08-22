@@ -25,8 +25,8 @@
     "name": "Stonekeel",
     "order": 1,
     "ship": "S1",
-    "exclusive_units": ["sapper", "heavy_pikeman"],
-    "starter_stacks": { "sapper": 15, "heavy_pikeman": 15 },
+    "exclusive_units": ["sapper", "halberdier"],
+    "starter_stacks": { "sapper": 15, "halberdier": 15 },
     "craft_mat": "mandrake_slag",
     "unlock_research": "stonekeel_unlock",
     "requires": ["brinehold"]

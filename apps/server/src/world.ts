@@ -81,6 +81,14 @@ export type City = {
   maxPopulation: number;
   usedManpower: number;
   marchedManpower: number;
+  /**
+   * Sub-unit production remainders so per-second ticks don't truncate
+   * fractional gains (economy fix: floor-per-tick previously lost them).
+   * In-memory only — losing ≤1 unit/resource on crash is acceptable.
+   */
+  resFraction?: ResourceBag;
+  /** Sub-unit population growth remainder (same rationale). */
+  popFraction?: number;
 };
 export type QueueJob = {
   id: string;
@@ -292,7 +300,10 @@ export type DragonProgress = {
 /** Minimal store surface so World can flush without circular import at type level. */
 export type WorldStore = {
   mode: "postgres" | "memory";
+  /** Full write-through (boot seed / full resync). */
   saveWorld(world: World): Promise<void>;
+  /** Persist only entities marked in world.dirty; clears marks on success. */
+  saveDelta(world: World): Promise<void>;
   loadInto(world: World): Promise<{ players: number; cities: number }>;
   close?(): Promise<void>;
 };
@@ -368,6 +379,24 @@ function computeMarchedManpower(world: World, playerId: string, cityId: string):
 /** Available manpower = maxPopulation - usedManpower - marchedManpower. */
 function availableManpower(city: City): number {
   return Math.max(0, (city.maxPopulation ?? 0) - (city.usedManpower ?? 0) - (city.marchedManpower ?? 0));
+}
+
+/** Max concurrent train jobs per city (spam guard; correctness is via reservation). */
+const MAX_TRAIN_JOBS = 5;
+
+/**
+ * Manpower committed by running-but-not-yet-completed train jobs.
+ * Reservation at enqueue time prevents N parallel jobs double-spending
+ * the same free manpower (each previously validated against the same pool).
+ */
+function reservedTrainManpower(jobs: Iterable<QueueJob>, cityId: string): number {
+  let reserved = 0;
+  for (const j of jobs) {
+    if (j.cityId !== cityId || j.kind !== "train" || j.status !== "running") continue;
+    const u = getUnitById(String(j.payload.unitId));
+    if (u) reserved += u.pop * (Number(j.payload.count) || 0);
+  }
+  return reserved;
 }
 
 function hashToken(token: string): string {
@@ -497,38 +526,60 @@ export function tickCityResources(
       case "iron_hills": wildIron += 15; break;
     }
   }
-  const next: ResourceBag = {
-    food: Math.floor(city.resources.food + (rates.food + wildFood) * hours),
-    timber: Math.floor(
-      city.resources.timber + (rates.timber + wildTimber) * hours,
-    ),
-    stone: Math.floor(city.resources.stone + (rates.stone + wildStone) * hours),
-    iron: Math.floor(
-      city.resources.iron + (rates.iron + wildIron) * hours,
-    ),
-    coin: Math.floor(
-      city.resources.coin + rates.coin * hours,
-    ),
-  };
 
-  // Population growth: grows based on habitation building levels
+  // Fractional carryover: per-second ticks produce sub-unit gains
+  // (120 food/h ≈ 0.033/s). Floor-per-tick used to discard them forever;
+  // remainders now accumulate until a whole unit lands.
+  const frac: ResourceBag = city.resFraction ?? {
+    food: 0,
+    timber: 0,
+    stone: 0,
+    iron: 0,
+    coin: 0,
+  };
+  const next: ResourceBag = { ...city.resources };
+  const accrue = (key: keyof ResourceBag, ratePerHour: number) => {
+    if (ratePerHour <= 0) return;
+    const gain = ratePerHour * hours + (frac[key] ?? 0);
+    const whole = Math.floor(gain);
+    if (whole > 0) {
+      next[key] += whole;
+      frac[key] = gain - whole;
+    } else {
+      frac[key] = gain;
+    }
+  };
+  accrue("food", rates.food + wildFood);
+  accrue("timber", rates.timber + wildTimber);
+  accrue("stone", rates.stone + wildStone);
+  accrue("iron", rates.iron + wildIron);
+  accrue("coin", rates.coin);
+
+  // Population growth: grows based on habitation building levels.
+  // Proportional with fractional carry — the old Math.max(1, …) granted
+  // +1 pop per tick (~3600/h) regardless of rate.
   let habitationLevels = 0;
   for (const b of city.buildings) {
     if (b.buildingType === "habitation") habitationLevels += b.level;
   }
   const maxPop = city.maxPopulation || computeMaxPopulation(city);
   let newPop = city.population;
+  let popFraction = city.popFraction ?? 0;
   if (habitationLevels > 0 && newPop < maxPop) {
-    const growth = Math.floor(
-      newPop * POPULATION_GROWTH_RATE * hours * habitationLevels,
-    );
-    newPop = Math.min(maxPop, newPop + Math.max(1, growth));
+    const growthTotal =
+      newPop * POPULATION_GROWTH_RATE * hours * habitationLevels +
+      popFraction;
+    const whole = Math.floor(growthTotal);
+    newPop = Math.min(maxPop, newPop + whole);
+    popFraction = newPop >= maxPop ? 0 : growthTotal - whole;
   }
 
   return {
     ...city,
     resources: next,
+    resFraction: frac,
     population: newPop,
+    popFraction,
     maxPopulation: maxPop,
     lastResourceTick: now,
   };
@@ -576,6 +627,123 @@ export class World {
   private eventSeq = 0;
   private cityCounter = 0;
   private persistChain: Promise<void> = Promise.resolve();
+
+  /**
+   * Dirty-entity tracking for delta persistence (saveDelta). Every mutation
+   * flows through the put* helpers below, which write the map AND mark the
+   * entity dirty. Cleared by the store after a successful commit.
+   */
+  dirty = {
+    players: new Set<string>(),
+    sessions: new Set<string>(),
+    cities: new Set<string>(),
+    jobs: new Set<string>(),
+    marches: new Set<string>(),
+    /** Reports are insert-only. */
+    reports: new Set<string>(),
+    sovereigns: new Set<string>(),
+    commanders: new Set<string>(),
+    wilderness: new Set<string>(),
+    /** Keyed by playerId for player-scoped bags/rows. */
+    inventory: new Set<string>(),
+    tutorials: new Set<string>(),
+    bestiary: new Set<string>(),
+    dragonProgress: new Set<string>(),
+    daily: new Set<string>(),
+    alliances: new Set<string>(),
+    /** Alliance ids whose membership rows changed (rewritten on save). */
+    allianceMembers: new Set<string>(),
+  };
+  /** Chat is append-only; everything at/after this index needs a row. */
+  chatPersistedCount = 0;
+
+  // ── Write-through helpers (map set + dirty mark) ──────────────────────────
+
+  private putCity(_key: string, city: City): City {
+    this.cities.set(city.id, city);
+    this.dirty.cities.add(city.id);
+    return city;
+  }
+  private putPlayer(_key: string, player: Player): Player {
+    this.players.set(player.id, player);
+    this.dirty.players.add(player.id);
+    return player;
+  }
+  private putSession(_key: string, session: Session): Session {
+    this.sessionsById.set(session.id, session);
+    this.dirty.sessions.add(session.id);
+    return session;
+  }
+  private putJob(_key: string, job: QueueJob): QueueJob {
+    this.jobs.set(job.id, job);
+    this.dirty.jobs.add(job.id);
+    return job;
+  }
+  private putMarch(_key: string, march: March): March {
+    this.marches.set(march.id, march);
+    this.dirty.marches.add(march.id);
+    return march;
+  }
+  private putReport(_key: string, report: BattleReport): BattleReport {
+    this.reports.set(report.id, report);
+    this.dirty.reports.add(report.id);
+    return report;
+  }
+  private putSovereign(_key: string, sov: Sovereign): Sovereign {
+    this.sovereigns.set(sov.id, sov);
+    this.dirty.sovereigns.add(sov.id);
+    return sov;
+  }
+  private putCommander(_key: string, cmd: Commander): Commander {
+    this.commanders.set(cmd.id, cmd);
+    this.dirty.commanders.add(cmd.id);
+    return cmd;
+  }
+  private putWilderness(_key: string, wild: Wilderness): Wilderness {
+    this.wilderness.set(wild.id, wild);
+    this.dirty.wilderness.add(wild.id);
+    return wild;
+  }
+  private putInventory(key: string, inv: Record<string, number>): void {
+    this.inventory.set(key, inv);
+    this.dirty.inventory.add(key);
+  }
+  private putTutorial(key: string, t: Tutorial): void {
+    this.tutorials.set(key, t);
+    this.dirty.tutorials.add(key);
+  }
+  private putBestiary(
+    key: string,
+    entry: { entryId: string; observationLevel: number; encounterCount: number },
+  ): void {
+    this.bestiary.set(key, entry);
+    this.dirty.bestiary.add(key);
+  }
+  private putDragonProgress(key: string, progress: DragonProgress): void {
+    this.dragonProgress.set(key, progress);
+    this.dirty.dragonProgress.add(key);
+  }
+  private putDailyQuests(key: string, d: DailyProgress): void {
+    this.dailyQuests.set(key, d);
+    this.dirty.daily.add(key);
+  }
+  private putDailyClues(key: string, d: DailyClueUsage): void {
+    this.dailyClues.set(key, d);
+    this.dirty.daily.add(key);
+  }
+  private putAlliance(_key: string, a: Alliance): Alliance {
+    this.alliances.set(a.id, a);
+    this.dirty.alliances.add(a.id);
+    return a;
+  }
+  private putAllianceMember(
+    key: string,
+    m: AllianceMember,
+  ): AllianceMember {
+    this.allianceMembers.set(key, m);
+    this.dirty.allianceMembers.add(m.allianceId);
+    return m;
+  }
 
   constructor(opts?: { devFastTime?: boolean; skipTutorial?: boolean }) {
     this.devFastTime =
@@ -628,11 +796,11 @@ export class World {
     await store.saveWorld(this);
   }
 
-  /** Queue a durable flush (serialized). */
+  /** Queue a durable flush (serialized). Writes only dirty entities. */
   persist(): Promise<void> {
     if (!this.store) return Promise.resolve();
     this.persistChain = this.persistChain
-      .then(() => this.store!.saveWorld(this))
+      .then(() => this.store!.saveDelta(this))
       .catch((e) => {
         console.error("[persist]", e);
       });
@@ -691,7 +859,7 @@ export class World {
         { type: "crossroads", bonus: "logistics", rate: 0 },
         { type: "watch_hill", bonus: "scouting", rate: 0 },
       ];
-      this.wilderness.set(id, {
+      this.putWilderness(id, {
         id,
         realmId: this.realmId,
         x,
@@ -758,9 +926,9 @@ export class World {
       protectionUntil: now + NEW_PLAYER_PROTECTION_MS,
       createdAt: now,
     };
-    this.players.set(playerId, player);
-    this.inventory.set(playerId, {});
-    this.tutorials.set(playerId, {
+    this.putPlayer(playerId, player);
+    this.putInventory(playerId, {});
+    this.putTutorial(playerId, {
       playerId,
       step: this.skipTutorial ? 10 : 0,
       completed: this.skipTutorial,
@@ -798,11 +966,11 @@ export class World {
     };
     city.maxPopulation = computeMaxPopulation(city);
     city.usedManpower = recalculateManpower(city);
-    this.cities.set(cityId, city);
+    this.putCity(cityId, city);
 
     // Default commanderless; create Harbinger stub not yet deployable
     const sovId = randomUUID();
-    this.sovereigns.set(sovId, {
+    this.putSovereign(sovId, {
       id: sovId,
       playerId,
       sovereignType: "harbinger",
@@ -825,7 +993,7 @@ export class World {
     };
     this.sessions.set(token, session);
     this.sessionsByHash.set(tokenHash, session);
-    this.sessionsById.set(session.id, session);
+    this.putSession(session.id, session);
     return { player, city, token };
   }
 
@@ -852,7 +1020,23 @@ export class World {
         .filter((w) => w.ownerPlayerId === city.playerId)
         .map((w) => w.resourceType);
       const next = tickCityResources(city, now, wildTypes);
-      this.cities.set(city.id, next);
+      // Only persist-worthy when a whole unit of something landed —
+      // otherwise this would re-mark every city dirty every second.
+      // (lastResourceTick/resFraction drift is self-healing: a restart
+      // grants catch-up production for the real elapsed time.)
+      if (
+        next.population !== city.population ||
+        next.maxPopulation !== city.maxPopulation ||
+        next.resources.food !== city.resources.food ||
+        next.resources.timber !== city.resources.timber ||
+        next.resources.stone !== city.resources.stone ||
+        next.resources.iron !== city.resources.iron ||
+        next.resources.coin !== city.resources.coin
+      ) {
+        this.putCity(city.id, next);
+      } else {
+        this.cities.set(city.id, next);
+      }
     }
     this.processQueues(now);
     this.processMarches(now);
@@ -870,6 +1054,7 @@ export class World {
     const city = this.cities.get(job.cityId);
     if (!city) {
       job.status = "cancelled";
+      this.dirty.jobs.add(job.id);
       return;
     }
     if (job.kind === "build") {
@@ -895,7 +1080,8 @@ export class World {
       city.usedManpower = recalculateManpower(city);
     }
     job.status = "completed";
-    this.cities.set(city.id, city);
+    this.dirty.jobs.add(job.id);
+    this.putCity(city.id, city);
     const label =
       job.kind === "build"
         ? `Build complete: ${String(job.payload.buildingType)}`
@@ -942,8 +1128,8 @@ export class World {
       finishesAt: now + durationMs(30, this.devFastTime),
       status: "running",
     };
-    this.jobs.set(job.id, job);
-    this.cities.set(city.id, city);
+    this.putJob(job.id, job);
+    this.putCity(city.id, city);
     this.markDaily(playerId, "build");
     return job;
   }
@@ -990,7 +1176,7 @@ export class World {
         const key = res as keyof ResourceBag;
         city.resources[key] -= Math.floor((base ?? 0) * nextLevel);
       }
-      this.cities.set(city.id, city);
+      this.putCity(city.id, city);
     }
     const now = this.now();
     const job: QueueJob = {
@@ -1003,7 +1189,7 @@ export class World {
       finishesAt: now + durationMs(45, this.devFastTime),
       status: "running",
     };
-    this.jobs.set(job.id, job);
+    this.putJob(job.id, job);
     return job;
   }
 
@@ -1025,8 +1211,17 @@ export class World {
       });
     }
     const n = Math.max(1, Math.floor(count));
+    const runningTrains = [...this.jobs.values()].filter(
+      (j) => j.cityId === cityId && j.kind === "train" && j.status === "running",
+    );
+    if (runningTrains.length >= MAX_TRAIN_JOBS) {
+      throw Object.assign(new Error("train queue full"), {
+        code: "QUEUE_FULL",
+      });
+    }
     const unitPop = unit.pop * n;
-    if (availableManpower(city) < unitPop) {
+    // Reserve manpower held by in-flight train jobs — free pool is shared.
+    if (availableManpower(city) - reservedTrainManpower(runningTrains, cityId) < unitPop) {
       throw Object.assign(new Error("insufficient manpower"), {
         code: "NO_MANPOWER",
       });
@@ -1064,8 +1259,8 @@ export class World {
       finishesAt: now + durationMs(trainSec, this.devFastTime),
       status: "running",
     };
-    this.jobs.set(job.id, job);
-    this.cities.set(city.id, city);
+    this.putJob(job.id, job);
+    this.putCity(city.id, city);
     this.markDaily(playerId, "train");
     return job;
   }
@@ -1139,7 +1334,7 @@ export class World {
       }
       city.resources.coin -= coinCost;
       city.resources.food -= foodCost;
-      this.cities.set(city.id, city);
+      this.putCity(city.id, city);
     }
     const stars = 1;
     const baseStat = stars + COMMANDER_BASE_STAT_OFFSET;
@@ -1157,7 +1352,7 @@ export class World {
       busyMarchId: null,
       woundedUntil: null,
     };
-    this.commanders.set(commander.id, commander);
+    this.putCommander(commander.id, commander);
     this.pushEvent(
       playerId,
       "info",
@@ -1187,7 +1382,7 @@ export class World {
       cmd.defense += COMMANDER_STAR_STAT_GAIN;
       cmd.life += COMMANDER_STAR_STAT_GAIN;
     }
-    this.commanders.set(cmd.id, cmd);
+    this.putCommander(cmd.id, cmd);
   }
 
   /** Clear a march's commander link when the march reaches terminal state. */
@@ -1196,7 +1391,7 @@ export class World {
     const cmd = this.commanders.get(march.commanderId);
     if (cmd && cmd.busyMarchId === march.id) {
       cmd.busyMarchId = null;
-      this.commanders.set(cmd.id, cmd);
+      this.putCommander(cmd.id, cmd);
     }
   }
 
@@ -1212,7 +1407,7 @@ export class World {
     }
     city.defensePosture = posture;
     city.lastPostureChange = this.now();
-    this.cities.set(city.id, city);
+    this.putCity(city.id, city);
     return city;
   }
 
@@ -1247,7 +1442,7 @@ export class World {
     city.resources.timber -= costDrift;
     plot.plotType = plotType;
     plot.level = 1;
-    this.cities.set(city.id, city);
+    this.putCity(city.id, city);
     return { ...plot };
   }
 
@@ -1273,7 +1468,7 @@ export class World {
     city.resources.food -= costKelp;
     city.resources.timber -= costDrift;
     plot.level += 1;
-    this.cities.set(city.id, city);
+    this.putCity(city.id, city);
     return { ...plot };
   }
 
@@ -1331,7 +1526,7 @@ export class World {
     else if (newEnc >= 7) newObs = 2;
     else if (newEnc >= 3) newObs = 1;
 
-    this.bestiary.set(key, {
+    this.putBestiary(key, {
       entryId,
       observationLevel: newObs,
       encounterCount: newEnc,
@@ -1357,7 +1552,7 @@ export class World {
         campsDefeated: 0,
         scoutsSent: 0,
       };
-      this.dragonProgress.set(playerId, progress);
+      this.putDragonProgress(playerId, progress);
     }
     return progress;
   }
@@ -1402,7 +1597,7 @@ export class World {
     // Mutate in place — spreading a stale snapshot would revert fresh recalcs.
     existing.bestiaryStudied = studied.size;
     existing.researchLevel = maxResearch;
-    this.dragonProgress.set(playerId, existing);
+    this.putDragonProgress(playerId, existing);
   }
 
   /** Check dragon readiness and return status. */
@@ -1485,7 +1680,7 @@ export class World {
     // Mutate in place: `existing` was captured before checkDragonReadiness()
     // recalced the record, so spreading it would revert those fresh values.
     existing.expeditionStage = 1;
-    this.dragonProgress.set(playerId, existing);
+    this.putDragonProgress(playerId, existing);
     return { stage: first.stage, name: first.name };
   }
 
@@ -1514,7 +1709,7 @@ export class World {
 
     progress.expeditionStage = isLast ? 0 : stageNumber + 1;
     if (isLast) progress.charterEarned = true;
-    this.dragonProgress.set(playerId, progress);
+    this.putDragonProgress(playerId, progress);
 
     // Grant reward items
     const reward = stageDef.completion_reward;
@@ -1522,12 +1717,12 @@ export class World {
       const count = Number(reward.count) || 1;
       const inv = this.inventory.get(playerId) ?? {};
       inv[reward.item] = (inv[reward.item] ?? 0) + count;
-      this.inventory.set(playerId, inv);
+      this.putInventory(playerId, inv);
       // Material grants keep the persisted counter aligned with inventory
       if (reward.item.startsWith("dragon_material")) {
         const p = this.ensureDragonProgress(playerId);
         p.materialsCollected += count;
-        this.dragonProgress.set(playerId, p);
+        this.putDragonProgress(playerId, p);
       }
     }
 
@@ -1543,7 +1738,7 @@ export class World {
     // Add to inventory
     const inv = this.inventory.get(playerId) ?? {};
     inv["dragon_clue"] = (inv["dragon_clue"] ?? 0) + 1;
-    this.inventory.set(playerId, inv);
+    this.putInventory(playerId, inv);
 
     // Update bestiary if clue unlocks one
     if (clue.bestiary_unlock) {
@@ -1553,7 +1748,7 @@ export class World {
     // Increment readiness materials so the persisted counter tracks real grants
     const progress = this.ensureDragonProgress(playerId);
     progress.materialsCollected += 1;
-    this.dragonProgress.set(playerId, progress);
+    this.putDragonProgress(playerId, progress);
 
     this.pushEvent(playerId, "info", `Dragon clue discovered: ${clue.name}`);
     return clue;
@@ -1700,7 +1895,7 @@ export class World {
         });
       }
     }
-    this.cities.set(city.id, city);
+    this.putCity(city.id, city);
 
     if (opts.sovereignId) {
       const sov = this.sovereigns.get(opts.sovereignId);
@@ -1740,9 +1935,9 @@ export class World {
     };
     if (commander) {
       commander.busyMarchId = march.id;
-      this.commanders.set(commander.id, commander);
+      this.putCommander(commander.id, commander);
     }
-    this.marches.set(march.id, march);
+    this.putMarch(march.id, march);
     return march;
   }
 
@@ -1772,7 +1967,7 @@ export class World {
       // Persistent gameplay counter (expedition stage gates)
       const progress = this.ensureDragonProgress(march.playerId);
       progress.scoutsSent += 1;
-      this.dragonProgress.set(march.playerId, progress);
+      this.putDragonProgress(march.playerId, progress);
       report = this.makeReport(march, {
         type: "scout",
         target: { x: march.targetX, y: march.targetY, type: march.targetType },
@@ -1782,8 +1977,10 @@ export class World {
     } else if (march.intent === "attack" || march.intent === "occupy") {
       report = this.resolveAttack(march, now);
     } else if (march.intent === "reinforce") {
-      this.applyReinforce(march);
-      this.startReturn(march, now, {});
+      const delivered = this.applyReinforce(march);
+      // Failed reinforce (no city at coords / not same alliance) must march
+      // the troops home — an empty return set annihilated them.
+      this.startReturn(march, now, delivered ? {} : march.composition);
     } else if (march.intent === "haul") {
       report = this.applyHaul(march, now);
     } else {
@@ -1811,7 +2008,7 @@ export class World {
         this.startReturn(march, now, march.composition);
       }
     }
-    this.marches.set(march.id, march);
+    this.putMarch(march.id, march);
     return report;
   }
 
@@ -1836,12 +2033,12 @@ export class World {
         if (cnt > 0) city.stacks[uid] = (city.stacks[uid] ?? 0) + cnt;
       }
       city.marchedManpower = computeMarchedManpower(this, march.playerId, city.id);
-      this.cities.set(city.id, city);
+      this.putCity(city.id, city);
     }
     march.status = "completed";
     // Terminal state: the led march is done, free the commander (spec §6.3).
     this.releaseCommander(march);
-    this.marches.set(march.id, march);
+    this.putMarch(march.id, march);
     this.pushEvent(
       march.playerId,
       "march_return",
@@ -1864,7 +2061,7 @@ export class World {
       result,
       createdAt: this.now(),
     };
-    this.reports.set(report.id, report);
+    this.putReport(report.id, report);
     const type = String(result.type ?? "report");
     const winner =
       result.battle &&
@@ -2041,7 +2238,7 @@ export class World {
         defCity.stacks[uid] = Math.max(0, (defCity.stacks[uid] ?? 0) - n);
       }
       defCity.usedManpower = recalculateManpower(defCity);
-      this.cities.set(defCity.id, defCity);
+      this.putCity(defCity.id, defCity);
     }
 
     // Loot
@@ -2067,7 +2264,7 @@ export class World {
         const progress = this.ensureDragonProgress(march.playerId);
         progress.campTypesDefeated.add(`camp_l${camp.level}`);
         progress.campsDefeated += 1;
-        this.dragonProgress.set(march.playerId, progress);
+        this.putDragonProgress(march.playerId, progress);
         // Update bestiary for camp creatures
         const campDef = getCamps().find((c) => c.camp_level === camp.level);
         if (campDef) {
@@ -2080,7 +2277,7 @@ export class World {
         }
       } else if (wild && march.intent === "occupy") {
         wild.ownerPlayerId = march.playerId;
-        this.wilderness.set(wild.id, wild);
+        this.putWilderness(wild.id, wild);
         loot = { food: 40, timber: 40 };
       } else if (defCity && (harborLoot || battle.winner === "attacker")) {
         loot = this.plunderCity(defCity, harborLoot ? 0.5 : 1);
@@ -2092,14 +2289,14 @@ export class World {
           const key = k as keyof ResourceBag;
           origin.resources[key] += v ?? 0;
         }
-        this.cities.set(origin.id, origin);
+        this.putCity(origin.id, origin);
       }
       // Break protection if attacker was protected and did PvP
       if (defCity) {
         const atk = this.players.get(march.playerId);
         if (atk?.protectionUntil) {
           atk.protectionUntil = null;
-          this.players.set(atk.id, atk);
+          this.putPlayer(atk.id, atk);
         }
       }
     }
@@ -2157,26 +2354,28 @@ export class World {
     city.resources.stone -= loot.stone ?? 0;
     city.resources.iron -= loot.iron ?? 0;
     city.resources.coin -= loot.coin ?? 0;
-    this.cities.set(city.id, city);
+    this.putCity(city.id, city);
     return loot;
   }
 
-  private applyReinforce(march: March): void {
+  /** Deliver troops to an allied city at the target coords. False if undeliverable. */
+  private applyReinforce(march: March): boolean {
     const targetCity = [...this.cities.values()].find(
       (c) => c.mapX === march.targetX && c.mapY === march.targetY,
     );
-    if (!targetCity) return;
+    if (!targetCity) return false;
     // Same alliance only
     const a = this.allianceMembers.get(march.playerId);
     const b = this.allianceMembers.get(targetCity.playerId);
-    if (!a || !b || a.allianceId !== b.allianceId) return;
+    if (!a || !b || a.allianceId !== b.allianceId) return false;
     for (const [uid, cnt] of Object.entries(march.composition)) {
       targetCity.stacks[uid] = (targetCity.stacks[uid] ?? 0) + cnt;
     }
     // Recalculate manpower after reinforcement (exploit fix)
     targetCity.usedManpower = recalculateManpower(targetCity);
-    this.cities.set(targetCity.id, targetCity);
+    this.putCity(targetCity.id, targetCity);
     march.composition = {};
+    return true;
   }
 
   /** Structured scout intel (server-side; client only displays). */
@@ -2311,7 +2510,7 @@ export class World {
         targetCity.resources[key] =
           (targetCity.resources[key] ?? 0) + (Number(v) || 0);
       }
-      this.cities.set(targetCity.id, targetCity);
+      this.putCity(targetCity.id, targetCity);
       march.cargo = {};
     } else {
       // Bounce cargo back with returning troops
@@ -2322,7 +2521,7 @@ export class World {
           origin.resources[key] =
             (origin.resources[key] ?? 0) + (Number(v) || 0);
         }
-        this.cities.set(origin.id, origin);
+        this.putCity(origin.id, origin);
       }
       march.cargo = {};
     }
@@ -2376,22 +2575,22 @@ export class World {
         const key = canonResourceId(k) as keyof ResourceBag;
         city.resources[key] = (city.resources[key] ?? 0) + (v ?? 0);
       }
-      this.cities.set(city.id, city);
+      this.putCity(city.id, city);
     }
     if (body.units && city) {
       for (const [uid, n] of Object.entries(body.units)) {
         city.stacks[uid] = (city.stacks[uid] ?? 0) + n;
       }
       city.usedManpower = recalculateManpower(city);
-      this.cities.set(city.id, city);
+      this.putCity(city.id, city);
     }
     if (body.chronite) {
       player.chronite += body.chronite;
-      this.players.set(player.id, player);
+      this.putPlayer(player.id, player);
     }
     if (body.skipProtection) {
       player.protectionUntil = null;
-      this.players.set(player.id, player);
+      this.putPlayer(player.id, player);
     }
     if (body.harness) {
       for (const sov of this.sovereigns.values()) {
@@ -2400,22 +2599,22 @@ export class World {
         sov.harnessHeart = true;
         sov.harnessGrasp = true;
         sov.harnessKeel = true;
-        this.sovereigns.set(sov.id, sov);
+        this.putSovereign(sov.id, sov);
       }
     }
     if (body.brineholdUnlock && city) {
       city.research["brinehold_unlock"] = 1;
-      this.cities.set(city.id, city);
+      this.putCity(city.id, city);
     }
     if (body.stonekeelUnlock && city) {
       city.research["stonekeel_unlock"] = 1;
-      this.cities.set(city.id, city);
+      this.putCity(city.id, city);
     }
     if (body.citadelUnlock && city) {
       const def = getCitadelById(body.citadelUnlock);
       if (def) {
         city.research[def.unlock_research] = 1;
-        this.cities.set(city.id, city);
+        this.putCity(city.id, city);
       }
     }
     if (body.items) {
@@ -2423,7 +2622,7 @@ export class World {
       for (const [id, n] of Object.entries(body.items)) {
         inv[id] = (inv[id] ?? 0) + n;
       }
-      this.inventory.set(playerId, inv);
+      this.putInventory(playerId, inv);
     }
   }
 
@@ -2518,7 +2717,7 @@ export class World {
     };
     city.maxPopulation = computeMaxPopulation(city);
     city.usedManpower = recalculateManpower(city);
-    this.cities.set(city.id, city);
+    this.putCity(city.id, city);
     this.pushEvent(
       playerId,
       "info",
@@ -2534,15 +2733,25 @@ export class World {
         code: "IN_ALLY",
       });
     }
+    const normalized = tag.slice(0, 5).toUpperCase();
+    // Tags are join keys (join-by-tag) and UNIQUE in PG — reject dupes at
+    // creation instead of blowing up the next persistence flush.
+    if (
+      [...this.alliances.values()].some((x) => x.realmId === this.realmId && x.tag === normalized)
+    ) {
+      throw Object.assign(new Error("alliance tag already taken"), {
+        code: "TAG_TAKEN",
+      });
+    }
     const a: Alliance = {
       id: randomUUID(),
       realmId: this.realmId,
       name: name.slice(0, 32),
-      tag: tag.slice(0, 5).toUpperCase(),
+      tag: normalized,
       leaderId: playerId,
     };
-    this.alliances.set(a.id, a);
-    this.allianceMembers.set(playerId, {
+    this.putAlliance(a.id, a);
+    this.putAllianceMember(playerId, {
       allianceId: a.id,
       playerId,
       rank: "leader",
@@ -2574,7 +2783,7 @@ export class World {
     }
     const a = this.alliances.get(allianceId);
     if (!a) throw Object.assign(new Error("no alliance"), { code: "NO_ALLY" });
-    this.allianceMembers.set(playerId, {
+    this.putAllianceMember(playerId, {
       allianceId,
       playerId,
       rank: "member",
@@ -2600,7 +2809,7 @@ export class World {
     let d = this.dailyQuests.get(playerId);
     if (!d || d.dayKey !== key) {
       d = { dayKey: key, done: {}, claimed: {} };
-      this.dailyQuests.set(playerId, d);
+      this.putDailyQuests(playerId, d);
     }
     return d;
   }
@@ -2616,7 +2825,7 @@ export class World {
     let d = this.dailyClues.get(playerId);
     if (!d || d.dayKey !== key) {
       d = { dayKey: key, used: 0 };
-      this.dailyClues.set(playerId, d);
+      this.putDailyClues(playerId, d);
     }
     return d;
   }
@@ -2660,7 +2869,7 @@ export class World {
     }
     d.claimed[questId] = true;
     player.chronite += def.rewardChronite;
-    this.players.set(playerId, player);
+    this.putPlayer(playerId, player);
     return { chronite: player.chronite, questId };
   }
 
@@ -2672,7 +2881,7 @@ export class World {
     };
     t.step = Math.min(TUTORIAL_STEPS.length, t.step + 1);
     if (t.step >= TUTORIAL_STEPS.length) t.completed = true;
-    this.tutorials.set(playerId, t);
+    this.putTutorial(playerId, t);
     return t;
   }
 
@@ -2731,10 +2940,10 @@ export class World {
       throw Object.assign(new Error("not enough chronite"), { code: "NO_CHRONITE" });
     }
     player.chronite -= item.chronite;
-    this.players.set(player.id, player);
+    this.putPlayer(player.id, player);
     const inv = this.inventory.get(playerId) ?? {};
     inv[itemId] = (inv[itemId] ?? 0) + 1;
-    this.inventory.set(playerId, inv);
+    this.putInventory(playerId, inv);
     return { itemId, chronite: player.chronite };
   }
 

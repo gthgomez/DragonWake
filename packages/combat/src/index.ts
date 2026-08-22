@@ -5,6 +5,7 @@
 
 import {
   getFormulas,
+  getMatchups,
   getRps,
   getSovereignById,
   getStackEfficiency,
@@ -116,7 +117,12 @@ function buildGroups(
   for (const g of side.groups) {
     if (g.count <= 0) continue;
     const unit = getUnitById(g.unitId);
-    if (!unit) continue;
+    if (!unit) {
+      // Content integrity should catch phantom ids at boot; this is the
+      // runtime backstop — loud, not silent.
+      console.warn(`[combat] unknown unit id "${g.unitId}" dropped from ${sideName} force`);
+      continue;
+    }
     const life = unit.life;
     const count = Math.floor(g.count);
     out.push({
@@ -509,65 +515,102 @@ export function parseForceString(spec: string): SideInput {
 
   const parts = s.split(/\s*\+\s*/);
   const groups: BattleGroup[] = [];
-  const nameToId: Record<string, string> = {
-    // Medieval names
-    levy: "levy",
-    pikeman: "pikeman",
-    man_at_arms: "man_at_arms",
-    "man-at-arms": "man_at_arms",
-    halberdier: "halberdier",
-    bowman: "bowman",
-    longbowman: "longbowman",
-    crossbowman: "crossbowman",
-    "heavy crossbowman": "heavy_crossbowman",
-    heavy_crossbowman: "heavy_crossbowman",
-    light_cavalry: "light_cavalry",
-    "light cavalry": "light_cavalry",
-    knight: "knight",
-    shieldman: "shieldman",
-    heavy_pikeman: "heavy_pikeman",
-    "heavy pikeman": "heavy_pikeman",
-    sapper: "sapper",
-    porter: "porter",
-    scout: "scout",
-    supply_wagon: "supply_wagon",
-    "supply wagon": "supply_wagon",
-    mounted_scout: "mounted_scout",
-    "mounted scout": "mounted_scout",
-    // Legacy names (backward compat)
-    tidepike: "pikeman",
-    reefbow: "bowman",
-    skyshrike: "light_cavalry",
-    stormkeel: "knight",
-    bullhorn: "man_at_arms",
-    colossus: "halberdier",
-    "colossus frame": "halberdier",
-    sunmirror: "heavy_crossbowman",
-    ironbarge: "supply_wagon",
-    packwing: "mounted_scout",
-    gulper: "shieldman",
-    "coral lance": "crossbowman",
-    rubbleback: "sapper",
-    slabguard: "heavy_pikeman",
-    bearer: "porter",
-    whisper: "scout",
-  };
-
   for (const part of parts) {
     const m = part.trim().match(/^(\d+(?:\.\d+)?)\s*k\s+(.+)$/i);
     if (!m) {
       const m2 = part.trim().match(/^(\d+)\s+(.+)$/i);
       if (!m2) continue;
-      const count = Number(m2[1]);
-      const name = m2[2]!.trim().toLowerCase();
-      const id = nameToId[name];
-      if (id) groups.push({ unitId: id, count });
+      groups.push({ unitId: m2[2]!.trim().toLowerCase(), count: Number(m2[1]) });
       continue;
     }
-    const count = Math.round(Number(m[1]) * 1000);
-    const name = m[2]!.trim().toLowerCase();
-    const id = nameToId[name];
-    if (id) groups.push({ unitId: id, count });
+    groups.push({
+      unitId: m[2]!.trim().toLowerCase(),
+      count: Math.round(Number(m[1]) * 1000),
+    });
   }
-  return { groups };
+  // Resolve names → canonical unit ids through the shared alias table.
+  return {
+    groups: groups
+      .map((g) => ({ ...g, unitId: FORCE_NAME_TO_ID[g.unitId] ?? g.unitId }))
+      .filter((g) => getUnitById(g.unitId)),
+  };
+}
+
+/** Legacy aquatic → medieval alias table (single source inside combat). */
+export const FORCE_NAME_TO_ID: Record<string, string> = {
+  // Medieval names
+  levy: "levy",
+  pikeman: "pikeman",
+  man_at_arms: "man_at_arms",
+  "man-at-arms": "man_at_arms",
+  halberdier: "halberdier",
+  bowman: "bowman",
+  longbowman: "longbowman",
+  crossbowman: "crossbowman",
+  "heavy crossbowman": "heavy_crossbowman",
+  heavy_crossbowman: "heavy_crossbowman",
+  light_cavalry: "light_cavalry",
+  "light cavalry": "light_cavalry",
+  knight: "knight",
+  shieldman: "shieldman",
+  sapper: "sapper",
+  porter: "porter",
+  scout: "scout",
+  supply_wagon: "supply_wagon",
+  "supply wagon": "supply_wagon",
+  mounted_scout: "mounted_scout",
+  "mounted scout": "mounted_scout",
+  // Legacy names (backward compat)
+  tidepike: "pikeman",
+  reefbow: "bowman",
+  skyshrike: "light_cavalry",
+  stormkeel: "knight",
+  bullhorn: "man_at_arms",
+  colossus: "halberdier",
+  "colossus frame": "halberdier",
+  sunmirror: "heavy_crossbowman",
+  ironbarge: "supply_wagon",
+  packwing: "mounted_scout",
+  gulper: "shieldman",
+  "coral lance": "crossbowman",
+  rubbleback: "sapper",
+  bearer: "porter",
+  whisper: "scout",
+};
+
+/**
+ * Cross-check matchup data through this package's own alias table and the
+ * content unit catalog. Returns one entry per broken reference; an empty
+ * array means every matchup force resolves to units that actually exist.
+ * Server boot calls this alongside content integrity — fail loud there,
+ * not silently mid-battle.
+ */
+export function validateBattleContent(): string[] {
+  const problems: string[] = [];
+  for (const mu of getMatchups()) {
+    for (const [label, force] of [
+      ["attacker", mu.attacker],
+      ["defender", mu.defender],
+    ] as const) {
+      const s = String(force ?? "").trim();
+      if (/^same$/i.test(s)) continue;
+      // Strip a sovereign prefix ("harbinger + …") — validated separately.
+      const body = s.replace(/^harbinger \+/i, "").replace(/^harbinger alone$/i, "");
+      for (const part of body.split(/\s*\+\s*/)) {
+        const name = part
+          .trim()
+          .replace(/^\d+(?:\.\d+)?\s*k?\s+/i, "")
+          .replace(/\s+only$/i, "")
+          .toLowerCase();
+        if (!name || /^harbinger$/i.test(name)) continue;
+        const id = FORCE_NAME_TO_ID[name] ?? name;
+        if (!getUnitById(id)) {
+          problems.push(
+            `matchups.json ${mu.test_id}.${label}: unit name "${name}" resolves to no known unit`,
+          );
+        }
+      }
+    }
+  }
+  return problems;
 }
