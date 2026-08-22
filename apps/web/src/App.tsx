@@ -165,6 +165,20 @@ type UnitDef = {
   tier?: number;
 };
 
+type Commander = {
+  id: string;
+  name: string;
+  stars: number;
+  leadership: number;
+  attack: number;
+  defense: number;
+  life: number;
+  xp: number;
+  state: "available" | "busy" | "wounded";
+  woundedUntil: string | null;
+  busyMarchId: string | null;
+};
+
 type MapData = {
   mapW?: number;
   mapH?: number;
@@ -401,6 +415,9 @@ export function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [eventSince, setEventSince] = useState(0);
   const [unreadReports, setUnreadReports] = useState(0);
+  const [commanders, setCommanders] = useState<Commander[]>([]);
+  const [commandersReady, setCommandersReady] = useState(false);
+  const [marchLeaderId, setMarchLeaderId] = useState("");
 
   const city = useMemo(
     () => cities.find((c) => c.id === cityId) ?? cities[0] ?? null,
@@ -497,6 +514,25 @@ export function App() {
   useEffect(() => {
     void loadUnits();
   }, [loadUnits]);
+
+  const loadCommanders = useCallback(async (tok: string) => {
+    try {
+      const data = await api<{ commanders: Commander[] }>(
+        "/api/v1/commanders",
+        tok,
+      );
+      setCommanders(data.commanders ?? []);
+      setCommandersReady(true);
+    } catch {
+      // feature hidden entirely when the roster cannot be fetched
+      setCommandersReady(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    void loadCommanders(token);
+  }, [token, loadCommanders]);
 
   useEffect(() => {
     if (!token) return;
@@ -689,14 +725,16 @@ export function App() {
     await run(
       `${opts.intent} → ${opts.target.x},${opts.target.y}`,
       async () => {
+        const body: Record<string, unknown> = {
+          fromCityId: city.id,
+          intent: opts.intent,
+          target: opts.target,
+          composition,
+        };
+        if (marchLeaderId) body.commanderId = marchLeaderId;
         await api("/api/v1/marches", token, {
           method: "POST",
-          body: JSON.stringify({
-            fromCityId: city.id,
-            intent: opts.intent,
-            target: opts.target,
-            composition,
-          }),
+          body: JSON.stringify(body),
         });
         await refreshMe(token);
         await refreshMarches(token);
@@ -774,6 +812,23 @@ export function App() {
       token,
     );
     setReports(rep.reports);
+  }
+
+  async function recruitCommander() {
+    if (!token) return;
+    await run("Commander recruited", async () => {
+      const data = await api<{ commander: Commander }>(
+        "/api/v1/commanders/recruit",
+        token,
+        { method: "POST", body: JSON.stringify({}) },
+      );
+      setCommanders((list) => [...list, data.commander]);
+      pushToast(
+        `Recruited ${data.commander.name} (${"★".repeat(data.commander.stars)})`,
+        "ok",
+      );
+      await refreshMe(token);
+    });
   }
 
   async function createAlly() {
@@ -969,6 +1024,9 @@ export function App() {
     setCities([]);
     setJobs([]);
     setMarches([]);
+    setCommanders([]);
+    setCommandersReady(false);
+    setMarchLeaderId("");
   }
 
   function tileAt(x: number, y: number) {
@@ -1578,6 +1636,60 @@ export function App() {
               )}
             </div>
 
+            {commandersReady && (
+              <>
+                <h3>Commanders</h3>
+                {commanders.length === 0 ? (
+                  <p className="muted">
+                    No commanders yet — build a Command Gallery
+                  </p>
+                ) : (
+                  <ul className="plot-list">
+                    {commanders.map((c) => {
+                      const stateCls =
+                        c.state === "available"
+                          ? "ok"
+                          : c.state === "wounded"
+                            ? "err"
+                            : "muted";
+                      return (
+                        <li key={c.id} className="plot-row">
+                          <div>
+                            <strong>{c.name}</strong>{" "}
+                            <span className="muted">
+                              {"★".repeat(Math.max(0, c.stars))}
+                            </span>{" "}
+                            <span className={`${stateCls} tiny`}>
+                              [{c.state}]
+                            </span>
+                            <br />
+                            <span className="muted tiny">
+                              lead {c.leadership} (+{c.leadership * 2}%) · atk{" "}
+                              {c.attack} (+{c.attack * 2}%) · def {c.defense} ·
+                              life {c.life} · xp {c.xp}
+                              {c.state === "wounded" && c.woundedUntil
+                                ? ` · wounded until ${fmtTime(Date.parse(c.woundedUntil))}`
+                                : ""}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void recruitCommander()}
+                >
+                  Recruit commander
+                </button>
+                <p className="muted tiny">
+                  First recruit free with a Command Gallery; later recruits cost
+                  coin + food scaling with your roster.
+                </p>
+              </>
+            )}
+
             <h3>March composition (from stacks — no free units)</h3>
             <div className="comp-grid">
               {stackUnits.map((uid) => (
@@ -1826,6 +1938,30 @@ export function App() {
               Server-authored only. Withdraw = free loot (no stack fight). Full =
               stacks fight via resolveBattle.
             </p>
+            {commandersReady && (
+              <div className="row form-inline">
+                <label>
+                  Leader
+                  <select
+                    value={marchLeaderId}
+                    onChange={(e) => setMarchLeaderId(e.target.value)}
+                  >
+                    <option value="">None</option>
+                    {commanders
+                      .filter((c) => c.state === "available")
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} {"★".repeat(Math.max(0, c.stars))}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <span className="muted tiny">
+                  Optional leader joins marches sent from Realm actions
+                  (attack/occupy/scout/reinforce).
+                </span>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => {
