@@ -199,3 +199,127 @@ describe("HTTP API two-session demo path", () => {
     expect(me.body.sovereigns[0].harnessComplete).toBe(true);
   });
 });
+
+describe("Commanders API (locked shape)", () => {
+  const LOCKED_KEYS = [
+    "attack",
+    "busyMarchId",
+    "defense",
+    "id",
+    "leadership",
+    "life",
+    "name",
+    "stars",
+    "state",
+    "woundedUntil",
+    "xp",
+  ].sort();
+
+  it("recruit → roster → march with commanderId", async () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const app = createApp(world);
+
+    const a = await json(app, "/api/v1/auth/guest", {
+      method: "POST",
+      body: JSON.stringify({ displayName: "CmdApi", faction: "northern_kingdom" }),
+    });
+    expect(a.res.status).toBe(200);
+    const tokenA = a.body.token as string;
+    const cityA = a.body.city.id as string;
+
+    // Empty roster before recruiting
+    const empty = await json(app, "/api/v1/commanders", { token: tokenA });
+    expect(empty.res.status).toBe(200);
+    expect(empty.body.commanders).toEqual([]);
+
+    // Recruit without gallery → NO_GALLERY
+    const blocked = await json(app, "/api/v1/commanders/recruit", {
+      method: "POST",
+      token: tokenA,
+      body: "{}",
+    });
+    expect(blocked.res.status).toBe(400);
+    expect(blocked.body.error.code).toBe("NO_GALLERY");
+
+    // Build command_gallery L1 then recruit free
+    const build = await json(app, `/api/v1/cities/${cityA}/buildings`, {
+      method: "POST",
+      token: tokenA,
+      body: JSON.stringify({ slotIndex: 4, buildingType: "command_gallery" }),
+    });
+    world.jobs.get(build.body.job.id)!.finishesAt = 0;
+    world.tick();
+    const rec = await json(app, "/api/v1/commanders/recruit", {
+      method: "POST",
+      token: tokenA,
+      body: "{}",
+    });
+    expect(rec.res.status).toBe(200);
+    expect(Object.keys(rec.body.commander).sort()).toEqual(LOCKED_KEYS);
+    expect(rec.body.commander.state).toBe("available");
+    expect(rec.body.commander.stars).toBe(1);
+    expect(rec.body.commander.leadership).toBe(5);
+    const commanderId = rec.body.commander.id;
+
+    // Roster reflects it
+    const roster = await json(app, "/api/v1/commanders", { token: tokenA });
+    expect(roster.body.commanders).toHaveLength(1);
+    expect(Object.keys(roster.body.commanders[0]).sort()).toEqual(LOCKED_KEYS);
+
+    // March with commanderId → busy state
+    const map = await json(app, "/api/v1/map/viewport?x0=0&y0=0&x1=39&y1=39", {
+      token: tokenA,
+    });
+    const camp = map.body.camps.find((c: { level: number }) => c.level === 1);
+    const march = await json(app, "/api/v1/marches", {
+      method: "POST",
+      token: tokenA,
+      body: JSON.stringify({
+        fromCityId: cityA,
+        intent: "scout",
+        target: { type: "camp", id: camp.id, x: camp.x, y: camp.y },
+        composition: { scout: 1 },
+        commanderId,
+      }),
+    });
+    expect(march.res.status).toBe(200);
+    expect(march.body.march.commanderId).toBe(commanderId);
+    const busyRoster = await json(app, "/api/v1/commanders", { token: tokenA });
+    expect(busyRoster.body.commanders[0].state).toBe("busy");
+    expect(busyRoster.body.commanders[0].busyMarchId).toBe(march.body.march.id);
+
+    // Same commander again → COMMANDER_BUSY over HTTP
+    const busy = await json(app, "/api/v1/marches", {
+      method: "POST",
+      token: tokenA,
+      body: JSON.stringify({
+        fromCityId: cityA,
+        intent: "scout",
+        target: { type: "camp", id: camp.id, x: camp.x, y: camp.y },
+        composition: { scout: 1 },
+        commanderId,
+      }),
+    });
+    expect(busy.res.status).toBe(400);
+    expect(busy.body.error.code).toBe("COMMANDER_BUSY");
+
+    // Foreign commanderId → NO_COMMANDER over HTTP
+    const b = await json(app, "/api/v1/auth/guest", {
+      method: "POST",
+      body: JSON.stringify({ displayName: "CmdApiB", faction: "mountain_realm" }),
+    });
+    const foreign = await json(app, "/api/v1/marches", {
+      method: "POST",
+      token: b.body.token,
+      body: JSON.stringify({
+        fromCityId: b.body.city.id,
+        intent: "scout",
+        target: { type: "camp", id: camp.id, x: camp.x, y: camp.y },
+        composition: { scout: 1 },
+        commanderId,
+      }),
+    });
+    expect(foreign.res.status).toBe(400);
+    expect(foreign.body.error.code).toBe("NO_COMMANDER");
+  });
+});

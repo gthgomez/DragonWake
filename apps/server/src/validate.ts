@@ -49,6 +49,7 @@ export const marchBodySchema = z.object({
     })
     .optional(),
   sovereignId: z.string().uuid().optional(),
+  commanderId: z.string().uuid().optional(),
 });
 
 export const chatBodySchema = z.object({

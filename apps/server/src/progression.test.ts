@@ -1368,3 +1368,249 @@ describe("Posture Cooldown", () => {
     expect(world.getCity(city.id)!.defensePosture).toBe("garrison");
   });
 });
+
+// ── 12. Commanders ────────────────────────────────────────────────────────
+
+/** Assert a fn throws an error carrying exactly `code` (existing style). */
+function expectCode(fn: () => void, code: string): void {
+  try {
+    fn();
+  } catch (e) {
+    expect((e as { code?: string }).code).toBe(code);
+    return;
+  }
+  throw new Error(`expected throw with code ${code}`);
+}
+
+/** Build or upgrade command_gallery one level instantly (fast-time fixture). */
+function buildGallery(world: World, playerId: string, cityId: string): void {
+  const city = world.getCity(cityId)!;
+  const existing = city.buildings.find(
+    (b) => b.buildingType === "command_gallery",
+  );
+  const slot = existing
+    ? existing.slotIndex
+    : Math.max(-1, ...city.buildings.map((b) => b.slotIndex)) + 1;
+  world.startBuild(cityId, playerId, slot, "command_gallery");
+  const job = [...world.jobs.values()].find(
+    (j) => j.cityId === cityId && j.kind === "build" && j.status === "running",
+  )!;
+  job.finishesAt = world.now() - 1;
+  world.processQueues(world.now());
+}
+
+function scoutWithCommander(
+  world: World,
+  playerId: string,
+  cityId: string,
+  commanderId: string,
+) {
+  const target = [...world.camps.values()][0]!;
+  return world.createMarch(playerId, {
+    fromCityId: cityId,
+    intent: "scout",
+    targetType: "camp",
+    targetId: target.id,
+    targetX: target.x,
+    targetY: target.y,
+    composition: { scout: 1 },
+    commanderId,
+  });
+}
+
+describe("Commanders", () => {
+  it("recruit gated by Command Gallery (NO_GALLERY → build L1 → ok)", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CmdA", "northern_kingdom");
+    expect(() => world.recruitCommander(player.id)).toThrow(/Command Gallery/);
+    expectCode(() => world.recruitCommander(player.id), "NO_GALLERY");
+    buildGallery(world, player.id, city.id);
+    expect(world.commandGalleryLevel(player.id)).toBe(1);
+    const cmd = world.recruitCommander(player.id);
+    expect(cmd.playerId).toBe(player.id);
+    expect(cmd.stars).toBe(1);
+    expect(cmd.name.length).toBeGreaterThan(0);
+  });
+
+  it("first recruit is free and stats derive from stars (star1 = 5)", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CmdB", "mountain_realm");
+    buildGallery(world, player.id, city.id);
+    const before = { ...world.getCity(city.id)!.resources };
+    const cmd = world.recruitCommander(player.id);
+    const after = world.getCity(city.id)!.resources;
+    expect(after.coin).toBe(before.coin);
+    expect(after.food).toBe(before.food);
+    // base stat = stars + 4 → leadership/attack/defense/life all 5 at star 1
+    expect(cmd.leadership).toBe(5);
+    expect(cmd.attack).toBe(5);
+    expect(cmd.defense).toBe(5);
+    expect(cmd.life).toBe(5);
+    expect(cmd.xp).toBe(0);
+    expect(cmd.busyMarchId).toBeNull();
+    expect(cmd.woundedUntil).toBeNull();
+  });
+
+  it("RECRUIT_SLOTS: roster capped at gallery level", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CmdC", "forest_people");
+    buildGallery(world, player.id, city.id);
+    world.recruitCommander(player.id);
+    expectCode(() => world.recruitCommander(player.id), "RECRUIT_SLOTS");
+  });
+
+  it("second recruit costs 250 coin + 500 food × owned; RECRUIT_COST on shortfall", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CmdD", "coastal_lords");
+    buildGallery(world, player.id, city.id); // L1
+    buildGallery(world, player.id, city.id); // L2
+    world.adminGrant(player.id, { resources: { coin: 1000, food: 2000 } });
+    world.recruitCommander(player.id);
+    const midCoin = world.getCity(city.id)!.resources.coin;
+    const midFood = world.getCity(city.id)!.resources.food;
+    const cmd2 = world.recruitCommander(player.id);
+    // ownedCount was 1 → cost 250 coin + 500 food
+    expect(world.getCity(city.id)!.resources.coin).toBe(midCoin - 250);
+    expect(world.getCity(city.id)!.resources.food).toBe(midFood - 500);
+    expect(cmd2.id).not.toBe(
+      world.commandersForPlayer(player.id)[0]!.id,
+    );
+    // Shortfall path: L3 leaves a free roster slot but owned=2 → need 500
+    // coin + 1000 food, funds stripped → RECRUIT_COST with missing resources.
+    buildGallery(world, player.id, city.id); // L3
+    const broke = world.getCity(city.id)!;
+    broke.resources.coin = 100;
+    broke.resources.food = 100;
+    world.cities.set(broke.id, broke);
+    expect(() => world.recruitCommander(player.id)).toThrow(
+      /coin need 500 have 100; food need 1000 have 100/,
+    );
+    expectCode(() => world.recruitCommander(player.id), "RECRUIT_COST");
+  });
+
+  it("assign → win vs camp L1 → xp+100, busy clears on terminal state", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CmdE", "northern_kingdom");
+    buildGallery(world, player.id, city.id);
+    const cmd = world.recruitCommander(player.id);
+    world.adminGrant(player.id, { units: { bowman: 300 } });
+    const camp = [...world.camps.values()].find((c) => c.level === 1)!;
+    const march = world.createMarch(player.id, {
+      fromCityId: city.id,
+      intent: "attack",
+      targetType: "camp",
+      targetId: camp.id,
+      targetX: camp.x,
+      targetY: camp.y,
+      composition: { bowman: 150 },
+      commanderId: cmd.id,
+    });
+    expect(march.commanderId).toBe(cmd.id);
+    expect(world.commanders.get(cmd.id)!.busyMarchId).toBe(march.id);
+    march.arriveAt = 0;
+    const report = world.landMarch(march, world.now());
+    expect(report).not.toBeNull();
+    const battle = report!.result.battle as { winner: string };
+    expect(battle.winner).toBe("attacker");
+    expect(world.commanders.get(cmd.id)!.xp).toBe(100);
+    // Still leading the returning march
+    expect(world.commanders.get(cmd.id)!.busyMarchId).toBe(march.id);
+    // March completes → commander freed
+    march.returnAt = 0;
+    world.processMarches(world.now());
+    expect(march.status).toBe("completed");
+    expect(world.commanders.get(cmd.id)!.busyMarchId).toBeNull();
+  });
+
+  it("loss wounds the commander (+25 xp); COMMANDER_WOUNDED rejects reassign", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CmdF", "mountain_realm");
+    buildGallery(world, player.id, city.id);
+    const cmd = world.recruitCommander(player.id);
+    const camp10 = [...world.camps.values()].find((c) => c.level === 10)!;
+    const march = world.createMarch(player.id, {
+      fromCityId: city.id,
+      intent: "attack",
+      targetType: "camp",
+      targetId: camp10.id,
+      targetX: camp10.x,
+      targetY: camp10.y,
+      composition: { levy: 1 },
+      commanderId: cmd.id,
+    });
+    march.arriveAt = 0;
+    const report = world.landMarch(march, world.now());
+    const battle = report!.result.battle as { winner: string };
+    expect(battle.winner).toBe("defender");
+    const wounded = world.commanders.get(cmd.id)!;
+    expect(wounded.xp).toBe(25);
+    expect(wounded.woundedUntil).not.toBeNull();
+    expect(wounded.woundedUntil!).toBeGreaterThan(world.now() - 1000);
+    // Complete the return so BUSY doesn't mask WOUNDED
+    march.returnAt = 0;
+    world.processMarches(world.now());
+    expect(world.commanders.get(cmd.id)!.busyMarchId).toBeNull();
+    expectCode(
+      () => scoutWithCommander(world, player.id, city.id, cmd.id),
+      "COMMANDER_WOUNDED",
+    );
+  });
+
+  it("COMMANDER_BUSY while leading a march; COMMANDER_SLOTS past cap", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("CmdG", "northern_kingdom");
+    // Gallery L4: roster up to 4, slot cap min(4,3)=3
+    for (let i = 0; i < 4; i++) buildGallery(world, player.id, city.id);
+    world.adminGrant(player.id, {
+      resources: { coin: 5000, food: 9000 },
+      units: { scout: 50 },
+    });
+    const c1 = world.recruitCommander(player.id);
+    const c2 = world.recruitCommander(player.id);
+    const c3 = world.recruitCommander(player.id);
+    const c4 = world.recruitCommander(player.id);
+    const m1 = scoutWithCommander(world, player.id, city.id, c1.id);
+    // Same commander twice → COMMANDER_BUSY
+    expectCode(
+      () => scoutWithCommander(world, player.id, city.id, c1.id),
+      "COMMANDER_BUSY",
+    );
+    scoutWithCommander(world, player.id, city.id, c2.id);
+    scoutWithCommander(world, player.id, city.id, c3.id);
+    // 3 active commanded marches = cap; 4th commander rejected
+    expectCode(
+      () => scoutWithCommander(world, player.id, city.id, c4.id),
+      "COMMANDER_SLOTS",
+    );
+    // Completing one march frees its slot AND its commander
+    m1.arriveAt = 0;
+    world.landMarch(m1, world.now());
+    m1.returnAt = 0;
+    world.processMarches(world.now());
+    expect(world.commanders.get(c1.id)!.busyMarchId).toBeNull();
+    const m4 = scoutWithCommander(world, player.id, city.id, c4.id);
+    expect(m4.commanderId).toBe(c4.id);
+  });
+
+  it("NO_COMMANDER for unknown or foreign commander", () => {
+    const world = freshWorld();
+    const a = world.createGuest("CmdH", "northern_kingdom");
+    const b = world.createGuest("CmdI", "mountain_realm");
+    buildGallery(world, b.player.id, b.city.id);
+    const foreign = world.recruitCommander(b.player.id);
+    expectCode(
+      () => scoutWithCommander(world, a.player.id, a.city.id, foreign.id),
+      "NO_COMMANDER",
+    );
+    expectCode(
+      () =>
+        scoutWithCommander(
+          world,
+          a.player.id,
+          a.city.id,
+          "00000000-0000-4000-8000-000000000000",
+        ),
+      "NO_COMMANDER",
+    );
+  });
+});

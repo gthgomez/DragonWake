@@ -124,7 +124,9 @@ CREATE TABLE commanders (
   attack          INT NOT NULL DEFAULT 10,
   defense         INT NOT NULL DEFAULT 10,
   life            INT NOT NULL DEFAULT 10,
-  busy_march_id   UUID
+  busy_march_id   UUID,
+  xp              BIGINT NOT NULL DEFAULT 0,
+  wounded_until   TIMESTAMPTZ
 );
 
 CREATE TABLE sovereigns (

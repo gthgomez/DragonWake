@@ -191,6 +191,12 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
       clue_used INT NOT NULL DEFAULT 0
     );
   `);
+
+  // 9. Commander progression/wounding columns (Commander System spec §9).
+  await client.query(`
+    ALTER TABLE commanders ADD COLUMN IF NOT EXISTS xp BIGINT NOT NULL DEFAULT 0;
+    ALTER TABLE commanders ADD COLUMN IF NOT EXISTS wounded_until TIMESTAMPTZ;
+  `);
 }
 
 export function findSchemaPath(): string | null {

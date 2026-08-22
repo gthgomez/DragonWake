@@ -13,6 +13,7 @@ import type {
   Camp,
   ChatMessage,
   City,
+  Commander,
   March,
   Player,
   QueueJob,
@@ -91,6 +92,7 @@ export class PgStore {
         world.allianceMembers.clear();
         world.chat = [];
         world.sovereigns.clear();
+        world.commanders.clear();
         world.inventory.clear();
         world.tutorials.clear();
       }
@@ -271,6 +273,30 @@ export class PgStore {
           createdAt: new Date(row.created_at).getTime(),
         };
         world.reports.set(r.id, r);
+      }
+
+      // Commanders BEFORE marches (march rows reference commander ids).
+      const cmdRows = await client.query(
+        `SELECT c.* FROM commanders c JOIN players p ON p.id = c.player_id WHERE p.realm_id = $1`,
+        [world.realmId],
+      );
+      for (const row of cmdRows.rows) {
+        const cmd: Commander = {
+          id: row.id,
+          playerId: row.player_id,
+          name: row.name,
+          stars: row.stars,
+          leadership: Number(row.leadership),
+          attack: Number(row.attack),
+          defense: Number(row.defense),
+          life: Number(row.life),
+          xp: Number(row.xp ?? 0),
+          busyMarchId: row.busy_march_id ?? null,
+          woundedUntil: row.wounded_until
+            ? new Date(row.wounded_until).getTime()
+            : null,
+        };
+        world.commanders.set(cmd.id, cmd);
       }
 
       const marches = await client.query(`SELECT * FROM marches WHERE realm_id = $1`, [
@@ -716,6 +742,42 @@ export class PgStore {
             s.harnessHeart,
             s.harnessGrasp,
             s.harnessKeel,
+          ],
+        );
+      }
+
+      // Commanders before marches (marches.commander_id references them)
+      for (const cmd of world.commanders.values()) {
+        await client.query(
+          `INSERT INTO commanders (
+             id, player_id, name, stars, leadership, attack, defense, life,
+             busy_march_id, xp, wounded_until
+           ) VALUES (
+             $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
+             CASE WHEN $11::float8 IS NULL THEN NULL ELSE to_timestamp($11/1000.0) END
+           )
+           ON CONFLICT (id) DO UPDATE SET
+             name=EXCLUDED.name,
+             stars=EXCLUDED.stars,
+             leadership=EXCLUDED.leadership,
+             attack=EXCLUDED.attack,
+             defense=EXCLUDED.defense,
+             life=EXCLUDED.life,
+             busy_march_id=EXCLUDED.busy_march_id,
+             xp=EXCLUDED.xp,
+             wounded_until=EXCLUDED.wounded_until`,
+          [
+            cmd.id,
+            cmd.playerId,
+            cmd.name,
+            cmd.stars,
+            cmd.leadership,
+            cmd.attack,
+            cmd.defense,
+            cmd.life,
+            cmd.busyMarchId,
+            cmd.xp,
+            cmd.woundedUntil,
           ],
         );
       }

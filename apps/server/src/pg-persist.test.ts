@@ -91,7 +91,84 @@ describe("PG persistence (shipped PgStore + World)", () => {
     }
     expect(world1.dailyClueUsage(player.id).used).toBeGreaterThanOrEqual(1);
 
-    // Snapshot pre-restart state for exact round-trip assertions.
+    // Commanders (Commander System spec §9): recruit via public path, win a
+    // battle for XP, wound a second via a lost battle, then arm a march so
+    // busy_march_id is live at flush time.
+    // NOTE: capture the returned job — an earlier habitation build is still
+    // running, so scanning world.jobs would grab the wrong one.
+    const galleryJob = world1.startBuild(city.id, player.id, 6, "command_gallery");
+    galleryJob.finishesAt = world1.now() - 1;
+    world1.processQueues(world1.now());
+    const c1 = world1.recruitCommander(player.id);
+    expect(c1.stars).toBe(1);
+
+    // Win vs L1 camp → +100 xp
+    world1.adminGrant(player.id, { units: { bowman: 300 } });
+    const l1camp = [...world1.camps.values()].find((c) => c.level === 1)!;
+    const winMarch = world1.createMarch(player.id, {
+      fromCityId: city.id,
+      intent: "attack",
+      targetType: "camp",
+      targetId: l1camp.id,
+      targetX: l1camp.x,
+      targetY: l1camp.y,
+      composition: { bowman: 150 },
+      commanderId: c1.id,
+    });
+    winMarch.arriveAt = 0;
+    const winReport = world1.landMarch(winMarch, world1.now());
+    expect(
+      (winReport!.result.battle as { winner: string }).winner,
+    ).toBe("attacker");
+    winMarch.returnAt = 0;
+    world1.processMarches(world1.now());
+    expect(world1.commanders.get(c1.id)!.xp).toBe(100);
+
+    // Second commander loses vs L10 camp → +25 xp + wounded
+    // (gallery L2 raises roster cap to 2; capture the returned job again)
+    const galleryJob2 = world1.startBuild(city.id, player.id, 6, "command_gallery");
+    galleryJob2.finishesAt = world1.now() - 1;
+    world1.processQueues(world1.now());
+    world1.adminGrant(player.id, { resources: { coin: 5000, food: 9000 } });
+    const c2 = world1.recruitCommander(player.id);
+    const l10camp = [...world1.camps.values()].find((c) => c.level === 10)!;
+    const lossMarch = world1.createMarch(player.id, {
+      fromCityId: city.id,
+      intent: "attack",
+      targetType: "camp",
+      targetId: l10camp.id,
+      targetX: l10camp.x,
+      targetY: l10camp.y,
+      composition: { levy: 1 },
+      commanderId: c2.id,
+    });
+    lossMarch.arriveAt = 0;
+    const lossReport = world1.landMarch(lossMarch, world1.now());
+    expect(
+      (lossReport!.result.battle as { winner: string }).winner,
+    ).toBe("defender");
+    lossMarch.returnAt = 0;
+    world1.processMarches(world1.now());
+
+    // Arm c1 on a fresh scout march that stays en_route across the restart.
+    const armedScout = world1.createMarch(player.id, {
+      fromCityId: city.id,
+      intent: "scout",
+      targetType: "camp",
+      targetId: l1camp.id,
+      targetX: l1camp.x,
+      targetY: l1camp.y,
+      composition: { scout: 1 },
+      commanderId: c1.id,
+    });
+    const expectedC1 = world1.commanders.get(c1.id)!;
+    const expectedC2 = world1.commanders.get(c2.id)!;
+    expect(expectedC1.busyMarchId).toBe(armedScout.id);
+    expect(expectedC2.woundedUntil).not.toBeNull();
+    expect(expectedC2.xp).toBe(25);
+
+    // Snapshot pre-restart state for exact round-trip assertions — taken
+    // AFTER all grants/marches so values match post-battle reality.
     const expectedBowman = world1.getCity(city.id)!.stacks.bowman;
     const expectedPosture = world1.getCity(city.id)!.defensePosture;
 
@@ -139,8 +216,22 @@ describe("PG persistence (shipped PgStore + World)", () => {
     expect(buildQuest?.done).toBe(true);
     expect(buildQuest?.claimed).toBe(true);
 
+    // Commander roster survived with xp/busy/wounded intact (spec §9).
+    const loadedC1 = world2.commanders.get(c1.id);
+    expect(loadedC1).toBeTruthy();
+    expect(loadedC1!.playerId).toBe(player.id);
+    expect(loadedC1!.xp).toBe(100);
+    expect(loadedC1!.stars).toBe(1);
+    expect(loadedC1!.busyMarchId).toBe(armedScout.id);
+    expect(world2.marches.get(armedScout.id)?.commanderId).toBe(c1.id);
+    const loadedC2 = world2.commanders.get(c2.id);
+    expect(loadedC2).toBeTruthy();
+    expect(loadedC2!.xp).toBe(25);
+    expect(loadedC2!.woundedUntil).not.toBeNull();
+    expect(loadedC2!.woundedUntil).toBe(expectedC2.woundedUntil);
+
     await store2!.close();
-  });
+  }, 20_000); // heavy round-trip (30 camp attacks + commanders); default too tight
 
   it("march land report survives reload", async ({ skip }) => {
     if (!canRun) {
@@ -188,5 +279,5 @@ describe("PG persistence (shipped PgStore + World)", () => {
     expect(m!.landCount).toBe(1);
     expect(m!.battleReportId).toBe(reportId);
     await store2!.close();
-  });
+  }, 20_000); // PG round-trip under load; default 5s is too tight
 });

@@ -13,6 +13,7 @@ import {
 import {
   getCamps,
   getCitadelById,
+  getCommanderNames,
   getUnitById,
   getUnitCost,
   getResearch,
@@ -186,6 +187,23 @@ export type Sovereign = {
   harnessGrasp: boolean;
   harnessKeel: boolean;
 };
+
+/** Rostered army leader (spec §4) — never a stackable troop. */
+export type Commander = {
+  id: string;
+  playerId: string;
+  name: string;
+  stars: number; // 1–5
+  leadership: number;
+  attack: number;
+  defense: number;
+  life: number;
+  xp: number;
+  /** March this commander currently leads; null = free. */
+  busyMarchId: string | null;
+  /** Epoch ms until which the commander cannot be assigned (post-loss). */
+  woundedUntil: number | null;
+};
 export type Session = {
   id: string;
   playerId: string;
@@ -236,6 +254,23 @@ export type DailyProgress = {
 
 /** Max dragon-clue drops farmable from camps per player per UTC day. */
 export const DAILY_CLUE_CAP = 3; // INITIAL_TEST_FIXTURE
+
+// ── Commander tuning fixtures (spec §12) ────────────────────────────────────
+
+/** Base stat at creation = stars + COMMANDER_BASE_STAT (star1=5 → +10%). */
+export const COMMANDER_BASE_STAT_OFFSET = 4; // INITIAL_TEST_FIXTURE
+/** Cumulative XP needed for star 2..5. */
+export const COMMANDER_STAR_XP_THRESHOLDS = [300, 900, 2100, 4500]; // INITIAL_TEST_FIXTURE
+/** All four stats gain this much per star-up. */
+export const COMMANDER_STAR_STAT_GAIN = 4; // INITIAL_TEST_FIXTURE
+export const COMMANDER_WIN_XP = 100; // INITIAL_TEST_FIXTURE
+export const COMMANDER_LOSS_XP = 25; // INITIAL_TEST_FIXTURE
+/** Real minutes a commander stays wounded after a lost battle (durationMs-scaled). */
+export const COMMANDER_WOUNDED_SEC = 30 * 60; // INITIAL_TEST_FIXTURE
+/** Hard cap on concurrently-commanded marches (slot cap = min(gallery level, this)). */
+export const COMMANDER_SLOT_CAP_MAX = 3; // INITIAL_TEST_FIXTURE
+export const RECRUIT_COST_COIN_PER_OWNED = 250; // INITIAL_TEST_FIXTURE
+export const RECRUIT_COST_FOOD_PER_OWNED = 500; // INITIAL_TEST_FIXTURE
 
 /** Per-player daily clue-drop usage — resets with the same UTC day key as dailies. */
 export type DailyClueUsage = { dayKey: string; used: number };
@@ -520,6 +555,7 @@ export class World {
   allianceMembers = new Map<string, AllianceMember>(); // by playerId
   chat: ChatMessage[] = [];
   sovereigns = new Map<string, Sovereign>();
+  commanders = new Map<string, Commander>();
   inventory = new Map<string, Record<string, number>>(); // playerId -> items
   tutorials = new Map<string, Tutorial>();
   /** Minimal daily quest stubs (reset by UTC day key). */
@@ -1034,6 +1070,136 @@ export class World {
     return job;
   }
 
+  // ── Commanders (spec §7–§8) ───────────────────────────────────────────────
+
+  /** Highest command_gallery level across the player's cities (0 = none). */
+  commandGalleryLevel(playerId: string): number {
+    let level = 0;
+    for (const city of this.citiesForPlayer(playerId)) {
+      for (const b of city.buildings) {
+        if (b.buildingType === "command_gallery") {
+          level = Math.max(level, b.level);
+        }
+      }
+    }
+    return level;
+  }
+
+  /** This player's marches currently led by a commander (non-terminal). */
+  commandedActiveMarches(playerId: string): number {
+    let n = 0;
+    for (const march of this.marches.values()) {
+      if (march.playerId !== playerId || !march.commanderId) continue;
+      if (march.status === "completed" || march.status === "cancelled") continue;
+      n += 1;
+    }
+    return n;
+  }
+
+  /** Max concurrently-commanded marches: min(gallery level, hard cap). */
+  commanderSlotCap(playerId: string): number {
+    return Math.min(this.commandGalleryLevel(playerId), COMMANDER_SLOT_CAP_MAX);
+  }
+
+  commandersForPlayer(playerId: string): Commander[] {
+    return [...this.commanders.values()].filter((c) => c.playerId === playerId);
+  }
+
+  /** Recruit the next roster commander (first free; later recruits scale in cost). */
+  recruitCommander(playerId: string): Commander {
+    const city = this.citiesForPlayer(playerId)[0];
+    if (!city || this.commandGalleryLevel(playerId) < 1) {
+      throw Object.assign(
+        new Error("recruiting requires a Command Gallery (level 1+)"),
+        { code: "NO_GALLERY" },
+      );
+    }
+    const owned = this.commandersForPlayer(playerId).length;
+    if (owned >= this.commandGalleryLevel(playerId)) {
+      throw Object.assign(
+        new Error(`roster full: gallery L${this.commandGalleryLevel(playerId)} allows ${owned} commanders`),
+        { code: "RECRUIT_SLOTS" },
+      );
+    }
+    if (owned >= 1) {
+      const coinCost = RECRUIT_COST_COIN_PER_OWNED * owned;
+      const foodCost = RECRUIT_COST_FOOD_PER_OWNED * owned;
+      const missing: string[] = [];
+      if ((city.resources.coin ?? 0) < coinCost) {
+        missing.push(`coin need ${coinCost} have ${city.resources.coin ?? 0}`);
+      }
+      if ((city.resources.food ?? 0) < foodCost) {
+        missing.push(`food need ${foodCost} have ${city.resources.food ?? 0}`);
+      }
+      if (missing.length > 0) {
+        throw Object.assign(
+          new Error(`cannot afford recruit: ${missing.join("; ")}`),
+          { code: "RECRUIT_COST" },
+        );
+      }
+      city.resources.coin -= coinCost;
+      city.resources.food -= foodCost;
+      this.cities.set(city.id, city);
+    }
+    const stars = 1;
+    const baseStat = stars + COMMANDER_BASE_STAT_OFFSET;
+    const names = getCommanderNames();
+    const commander: Commander = {
+      id: randomUUID(),
+      playerId,
+      name: names[Math.floor(Math.random() * names.length)] ?? "Aldric",
+      stars,
+      leadership: baseStat,
+      attack: baseStat,
+      defense: baseStat,
+      life: baseStat,
+      xp: 0,
+      busyMarchId: null,
+      woundedUntil: null,
+    };
+    this.commanders.set(commander.id, commander);
+    this.pushEvent(
+      playerId,
+      "info",
+      `${commander.name} joins your command (★${stars})`,
+      { commanderId: commander.id },
+    );
+    return commander;
+  }
+
+  /** XP + star-ups + wounding from a finalized battle (spec §6.4/§8). */
+  private awardCommanderBattleXp(commanderId: string, won: boolean, now: number): void {
+    const cmd = this.commanders.get(commanderId);
+    if (!cmd) return;
+    if (won) {
+      cmd.xp += COMMANDER_WIN_XP;
+    } else {
+      cmd.xp += COMMANDER_LOSS_XP;
+      cmd.woundedUntil = now + durationMs(COMMANDER_WOUNDED_SEC, this.devFastTime);
+    }
+    while (
+      cmd.stars < 5 &&
+      cmd.xp >= (COMMANDER_STAR_XP_THRESHOLDS[cmd.stars - 1] ?? Infinity)
+    ) {
+      cmd.stars += 1;
+      cmd.leadership += COMMANDER_STAR_STAT_GAIN;
+      cmd.attack += COMMANDER_STAR_STAT_GAIN;
+      cmd.defense += COMMANDER_STAR_STAT_GAIN;
+      cmd.life += COMMANDER_STAR_STAT_GAIN;
+    }
+    this.commanders.set(cmd.id, cmd);
+  }
+
+  /** Clear a march's commander link when the march reaches terminal state. */
+  private releaseCommander(march: March): void {
+    if (!march.commanderId) return;
+    const cmd = this.commanders.get(march.commanderId);
+    if (cmd && cmd.busyMarchId === march.id) {
+      cmd.busyMarchId = null;
+      this.commanders.set(cmd.id, cmd);
+    }
+  }
+
   setPosture(cityId: string, playerId: string, posture: DefensePosture): City {
     const city = this.requireCityOwner(cityId, playerId);
     // Posture cooldown: 5 minutes between changes (INITIAL_TEST_FIXTURE)
@@ -1456,11 +1622,43 @@ export class World {
       targetY: number;
       composition: Record<string, number>;
       sovereignId?: string | null;
+      /** Commander leading this march (spec §6); validated + slot-capped. */
+      commanderId?: string | null;
       /** Resource cargo for haul intent (deducted from origin city now). */
       cargo?: Partial<ResourceBag>;
     },
   ): March {
     const city = this.requireCityOwner(opts.fromCityId, playerId);
+
+    // Commander validations before any state mutation (spec §6).
+    let commander: Commander | null = null;
+    if (opts.commanderId) {
+      commander = this.commanders.get(opts.commanderId) ?? null;
+      if (!commander || commander.playerId !== playerId) {
+        throw Object.assign(new Error("no such commander"), {
+          code: "NO_COMMANDER",
+        });
+      }
+      if (commander.busyMarchId) {
+        throw Object.assign(new Error("commander already leading a march"), {
+          code: "COMMANDER_BUSY",
+        });
+      }
+      if (commander.woundedUntil && commander.woundedUntil > this.now()) {
+        throw Object.assign(new Error("commander is wounded"), {
+          code: "COMMANDER_WOUNDED",
+        });
+      }
+      if (this.commandedActiveMarches(playerId) >= this.commanderSlotCap(playerId)) {
+        throw Object.assign(
+          new Error(
+            `commanded-march slots full (${this.commanderSlotCap(playerId)}; raise Command Gallery)`,
+          ),
+          { code: "COMMANDER_SLOTS" },
+        );
+      }
+    }
+
     // Deduct troops
     for (const [uid, cnt] of Object.entries(opts.composition)) {
       const have = city.stacks[uid] ?? 0;
@@ -1524,7 +1722,7 @@ export class World {
       realmId: this.realmId,
       playerId,
       fromCityId: city.id,
-      commanderId: null,
+      commanderId: commander?.id ?? null,
       sovereignId: opts.sovereignId ?? null,
       intent: opts.intent,
       targetType: opts.targetType,
@@ -1540,6 +1738,10 @@ export class World {
       battleReportId: null,
       landCount: 0,
     };
+    if (commander) {
+      commander.busyMarchId = march.id;
+      this.commanders.set(commander.id, commander);
+    }
     this.marches.set(march.id, march);
     return march;
   }
@@ -1637,6 +1839,8 @@ export class World {
       this.cities.set(city.id, city);
     }
     march.status = "completed";
+    // Terminal state: the led march is done, free the commander (spec §6.3).
+    this.releaseCommander(march);
     this.marches.set(march.id, march);
     this.pushEvent(
       march.playerId,
@@ -1774,6 +1978,10 @@ export class World {
     const seed =
       (parseInt(march.id.replace(/-/g, "").slice(0, 8), 16) ^ now) >>> 0;
 
+    const marchCommander = march.commanderId
+      ? (this.commanders.get(march.commanderId) ?? null)
+      : null;
+
     let battle =
       defGroups.length === 0 && harborLoot
         ? {
@@ -1802,6 +2010,12 @@ export class World {
                       this.sovereigns.get(march.sovereignId)?.sovereignType ??
                       "harbinger",
                     level: this.sovereigns.get(march.sovereignId)?.level ?? 1,
+                  }
+                : undefined,
+              commander: marchCommander
+                ? {
+                    leadership: marchCommander.leadership,
+                    attack: marchCommander.attack,
                   }
                 : undefined,
             },
@@ -1888,6 +2102,16 @@ export class World {
           this.players.set(atk.id, atk);
         }
       }
+    }
+
+    // Commander battle XP + wounding (spec §6.4/§8) — win 100 / loss 25,
+    // applied once inside report finalization (landMarch is once-only).
+    if (marchCommander && battle.winner !== "draw") {
+      this.awardCommanderBattleXp(
+        marchCommander.id,
+        battle.winner === "attacker",
+        now,
+      );
     }
 
     const report = this.makeReport(

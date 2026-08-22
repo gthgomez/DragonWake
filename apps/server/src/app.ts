@@ -20,6 +20,7 @@ import { FACTIONS } from "@tideforge/shared";
 import {
   World,
   type City,
+  type Commander,
   type Player,
   PLOT_TYPES,
   TUTORIAL_STEPS,
@@ -82,6 +83,32 @@ function publicCity(c: City, world: World) {
 
 function err(c: { json: (b: unknown, s: number) => Response }, code: string, message: string, status = 400) {
   return c.json({ error: { code, message } }, status);
+}
+
+/** LOCKED wire shape for commanders — the web UI builds against this. */
+function publicCommander(world: World, cmd: Commander) {
+  const now = world.now();
+  const state =
+    cmd.woundedUntil && cmd.woundedUntil > now
+      ? "wounded"
+      : cmd.busyMarchId
+        ? "busy"
+        : "available";
+  return {
+    id: cmd.id,
+    name: cmd.name,
+    stars: cmd.stars,
+    leadership: cmd.leadership,
+    attack: cmd.attack,
+    defense: cmd.defense,
+    life: cmd.life,
+    xp: cmd.xp,
+    state,
+    woundedUntil: cmd.woundedUntil
+      ? new Date(cmd.woundedUntil).toISOString()
+      : null,
+    busyMarchId: cmd.busyMarchId,
+  };
 }
 
 export function createApp(world: World) {
@@ -504,6 +531,7 @@ export function createApp(world: World) {
         composition: body.composition ?? {},
         cargo: body.cargo,
         sovereignId: body.sovereignId ?? null,
+        commanderId: body.commanderId ?? null,
       });
       return c.json({ march });
     } catch (e) {
@@ -546,6 +574,31 @@ export function createApp(world: World) {
         harnessComplete: world.harnessComplete(s),
       }));
     return c.json({ sovereigns: list });
+  });
+
+  api.get("/commanders", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const commanders = world
+      .commandersForPlayer(player.id)
+      .map((cmd) => publicCommander(world, cmd));
+    return c.json({ commanders });
+  });
+
+  api.post("/commanders/recruit", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    await c.req.json().catch(() => ({}));
+    try {
+      const commander = world.recruitCommander(player.id);
+      return c.json({ commander: publicCommander(world, commander) });
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "RECRUIT_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
   });
 
   api.get("/citadels", (c) => c.json({ citadels: getCitadels() }));
