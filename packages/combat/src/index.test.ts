@@ -139,3 +139,92 @@ describe("parseForceString", () => {
     );
   });
 });
+
+describe("commander bonus (spec §5)", () => {
+  // Legacy-parity fixture: exact result for this input before/after the
+  // commander change with no commander field present (byte-identical math).
+  const LEGACY_EXPECTED = {
+    rulesVersion: "legacy",
+    seed: 777,
+    winner: "attacker",
+    rounds: 4,
+    openDistance: 1050,
+    losses: { attacker: {}, defender: { pikeman: 1000 } },
+    remaining: { attacker: { bowman: 1000 }, defender: {} },
+  };
+
+  const legacyInput = {
+    rulesVersion: "legacy",
+    seed: 777,
+    attacker: { groups: [{ unitId: "bowman", count: 1000 }] },
+    defender: { groups: [{ unitId: "pikeman", count: 1000 }] },
+  };
+
+  it("absent commander ⇒ byte-identical legacy result", () => {
+    const result = resolveBattle(legacyInput);
+    expect(result).toEqual(LEGACY_EXPECTED);
+  });
+
+  it("explicit commander:undefined ⇒ identical to omitted field", () => {
+    const omitted = resolveBattle(legacyInput);
+    const explicit = resolveBattle({
+      ...legacyInput,
+      attacker: { ...legacyInput.attacker, commander: undefined },
+      defender: { ...legacyInput.defender, commander: undefined },
+    });
+    expect(explicit).toEqual(omitted);
+  });
+
+  const closeBase = {
+    rulesVersion: COMBAT_RULES_VERSION,
+    seed: 9001,
+    attacker: {
+      groups: [
+        { unitId: "pikeman", count: 500 },
+        { unitId: "bowman", count: 300 },
+      ],
+    },
+    defender: {
+      groups: [
+        { unitId: "man_at_arms", count: 400 },
+        { unitId: "crossbowman", count: 200 },
+      ],
+    },
+  };
+
+  it("present commander measurably shifts the fight (fixture-anchored)", () => {
+    const base = resolveBattle(closeBase);
+    const commanded = resolveBattle({
+      ...closeBase,
+      attacker: {
+        ...closeBase.attacker,
+        commander: { leadership: 9, attack: 9 },
+      },
+    });
+    // Defender absorbs strictly more damage under a 5-star commander aura
+    // (+18% life/defense/attack on the attacker side).
+    const defLost = (r: typeof base) =>
+      Object.values(r.losses.defender).reduce((s, n) => s + n, 0);
+    expect(defLost(commanded)).toBeGreaterThan(defLost(base));
+    // Anchored fixtures (computed at change time; guards silent rebalancing)
+    expect(defLost(base)).toBe(94);
+    expect(defLost(commanded)).toBe(111);
+  });
+
+  it("commander effect is seed-reproducible (same input+seed = same result)", () => {
+    const input = {
+      ...closeBase,
+      attacker: {
+        ...closeBase.attacker,
+        commander: { leadership: 5, attack: 7 },
+      },
+    };
+    const a = resolveBattle(input);
+    const b = resolveBattle(input);
+    expect(a).toEqual(b);
+  });
+
+  it("rules version bumped for the commander-capable resolver", () => {
+    expect(COMBAT_RULES_VERSION).toBe("0.2.0");
+  });
+});

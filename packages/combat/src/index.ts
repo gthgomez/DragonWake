@@ -21,6 +21,8 @@ export type BattleGroup = {
 export type SideInput = {
   groups: BattleGroup[];
   sovereign?: { sovereignId: string; level?: number };
+  /** Commander leadership bonus (spec §5); absent ⇒ legacy behavior. */
+  commander?: { leadership: number; attack: number };
 };
 
 export type BattleInput = {
@@ -48,7 +50,7 @@ export type BattleResult = {
   note?: string;
 };
 
-export const COMBAT_RULES_VERSION = "0.1.0";
+export const COMBAT_RULES_VERSION = "0.2.0";
 
 const MAX_ROUNDS = 40;
 const COMBAT_ROLES = new Set([
@@ -163,6 +165,30 @@ function buildGroups(
     }
   }
   return out;
+}
+
+/**
+ * Commander leadership bonus (spec §5): every group on that side gets life and
+ * defense ×(1 + 0.02 × leadership) and melee/ranged attack ×(1 + 0.02 ×
+ * attack). Absent commander ⇒ no-op (byte-identical legacy math). Applied in
+ * resolveBattle after unit-stat lookup, before the round loop; pure and
+ * deterministic. Composes multiplicatively with the sovereign aura term.
+ */
+const COMMANDER_BONUS_PER_POINT = 0.02; // INITIAL_TEST_FIXTURE
+
+function applyCommanderBonus(
+  groups: LiveGroup[],
+  commander: SideInput["commander"],
+): void {
+  if (!commander) return;
+  const statMul = 1 + COMMANDER_BONUS_PER_POINT * commander.leadership;
+  const atkMul = 1 + COMMANDER_BONUS_PER_POINT * commander.attack;
+  for (const g of groups) {
+    g.hp *= statMul;
+    g.unitLife *= statMul;
+    g.unitDefense *= statMul;
+    g.unitAtk *= atkMul;
+  }
 }
 
 function living(groups: LiveGroup[]): LiveGroup[] {
@@ -309,6 +335,10 @@ export function resolveBattle(input: BattleInput): BattleResult {
     input.openDistanceOverride ?? maxRange(atkGroups) + flat;
   const defGroups = buildGroups(input.defender, "defender", provisionalOpen);
   const openDistance = provisionalOpen;
+
+  // Commander leadership bonuses (spec §5) — after stat lookup, before rounds.
+  applyCommanderBonus(atkGroups, input.attacker.commander);
+  applyCommanderBonus(defGroups, input.defender.commander);
 
   // Edge: empty sides
   if (living(atkGroups).length === 0 && living(defGroups).length === 0) {
