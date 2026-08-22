@@ -1,0 +1,286 @@
+version: 1
+status: research-backed-mechanism-contract-v0.1
+authority:
+  historical_truth: DOA_REFERENCE_MODEL.md
+  tideforge_direction: DIRECTION_FREEZE_V1.md
+  translation: DOA_PARITY_MATRIX.md
+  note: >-
+    This file encodes dependency topology and invariant IDs. It is not a
+    numeric balance spec and does not make historical DoA fiction canonical.
+
+nodes:
+  - id: keep
+    kind: building_role
+    label: Central Keep / Capital progression
+  - id: fields
+    kind: economy
+    label: Resource fields / surrounding lands
+  - id: homes
+    kind: building_role
+    label: Housing
+  - id: population
+    kind: economy
+    label: Civilian population
+  - id: manpower
+    kind: economy
+    label: Available manpower
+  - id: resources
+    kind: economy
+    label: Food timber stone iron coin
+  - id: training
+    kind: building_role
+    label: Training infrastructure
+  - id: research
+    kind: building_role
+    label: Research infrastructure
+  - id: muster
+    kind: building_role
+    label: Muster / military assembly
+  - id: command
+    kind: building_role
+    label: Commander capacity
+  - id: troop_unlocks
+    kind: military
+    label: Troop and doctrine capability
+  - id: march_capacity
+    kind: military
+    label: March size and concurrency
+  - id: camps
+    kind: world_pve
+    label: Repeatable PvE targets
+  - id: wilderness
+    kind: world_objective
+    label: Capturable wilderness / strategic sites
+  - id: wilderness_bonus
+    kind: economy
+    label: Persistent world-derived bonus
+  - id: dragon_knowledge
+    kind: dragon
+    label: Dragon study / Bestiary knowledge
+  - id: dragon_material
+    kind: dragon
+    label: World-earned dragon preparation material
+  - id: dragon_facility
+    kind: dragon
+    label: Dragon-related facility / visible progression
+  - id: dragon_readiness
+    kind: dragon
+    label: Composite primary-dragon readiness gate
+  - id: targeted_hunt
+    kind: world_pve
+    label: Targeted hunt / expedition
+  - id: settlement_prereq
+    kind: expansion
+    label: World-earned settlement prerequisite
+  - id: settlement_1
+    kind: expansion
+    label: First differentiated secondary settlement
+  - id: settlement_capability
+    kind: expansion
+    label: New strategic capability
+  - id: regional_expansion
+    kind: expansion
+    label: Next regional expansion
+  - id: pvp
+    kind: social_war
+    label: PvP scouting attack defense
+  - id: alliance
+    kind: social_war
+    label: Alliance interdependence
+
+edges:
+  - from: keep
+    to: fields
+    relation: gates_capacity
+    historical_anchor: DOA-ECON-001
+  - from: keep
+    to: wilderness
+    relation: gates_capacity
+    historical_anchor: DOA-ECON-001
+  - from: fields
+    to: resources
+    relation: produces
+    historical_anchor: DOA-WORLD-001
+  - from: homes
+    to: population
+    relation: increases_capacity
+    historical_anchor: DOA-ECON-001
+  - from: population
+    to: manpower
+    relation: supplies
+    invariant: PG-INV-002
+  - from: manpower
+    to: fields
+    relation: supplies_labor
+    invariant: PG-INV-001
+  - from: manpower
+    to: training
+    relation: supplies_recruits
+    invariant: PG-INV-001
+  - from: resources
+    to: training
+    relation: funds
+    invariant: PG-INV-001
+  - from: resources
+    to: research
+    relation: funds
+    invariant: PG-INV-001
+  - from: training
+    to: troop_unlocks
+    relation: enables
+    historical_anchor: DOA-MIL-001
+  - from: research
+    to: troop_unlocks
+    relation: enables
+    historical_anchor: DOA-TECH-001
+    invariant: PG-INV-003
+  - from: muster
+    to: march_capacity
+    relation: increases
+    historical_anchor: DOA-MIL-001
+    invariant: PG-INV-004
+  - from: command
+    to: march_capacity
+    relation: constrains_concurrency
+    historical_anchor: DOA-MIL-001
+    invariant: PG-INV-004
+  - from: troop_unlocks
+    to: camps
+    relation: enables_success
+  - from: troop_unlocks
+    to: wilderness
+    relation: enables_success
+  - from: march_capacity
+    to: camps
+    relation: enables_operations
+  - from: march_capacity
+    to: wilderness
+    relation: enables_operations
+  - from: wilderness
+    to: wilderness_bonus
+    relation: ownership_grants
+    historical_anchor: DOA-WILD-001
+    invariant: PG-INV-006
+  - from: wilderness_bonus
+    to: resources
+    relation: increases_future_flow
+    invariant: PG-INV-006
+  - from: camps
+    to: dragon_material
+    relation: yields
+    historical_anchor: DOA-PVE-001
+    invariant: PG-INV-005
+  - from: camps
+    to: dragon_knowledge
+    relation: reveals_or_tests
+    invariant: PG-INV-005
+  - from: wilderness
+    to: dragon_knowledge
+    relation: reveals
+    invariant: PG-INV-005
+  - from: dragon_facility
+    to: dragon_readiness
+    relation: contributes
+    historical_anchor: DOA-DRAGON-001
+    invariant: PG-INV-007
+  - from: dragon_material
+    to: dragon_readiness
+    relation: contributes
+    historical_anchor: DOA-DRAGON-001
+    invariant: PG-INV-007
+  - from: dragon_knowledge
+    to: dragon_readiness
+    relation: contributes
+    historical_anchor: DOA-DRAGON-001
+    invariant: PG-INV-007
+  - from: research
+    to: dragon_readiness
+    relation: contributes
+    historical_anchor: DOA-DRAGON-001
+    invariant: PG-INV-007
+  - from: dragon_readiness
+    to: targeted_hunt
+    relation: unlocks_or_makes_viable
+    historical_anchor: DOA-OUTPOST-001
+  - from: targeted_hunt
+    to: settlement_prereq
+    relation: earns
+    historical_anchor: DOA-OUTPOST-001
+    invariant: PG-INV-008
+  - from: settlement_prereq
+    to: settlement_1
+    relation: unlocks
+    invariant: PG-INV-008
+  - from: settlement_1
+    to: settlement_capability
+    relation: grants
+    historical_anchor: DOA-OUTPOST-002
+    invariant: PG-INV-009
+  - from: settlement_capability
+    to: regional_expansion
+    relation: enables
+    historical_anchor: DOA-OUTPOST-002
+  - from: regional_expansion
+    to: pvp
+    relation: increases_stakes
+  - from: regional_expansion
+    to: alliance
+    relation: creates_interdependence
+    historical_anchor: DOA-SOCIAL-001
+    invariant: PG-INV-011
+  - from: pvp
+    to: alliance
+    relation: rewards_coordination
+    invariant: PG-INV-011
+
+historical_chain:
+  original_outposts:
+    confidence: high_for_sequence
+    contamination_risk: medium
+    sequence:
+      - Water Outpost
+      - Stone Outpost
+      - Fire Outpost
+      - Wind Outpost
+    preserve: chained_differentiated_expansion
+    reject:
+      - elemental_taxonomy_as_tideforge_canon
+      - exact_egg_drop_rules_as_immutable
+
+invariants:
+  - id: PG-INV-001
+    statement: Economy feeds military capability.
+  - id: PG-INV-002
+    statement: Population/manpower is mechanically meaningful and legible.
+  - id: PG-INV-003
+    statement: Research unlocks strategy, not only percentage inflation.
+  - id: PG-INV-004
+    statement: March size, concurrency and command capacity are progression axes.
+  - id: PG-INV-005
+    statement: World PvE feeds progression with non-menu-earned value.
+  - id: PG-INV-006
+    statement: Wilderness ownership has persistent value outside PvP.
+  - id: PG-INV-007
+    statement: Primary-dragon readiness is a composite multi-system gate.
+  - id: PG-INV-008
+    statement: First specialized settlement is earned through world activity.
+  - id: PG-INV-009
+    statement: Secondary settlements grant differentiated strategic capabilities.
+  - id: PG-INV-010
+    statement: Dragons do not erase armies, logistics, fortifications or commanders.
+  - id: PG-INV-011
+    statement: Individual progression eventually creates alliance interdependence.
+
+non_invariants:
+  - elemental_water_stone_fire_wind_theme
+  - exact_resource_names_or_ratios
+  - exact_building_levels_or_timers
+  - exact_original_troop_roster
+  - exact_general_star_formula
+  - zero_tax_training_exploit
+  - one_construction_queue
+  - mandatory_dragon_in_every_egg_hunt_march
+  - exact_camp_respawn_or_drop_rates
+  - stackable_true_dragons
+  - power_score_dominance
+  - paid_instant_movement
