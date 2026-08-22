@@ -1,0 +1,602 @@
+/*
+   Tideforge Empires — ornate app-chrome HUD layer.
+   Imported once by components/Shell.tsx and once by components/LoginView.tsx.
+   Every class is prefixed hud- (app chrome: topbar, tabs, banners, toasts,
+   persistent ops card, login screen). Builds on base vars from styles.css and
+   extended tokens from styles/tokens.css.
+   Namespace discipline: no rpt-, codex-, city- or map- classes are defined or
+   overridden here; bare element selectors appear only nested inside hud-
+   chrome scopes.
+*/
+
+/* ============ Shared recipes ============ */
+
+.hud-topbar,
+.hud-ops,
+.hud-login-card,
+.hud-tutorial {
+  --hud-ink: #2b2114;
+  --hud-ink-soft: #6d5b41;
+}
+
+.hud-ops,
+.hud-login-card {
+  color: var(--hud-ink);
+  background: linear-gradient(
+    168deg,
+    var(--parchment-1) 0%,
+    var(--parchment-2) 55%,
+    var(--parchment-3) 100%
+  );
+  border: 1px solid var(--border-ornate);
+  border-radius: var(--radius-md);
+  box-shadow:
+    var(--shadow-2),
+    inset 0 0 0 1px color-mix(in srgb, var(--parchment-1) 45%, transparent),
+    inset 0 -18px 32px color-mix(in srgb, var(--parchment-3) 55%, transparent);
+}
+
+/* ============ Topbar: carved stone bar ============ */
+
+.topbar.hud-topbar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.25rem 1.25rem;
+  padding: 0.95rem 1.15rem 1.05rem;
+  margin-bottom: 0.9rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--stone-1) 94%, #000),
+    var(--stone-3)
+  );
+  border: 1px solid var(--border-ornate);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-2), var(--shadow-inset);
+  overflow: hidden;
+}
+
+/* thin faction-accent glow strip along the carved bottom edge */
+.topbar.hud-topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--border-ornate-strong) 18%,
+    var(--border-ornate-strong) 82%,
+    transparent
+  );
+  box-shadow: 0 0 8px color-mix(in srgb, var(--border-ornate-strong) 55%, transparent);
+}
+
+.shell.faction-brine .topbar.hud-topbar::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--faction-brine) 18%,
+    var(--faction-brine) 82%,
+    transparent
+  );
+  box-shadow: 0 0 9px color-mix(in srgb, var(--faction-brine) 60%, transparent);
+}
+
+.shell.faction-ash .topbar.hud-topbar::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--faction-ash) 18%,
+    var(--faction-ash) 82%,
+    transparent
+  );
+  box-shadow: 0 0 9px color-mix(in srgb, var(--faction-ash) 60%, transparent);
+}
+
+.shell.faction-sky .topbar.hud-topbar::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--faction-sky) 18%,
+    var(--faction-sky) 82%,
+    transparent
+  );
+  box-shadow: 0 0 9px color-mix(in srgb, var(--faction-sky) 60%, transparent);
+}
+
+.shell.faction-moss .topbar.hud-topbar::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--faction-moss) 18%,
+    var(--faction-moss) 82%,
+    transparent
+  );
+  box-shadow: 0 0 9px color-mix(in srgb, var(--faction-moss) 60%, transparent);
+}
+
+.topbar.hud-topbar h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-variant: small-caps;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  font-size: 1.6rem;
+  color: color-mix(in srgb, var(--parchment-1) 86%, var(--border-ornate-strong));
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+
+.topbar.hud-topbar .eyebrow {
+  margin: 0;
+  font-family: var(--font-display);
+  letter-spacing: 0.22em;
+  color: var(--border-ornate-strong);
+}
+
+.topbar.hud-topbar .tag {
+  margin: 0.3rem 0 0;
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  color: color-mix(in srgb, var(--parchment-2) 52%, var(--muted));
+}
+
+/* ============ Tab nav: ornate tabs ============ */
+
+.tabs.hud-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding-bottom: 0.15rem;
+}
+
+.hud-tabs button {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 0.84rem;
+  letter-spacing: 0.05em;
+  color: color-mix(in srgb, var(--parchment-1) 72%, var(--muted));
+  background: linear-gradient(180deg, var(--stone-1), var(--stone-2));
+  border: 1px solid var(--border-ornate);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-1), var(--shadow-inset);
+  transition: transform 140ms ease-out, box-shadow 140ms ease-out,
+    background 140ms ease-out, color 140ms ease-out;
+}
+
+.hud-tabs button:hover:not(:disabled) {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--stone-1) 88%, var(--border-ornate)),
+    var(--stone-2)
+  );
+  color: var(--parchment-1);
+}
+
+.hud-tabs button.active {
+  color: var(--hud-ink);
+  background: linear-gradient(180deg, var(--parchment-1), var(--parchment-2));
+  border-color: var(--border-ornate-strong);
+  box-shadow: var(--glow-accent), var(--shadow-1);
+  transform: translateY(-1px);
+}
+
+/* accent underline beneath the lifted active tab */
+.hud-tabs button.active::after {
+  content: "";
+  position: absolute;
+  left: 0.4rem;
+  right: 0.4rem;
+  bottom: -1px;
+  height: 2px;
+  border-radius: var(--radius-xs);
+  background: var(--border-ornate-strong);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--border-ornate-strong) 50%, transparent);
+}
+
+.shell.faction-brine .hud-tabs button.active::after {
+  background: var(--faction-brine);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--faction-brine) 55%, transparent);
+}
+
+.shell.faction-ash .hud-tabs button.active::after {
+  background: var(--faction-ash);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--faction-ash) 55%, transparent);
+}
+
+.shell.faction-sky .hud-tabs button.active::after {
+  background: var(--faction-sky);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--faction-sky) 55%, transparent);
+}
+
+.shell.faction-moss .hud-tabs button.active::after {
+  background: var(--faction-moss);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--faction-moss) 55%, transparent);
+}
+
+/* gold unread badge treatment (semantics/classes unchanged) */
+.hud-tabs .badge {
+  background: radial-gradient(
+    circle at 30% 30%,
+    #efd9a2,
+    var(--border-ornate-strong)
+  );
+  color: #241a0c;
+  border: 1px solid color-mix(in srgb, #e6cf9a 55%, var(--border-ornate-strong));
+  box-shadow: var(--glow-gold);
+  font-family: var(--font-body);
+}
+
+/* ============ Banners (error / status) ============ */
+
+.banner.hud-banner {
+  font-family: var(--font-body);
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  box-shadow: var(--shadow-1);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--stone-1) 85%, transparent),
+    color-mix(in srgb, var(--stone-2) 85%, transparent)
+  );
+}
+
+.banner.err.hud-banner {
+  border-color: color-mix(in srgb, var(--err) 40%, var(--border));
+  border-left-color: var(--err);
+}
+
+.banner.ok.hud-banner {
+  border-color: color-mix(in srgb, var(--ok) 35%, var(--border));
+  border-left-color: var(--ok);
+}
+
+.hud-banner .linkish {
+  background: transparent;
+  border: none;
+  color: inherit;
+}
+
+/* ============ Tutorial callout ============ */
+
+.card.tutorial-banner.hud-tutorial {
+  border-color: var(--border-ornate);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--parchment-2) 18%, var(--bg-card)),
+    color-mix(in srgb, var(--stone-2) 92%, transparent)
+  );
+  box-shadow: var(--shadow-1), var(--shadow-inset);
+}
+
+.hud-tutorial h2 {
+  font-family: var(--font-display);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+.hud-tutorial button {
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  color: #241a0c;
+  background: linear-gradient(180deg, var(--border-ornate-strong), var(--accent-hot));
+  border: 1px solid color-mix(in srgb, var(--border-ornate-strong) 60%, #000);
+  border-radius: var(--radius-xs);
+}
+
+.hud-tutorial button:hover:not(:disabled) {
+  filter: brightness(1.07);
+  box-shadow: var(--glow-gold);
+}
+
+/* ============ Persistent ops card: Queues + Marches ============ */
+
+.card.ops.hud-ops {
+  padding: 0.9rem 1.1rem 1rem;
+}
+
+.hud-ops h2 {
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-ornate) 45%, transparent);
+  font-family: var(--font-display);
+  font-variant: small-caps;
+  letter-spacing: 0.07em;
+  font-size: 1.05rem;
+  color: var(--hud-ink);
+}
+
+.hud-ops .muted {
+  color: var(--hud-ink-soft);
+}
+
+.hud-ops .ops-list li {
+  margin: 0;
+  padding: 0.45rem 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--border-ornate) 32%, transparent);
+}
+
+.hud-ops .ops-list li:last-child {
+  border-bottom: 0;
+}
+
+.hud-ops .ops-head {
+  font-family: var(--font-body);
+  font-size: 0.96rem;
+}
+
+.hud-job {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  min-width: 0;
+}
+
+.hud-job-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--border-ornate);
+  filter: drop-shadow(
+    0 0 4px color-mix(in srgb, var(--border-ornate-strong) 40%, transparent)
+  );
+}
+
+.hud-eta {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  padding: 0 0.45rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--border-ornate) 38%, transparent);
+  background: color-mix(in srgb, var(--stone-2) 14%, transparent);
+  white-space: nowrap;
+}
+
+/* gold progress fill with slow shimmer */
+.hud-ops .bar {
+  position: relative;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--stone-3) 76%, var(--parchment-3));
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.hud-ops .bar-fill {
+  position: relative;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    var(--accent),
+    var(--border-ornate-strong) 55%,
+    #e6cf9a
+  );
+  box-shadow: 0 0 6px color-mix(in srgb, var(--border-ornate-strong) 45%, transparent);
+}
+
+.hud-ops .bar-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 244, 214, 0.5) 50%,
+    transparent 70%
+  );
+  animation: hud-shimmer 2.4s ease-in-out infinite;
+}
+
+@keyframes hud-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ============ Toasts: parchment slips ============ */
+
+.toast-stack.hud-toast-stack {
+  z-index: 60;
+}
+
+.hud-toast-stack .hud-toast {
+  font-family: var(--font-body);
+  color: var(--hud-ink);
+  background: linear-gradient(180deg, var(--parchment-1), var(--parchment-2));
+  border: 1px solid color-mix(in srgb, var(--border-ornate) 65%, transparent);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-2);
+  animation: hud-toast-in 220ms cubic-bezier(0.21, 0.61, 0.35, 1);
+}
+
+.hud-toast-stack .toast-info {
+  border-left-color: var(--accent-hot);
+  color: var(--hud-ink);
+}
+
+.hud-toast-stack .toast-ok {
+  border-left-color: var(--ok);
+  color: var(--hud-ink);
+}
+
+.hud-toast-stack .toast-err {
+  border-left-color: var(--err);
+  color: var(--hud-ink);
+}
+
+@keyframes hud-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============ Login screen ============ */
+
+.hud-hero {
+  text-align: center;
+  padding: 1.6rem 0 0.6rem;
+}
+
+.hud-hero .eyebrow {
+  font-family: var(--font-display);
+  letter-spacing: 0.24em;
+  color: var(--border-ornate-strong);
+}
+
+.hud-hero h1 {
+  font-family: var(--font-display);
+  font-variant: small-caps;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  color: color-mix(in srgb, var(--parchment-1) 92%, #fff);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.hud-hero h1::after {
+  content: "";
+  display: block;
+  width: 130px;
+  height: 2px;
+  margin: 0.65rem auto 0.1rem;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--border-ornate-strong),
+    transparent
+  );
+}
+
+.shell.faction-brine .hud-hero h1::after {
+  background: linear-gradient(90deg, transparent, var(--faction-brine), transparent);
+}
+
+.shell.faction-ash .hud-hero h1::after {
+  background: linear-gradient(90deg, transparent, var(--faction-ash), transparent);
+}
+
+.shell.faction-sky .hud-hero h1::after {
+  background: linear-gradient(90deg, transparent, var(--faction-sky), transparent);
+}
+
+.shell.faction-moss .hud-hero h1::after {
+  background: linear-gradient(90deg, transparent, var(--faction-moss), transparent);
+}
+
+.hud-hero .tag {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 1.04rem;
+}
+
+.card.hud-login-card label {
+  color: var(--hud-ink);
+  font-family: var(--font-body);
+}
+
+.hud-login-card h2 {
+  font-family: var(--font-display);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--hud-ink);
+}
+
+.hud-login-card input,
+.hud-login-card select {
+  background: color-mix(in srgb, var(--stone-3) 88%, #000);
+  color: var(--parchment-1);
+  border: 1px solid var(--border-ornate);
+  border-radius: var(--radius-sm);
+}
+
+.hud-login-card input:focus-visible,
+.hud-login-card select:focus-visible {
+  outline: none;
+  border-color: var(--border-ornate-strong);
+  box-shadow: var(--glow-accent);
+}
+
+.hud-login-card .faction-blurb {
+  border-left: 3px solid var(--border-ornate-strong);
+  padding-left: 0.55rem;
+  font-family: var(--font-body);
+}
+
+.shell.faction-brine .hud-login-card .faction-blurb {
+  border-left-color: var(--faction-brine);
+}
+
+.shell.faction-ash .hud-login-card .faction-blurb {
+  border-left-color: var(--faction-ash);
+}
+
+.shell.faction-sky .hud-login-card .faction-blurb {
+  border-left-color: var(--faction-sky);
+}
+
+.shell.faction-moss .hud-login-card .faction-blurb {
+  border-left-color: var(--faction-moss);
+}
+
+.hud-login-card .muted {
+  color: var(--hud-ink-soft);
+}
+
+.hud-login-card code {
+  background: color-mix(in srgb, var(--stone-2) 85%, transparent);
+  color: var(--parchment-1);
+  border-radius: var(--radius-xs);
+}
+
+.hud-login-card button.primary {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  color: #241a0c;
+  background: linear-gradient(180deg, var(--border-ornate-strong), var(--accent-hot));
+  border: 1px solid color-mix(in srgb, var(--border-ornate-strong) 60%, #000);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-1), var(--shadow-inset);
+}
+
+.hud-login-card button.primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: var(--glow-gold), var(--shadow-1);
+}
+
+/* ============ Reduced motion ============ */
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-tabs button {
+    transition: none;
+  }
+
+  .hud-tabs button.active {
+    transform: none;
+  }
+
+  .hud-ops .bar-fill::after {
+    content: none;
+    animation: none;
+  }
+
+  .hud-toast-stack .hud-toast {
+    animation: none;
+  }
+}

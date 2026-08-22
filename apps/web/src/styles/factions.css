@@ -1,0 +1,114 @@
+/*
+   Tideforge Empires — faction accent theming (brine / ash / sky / moss).
+   Every rule is scoped under .shell.faction-<name>, applied by Shell.tsx.
+
+   Coordination with styles/hud.css: hud.css already faction-themes the
+   topbar accent strip (.topbar.hud-topbar::after), the active-tab
+   underline (.hud-tabs button.active::after), the login hero divider and
+   the login faction blurb. This file deliberately leaves those alone and
+   themes the remaining surfaces: active-tab border/glow, primary action
+   buttons in view cards, progress-bar fills, and an ambient shell
+   vignette.
+
+   Namespace discipline: hud-*, rpt-*, codex-*, city-* and map-* class
+   definitions are owned by their own layers and are never redefined
+   here; they are only targeted from faction-scoped descendant selectors.
+
+   Contrast discipline: faction hues are applied decoratively (rings,
+   glows, fills, washes) — foreground/background text pairings from the
+   base theme are never altered, so contrast cannot regress per faction.
+*/
+
+/* ===== Per-faction accent variables (consumed by the shared rules below) ===== */
+
+.shell.faction-brine {
+  --fx: var(--faction-brine);
+  --fx-dim: var(--faction-brine-dim);
+}
+
+.shell.faction-ash {
+  --fx: var(--faction-ash);
+  --fx-dim: var(--faction-ash-dim);
+}
+
+.shell.faction-sky {
+  --fx: var(--faction-sky);
+  --fx-dim: var(--faction-sky-dim);
+}
+
+.shell.faction-moss {
+  --fx: var(--faction-moss);
+  --fx-dim: var(--faction-moss-dim);
+}
+
+/* ===== Ambient vignette: faint faction wash above the page backdrop ===== */
+
+.shell.faction-brine::before,
+.shell.faction-ash::before,
+.shell.faction-sky::before,
+.shell.faction-moss::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 85% at 50% -12%,
+      color-mix(in srgb, var(--fx-dim) 13%, transparent),
+      transparent 56%
+    ),
+    radial-gradient(
+      150% 120% at 50% 118%,
+      rgba(0, 0, 0, 0.38),
+      transparent 58%
+    );
+}
+
+/* ===== Active tab: faction-tinted edge + halo (underline stays hud-owned) ===== */
+
+.shell.faction-brine .topbar.hud-tabs button.active,
+.shell.faction-ash .topbar.hud-tabs button.active,
+.shell.faction-sky .topbar.hud-tabs button.active,
+.shell.faction-moss .topbar.hud-tabs button.active {
+  border-color: color-mix(in srgb, var(--fx) 55%, var(--border-ornate-strong));
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--fx) 40%, transparent),
+    var(--shadow-1);
+}
+
+/* ===== Primary action buttons in view cards =====
+   Inlaid faction ring (outline, so existing box-shadow treatments owned by
+   other layers are untouched). Excludes chrome and specialized controls
+   owned elsewhere: linkish/danger (base), tutorial CTA (hud), map and city
+   tiles plus city build/pick CTAs (their own layers). */
+
+.shell.faction-brine main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-ash main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-sky main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-moss main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button) {
+  outline: 1px solid color-mix(in srgb, var(--fx) 38%, transparent);
+  outline-offset: -2px;
+}
+
+.shell.faction-brine main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-ash main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-sky main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-moss main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button) {
+  outline: 2px solid color-mix(in srgb, var(--fx) 72%, transparent);
+  outline-offset: -2px;
+}
+
+/* ===== Progress bar fills: ops queue bars + castle population bar ===== */
+
+.shell.faction-brine .hud-ops .bar-fill,
+.shell.faction-ash .hud-ops .bar-fill,
+.shell.faction-sky .hud-ops .bar-fill,
+.shell.faction-moss .hud-ops .bar-fill,
+.shell.faction-brine .pop-bar-container .bar-fill,
+.shell.faction-ash .pop-bar-container .bar-fill,
+.shell.faction-sky .pop-bar-container .bar-fill,
+.shell.faction-moss .pop-bar-container .bar-fill {
+  background: linear-gradient(90deg, var(--fx-dim), var(--fx));
+  box-shadow: 0 0 6px color-mix(in srgb, var(--fx) 35%, transparent);
+}

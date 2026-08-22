@@ -1,0 +1,403 @@
+/*
+   Tideforge Empires — Castle city view (isometric building plots).
+   All classes prefixed `city-`. Consumes tokens from styles/tokens.css;
+   never redefines base vocabulary owned by styles.css.
+*/
+
+/* ---------- layout ---------- */
+
+.city-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: stretch;
+  margin: 0.5rem 0;
+}
+
+.city-scene {
+  position: relative;
+  flex: 1 1 380px;
+  min-width: min(320px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 3vw, 30px) clamp(12px, 2vw, 26px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(122, 92, 51, 0.18), transparent 55%),
+    linear-gradient(180deg, #191309 0%, #110c07 100%);
+  box-shadow: var(--shadow-inset), var(--shadow-1);
+  overflow: hidden; /* safe: scene sits outside the preserve-3d chain */
+}
+
+.city-scene-hint {
+  margin: clamp(4px, 1vw, 10px) 0 0;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- isometric board ---------- */
+
+.city-board {
+  perspective: 1150px;
+  perspective-origin: 50% 24%;
+}
+
+.city-plane {
+  --tile: clamp(60px, 15vw, 88px);
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, var(--tile));
+  grid-auto-rows: var(--tile);
+  gap: clamp(8px, 1.4vw, 12px);
+  margin: clamp(36px, 7vw, 62px) auto;
+  transform: rotateX(55deg) rotateZ(45deg);
+  transform-style: preserve-3d;
+}
+
+/* Island slab the plots rest on (behind tiles via translateZ). */
+.city-plane::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * clamp(14px, 3vw, 24px));
+  border-radius: 20px;
+  background: linear-gradient(145deg, #2a2318 0%, #1c160e 60%, #141009 100%);
+  border: 1px solid rgba(214, 197, 164, 0.09);
+  box-shadow:
+    0 20px 44px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(232, 213, 178, 0.06);
+  transform: translateZ(-6px);
+}
+
+/* ---------- plot tiles ---------- */
+
+.city-tile {
+  --tile-lift: 0px;
+  position: relative;
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 14%;
+  background: linear-gradient(150deg, #35402b 0%, #29331f 55%, #202917 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(216, 201, 168, 0.1),
+    inset 0 -4px 10px rgba(0, 0, 0, 0.42);
+  cursor: pointer;
+  transform: translateZ(var(--tile-lift));
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+  transform-style: preserve-3d;
+}
+
+.city-tile:nth-child(even) {
+  background: linear-gradient(150deg, #313d28 0%, #252f1c 55%, #1d2615 100%);
+}
+
+.city-ground {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden; /* leaf node — clipping here cannot flatten the plane */
+}
+
+/* cleared foundation plots */
+.city-tile-empty .city-ground::before {
+  content: "";
+  position: absolute;
+  inset: 16%;
+  border: 1.5px dashed rgba(233, 220, 194, 0.34);
+  border-radius: 12%;
+}
+
+.city-tile-empty .city-ground::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border: 1.5px solid rgba(233, 220, 194, 0.5);
+  background: rgba(243, 234, 216, 0.12);
+}
+
+/* hover / selection lift + ring */
+.city-tile:hover:not(:disabled),
+.city-tile:focus-visible {
+  --tile-lift: 6px;
+}
+
+.city-tile:hover:not(:disabled) .city-ground,
+.city-selected .city-ground {
+  box-shadow: inset 0 0 14px rgba(185, 141, 74, 0.35);
+}
+
+.city-selected {
+  --tile-lift: 10px;
+  outline: 2px solid var(--border-ornate-strong);
+  outline-offset: 2px;
+}
+
+.city-selected .city-ground {
+  box-shadow:
+    inset 0 0 14px rgba(185, 141, 74, 0.45),
+    var(--glow-accent);
+}
+
+.city-tile:focus-visible {
+  outline: 2px solid var(--faction-sky);
+  outline-offset: 3px;
+}
+
+/* ---------- buildings (billboarded sprites) ---------- */
+
+.city-sprite {
+  --plinth-fill: #292219;
+  --plinth-line: rgba(214, 197, 164, 0.55);
+  color: #ddcdaa;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 76%;
+  aspect-ratio: 24 / 30;
+  transform-origin: 50% 100%;
+  transform: translate(-50%, calc(-100% - var(--lift, 0px)))
+    rotateZ(-45deg) rotateX(-55deg);
+  transition: transform 150ms ease-out;
+  pointer-events: none;
+  transform-style: flat;
+}
+
+.city-sprite-inner {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: scale(var(--lv-scale, 1));
+  transform-origin: 50% 92%;
+}
+
+.city-glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* gentle idle float on the selected building only */
+.city-selected .city-sprite-inner {
+  animation: city-float 2.8s ease-in-out infinite;
+}
+
+@keyframes city-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(var(--lv-scale, 1));
+  }
+  50% {
+    transform: translateY(-3px) scale(var(--lv-scale, 1));
+  }
+}
+
+/* level tier palettes: stone -> bronze -> gold */
+.city-tier-stone {
+  --tier-a: #8a8272;
+  --tier-b: #b3a98f;
+}
+
+.city-tier-bronze {
+  --tier-a: #a06b32;
+  --tier-b: #cf9350;
+}
+
+.city-tier-gold {
+  --tier-a: #c9962e;
+  --tier-b: #ecc86a;
+}
+
+/* level pip, screen-aligned like the sprite */
+.city-lvl {
+  position: absolute;
+  left: 76%;
+  top: 22%;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(214, 197, 164, 0.4);
+  background: rgba(24, 19, 13, 0.85);
+  color: var(--parchment-1);
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  transform: translate(-50%, -50%) rotateZ(-45deg) rotateX(-55deg);
+  pointer-events: none;
+}
+
+/* ---------- detail card ---------- */
+
+.city-detail {
+  flex: 1 1 260px;
+  max-width: 340px;
+  min-width: min(250px, 100%);
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border-ornate);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--stone-1) 82%, #000) 0%, var(--stone-3) 100%);
+  box-shadow: var(--shadow-2), var(--shadow-inset);
+  padding: 0.85rem 0.95rem;
+  font-family: var(--font-body);
+}
+
+.city-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.city-detail-idle {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.5rem;
+  color: var(--muted);
+}
+
+.city-detail-idle p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.city-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-ornate) 55%, transparent);
+}
+
+.city-detail-head h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.03em;
+  color: var(--parchment-1);
+}
+
+.city-detail-head p {
+  margin: 0.1rem 0 0;
+}
+
+.city-detail-glyph {
+  flex: none;
+  width: 46px;
+  height: 56px;
+  padding: 3px 2px 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--border-ornate) 60%, transparent);
+  background: color-mix(in srgb, var(--stone-2) 70%, #000);
+}
+
+.city-empty-glyph {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.city-cost-row {
+  display: flex;
+  gap: 0.9rem;
+}
+
+.city-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--parchment-2);
+}
+
+.city-afford {
+  margin: 0;
+  align-self: flex-start;
+  padding: 0.12rem 0.55rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+}
+
+.city-afford-ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+}
+
+.city-afford-err {
+  color: var(--err);
+  border-color: color-mix(in srgb, var(--err) 45%, transparent);
+  background: color-mix(in srgb, var(--err) 8%, transparent);
+}
+
+.city-build-btn {
+  align-self: flex-start;
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  background: linear-gradient(180deg, var(--border-ornate-strong), var(--accent-hot));
+  border: 1px solid var(--border-ornate-strong);
+  box-shadow: var(--glow-gold), var(--shadow-1);
+  transition: transform 120ms ease-out, filter 120ms ease-out;
+}
+
+.city-build-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.city-pick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.city-pick-grid button {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  background: color-mix(in srgb, var(--accent) 55%, var(--stone-2));
+  border: 1px solid var(--border-ornate);
+}
+
+.city-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- motion preferences ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .city-tile,
+  .city-sprite,
+  .city-build-btn {
+    transition: none;
+  }
+
+  .city-selected .city-sprite-inner {
+    animation: none;
+  }
+
+  .city-build-btn:hover:not(:disabled) {
+    transform: none;
+  }
+}

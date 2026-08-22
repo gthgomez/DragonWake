@@ -1,0 +1,60 @@
+/*
+   Tideforge Empires — extended design tokens (ADDITIVE ONLY).
+   styles.css owns the base :root vocabulary (--bg, --accent, --text, ...).
+   This file must never redefine those; it only introduces new names.
+*/
+
+:root {
+  /* Typography (self-hosted via @fontsource, loaded by fonts.css) */
+  --font-display: "Cinzel", "Georgia", serif;
+  --font-body: "EB Garamond", "Georgia", serif;
+
+  /* Parchment surfaces — warm off-whites, lightest to deepest */
+  --parchment-1: #f3ead8;
+  --parchment-2: #e9dcc2;
+  --parchment-3: #dbcdaf;
+
+  /* Stone panels — neutral grey-brown counterpoint to the amber base */
+  --stone-1: #38322b;
+  --stone-2: #2b261f;
+  --stone-3: #201c16;
+
+  /* Ornate borders + glow (static fallbacks; refined below via color-mix) */
+  --border-ornate: #7a5c33;
+  --border-ornate-strong: #b98d4a;
+  --glow-accent: 0 0 10px rgba(139, 90, 43, 0.45);
+  --glow-gold: 0 0 12px rgba(185, 141, 74, 0.4);
+
+  /* Shadow scale */
+  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 6px 16px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 14px 36px rgba(0, 0, 0, 0.55);
+  --shadow-inset: inset 0 1px 0 rgba(255, 235, 200, 0.06);
+
+  /* Radius scale — mirrors radii already used across styles.css */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* Faction accents */
+  --faction-brine: #3e9ea8;
+  --faction-brine-dim: #29666e;
+  --faction-ash: #bf5b34;
+  --faction-ash-dim: #823e28;
+  --faction-sky: #cdb478;
+  --faction-sky-dim: #8d7a4e;
+  --faction-moss: #5d8a48;
+  --faction-moss-dim: #3d5c31;
+}
+
+@supports (color: color-mix(in srgb, red, blue)) {
+  :root {
+    /* Ornate borders derived from the base palette owned by styles.css */
+    --border-ornate: color-mix(in srgb, var(--accent-hot) 45%, var(--border));
+    --border-ornate-strong: color-mix(in srgb, var(--accent-hot) 65%, #e0c48a);
+    --glow-accent: 0 0 10px color-mix(in srgb, var(--accent-hot) 45%, transparent);
+    --glow-gold: 0 0 12px color-mix(in srgb, var(--border-ornate-strong) 40%, transparent);
+  }
+}

@@ -1,0 +1,456 @@
+/*
+   Realm map — strategic world grid, march overlay, legend swatches.
+   Every rule is scoped under a map- prefixed class; nothing here may
+   redefine tokens owned by styles.css / styles/tokens.css.
+*/
+
+.map-frame {
+  --map-gap: 2px;
+  --map-pad: 4px;
+  position: relative;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+
+.map-frame::-webkit-scrollbar {
+  height: 8px;
+}
+
+.map-grid {
+  display: grid;
+  gap: var(--map-gap);
+  padding: var(--map-pad);
+  background:
+    radial-gradient(
+      130% 90% at 50% 0%,
+      rgba(122, 92, 51, 0.14),
+      transparent 60%
+    ),
+    #0a1219;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-2);
+  max-width: none;
+  overflow: visible;
+  margin: 0;
+}
+
+button.map-tile {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 14px;
+  min-height: 14px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(6, 8, 5, 0.6);
+  border-radius: var(--radius-xs);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    filter 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.map-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      150% 120% at var(--sx, 30%) var(--sy, 25%),
+      var(--gs, transparent),
+      transparent 55%
+    ),
+    linear-gradient(158deg, var(--ga) 0%, var(--gb) 100%);
+}
+
+.map-tile.map-flip::before {
+  transform: scaleX(-1);
+}
+
+.map-g0 {
+  --ga: #26331f;
+  --gb: #1b2417;
+  --gs: rgba(196, 214, 160, 0.07);
+  --sx: 30%;
+  --sy: 25%;
+}
+
+.map-g1 {
+  --ga: #32301d;
+  --gb: #242315;
+  --gs: rgba(222, 200, 140, 0.06);
+  --sx: 70%;
+  --sy: 65%;
+}
+
+.map-g2 {
+  --ga: #2b332b;
+  --gb: #202721;
+  --gs: rgba(170, 205, 190, 0.05);
+  --sx: 60%;
+  --sy: 30%;
+}
+
+.map-g3 {
+  --ga: #2a231a;
+  --gb: #1e1811;
+  --gs: rgba(210, 180, 130, 0.05);
+  --sx: 40%;
+  --sy: 75%;
+}
+
+.map-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.map-camp::after {
+  background: linear-gradient(160deg, rgba(139, 58, 42, 0.55), rgba(74, 28, 18, 0.72));
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.45);
+}
+
+.map-wild::after {
+  background: linear-gradient(160deg, rgba(45, 90, 58, 0.5), rgba(22, 48, 30, 0.66));
+}
+
+.map-wild-claimed {
+  box-shadow: inset 0 0 0 1px rgba(141, 255, 176, 0.5);
+}
+
+.map-wild-claimed::after {
+  background: linear-gradient(160deg, rgba(30, 122, 74, 0.6), rgba(16, 66, 40, 0.72));
+}
+
+.map-city-mine::after {
+  background: linear-gradient(160deg, rgba(139, 90, 43, 0.62), rgba(80, 50, 20, 0.72));
+}
+
+.map-city-mine {
+  box-shadow: 0 0 9px rgba(185, 141, 74, 0.4);
+  z-index: 1;
+}
+
+.map-city-foe::after {
+  background: linear-gradient(160deg, rgba(122, 58, 139, 0.55), rgba(56, 24, 66, 0.7));
+}
+
+.map-edge-n::after {
+  box-shadow: inset 0 3px 4px -2px rgba(102, 153, 179, 0.55);
+}
+
+.map-edge-s::after {
+  box-shadow: inset 0 -3px 4px -2px rgba(102, 153, 179, 0.55);
+}
+
+.map-edge-w::after {
+  box-shadow: inset 3px 0 4px -2px rgba(102, 153, 179, 0.55);
+}
+
+.map-edge-e::after {
+  box-shadow: inset -3px 0 4px -2px rgba(102, 153, 179, 0.55);
+}
+
+.map-glyph {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #e6d7b8;
+}
+
+.map-glyph svg {
+  display: block;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+}
+
+.map-camp .map-glyph {
+  color: #f0b083;
+}
+
+.map-wild .map-glyph {
+  color: rgba(214, 232, 196, 0.85);
+}
+
+.map-wild-claimed .map-glyph {
+  color: #aef0c4;
+}
+
+.map-city-mine .map-glyph {
+  color: #f2cf87;
+}
+
+.map-city-foe .map-glyph {
+  color: #d8b3e8;
+}
+
+.map-badge {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  z-index: 3;
+  min-width: 9px;
+  padding: 1px 2px;
+  border-radius: var(--radius-pill);
+  background: rgba(10, 8, 5, 0.78);
+  color: #ffd9a0;
+  font-family: var(--font-body);
+  font-size: 8px;
+  line-height: 1;
+  font-weight: 600;
+  text-align: center;
+}
+
+.map-tile:hover:not(:disabled),
+.map-tile:focus-visible {
+  background: none;
+  filter: brightness(1.3);
+  z-index: 1;
+}
+
+.map-tile:focus-visible {
+  outline: 2px solid var(--border-ornate-strong);
+  outline-offset: 1px;
+  box-shadow: var(--glow-gold);
+}
+
+.map-selected {
+  outline: 2px solid var(--border-ornate-strong);
+  outline-offset: 1px;
+  z-index: 2;
+  animation: map-select-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes map-select-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(185, 141, 74, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(185, 141, 74, 0.28);
+  }
+}
+
+.map-paths,
+.map-overlay {
+  position: absolute;
+  top: calc(var(--map-pad) + 1px);
+  left: calc(var(--map-pad) + 1px);
+  width: calc(100% - (var(--map-pad) + 1px) * 2);
+  height: calc(100% - (var(--map-pad) + 1px) * 2);
+  pointer-events: none;
+}
+
+.map-overlay {
+  display: grid;
+  gap: var(--map-gap);
+}
+
+.map-march-attack {
+  color: #ff8e6b;
+}
+
+.map-march-scout {
+  color: #9fd8e8;
+}
+
+.map-march-reinforce {
+  color: #9fe8ae;
+}
+
+.map-march-other {
+  color: #e8c98a;
+}
+
+.map-path-base {
+  stroke: currentColor;
+  stroke-opacity: 0.3;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-path-dots {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-dasharray: 0.02 0.45;
+  animation: map-dots-march 1.4s linear infinite;
+}
+
+@keyframes map-dots-march {
+  to {
+    stroke-dashoffset: -0.47;
+  }
+}
+
+.map-path-origin {
+  fill: rgba(12, 10, 6, 0.75);
+  stroke: currentColor;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-beacon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-beacon::before {
+  content: "";
+  position: absolute;
+  width: 22%;
+  height: 22%;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.map-beacon-ring {
+  position: absolute;
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  animation: map-beacon-pulse 1.6s ease-out infinite;
+}
+
+@keyframes map-beacon-pulse {
+  0% {
+    transform: scale(0.45);
+    opacity: 0.95;
+  }
+  75%,
+  100% {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+}
+
+.map-chip {
+  position: absolute;
+  top: calc(58% + var(--chip-i, 0) * 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  white-space: nowrap;
+  padding: 2px 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(12, 10, 6, 0.88);
+  border: 1px solid color-mix(in srgb, currentColor 55%, transparent);
+  color: inherit;
+  font-family: var(--font-body);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.map-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.map-swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: var(--radius-xs);
+  margin-right: 0.3rem;
+  vertical-align: middle;
+  border: 1px solid rgba(6, 8, 5, 0.6);
+  background: linear-gradient(158deg, var(--sa), var(--sb));
+}
+
+.map-swatch-camp {
+  --sa: #8b3a2a;
+  --sb: #54241a;
+}
+
+.map-swatch-wild {
+  --sa: #2d5a3a;
+  --sb: #1c3a26;
+}
+
+.map-swatch-claimed {
+  --sa: #1e7a4a;
+  --sb: #12492d;
+  box-shadow: inset 0 0 0 1px rgba(141, 255, 176, 0.5);
+}
+
+.map-swatch-mine {
+  --sa: #8b5a2b;
+  --sb: #50321a;
+  box-shadow: 0 0 5px rgba(185, 141, 74, 0.45);
+}
+
+.map-swatch-foe {
+  --sa: #7a3a8b;
+  --sb: #472250;
+}
+
+.map-swatch-march {
+  position: relative;
+  background: none;
+}
+
+.map-swatch-march::before {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  border: 2px solid #ff8e6b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-selected {
+    animation: none;
+  }
+
+  .map-path-dots {
+    animation: none;
+  }
+
+  .map-beacon-ring {
+    animation: none;
+    transform: scale(0.85);
+    opacity: 0.4;
+  }
+
+  button.map-tile {
+    transition: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .map-paths,
+  .map-overlay {
+    display: none;
+  }
+}
