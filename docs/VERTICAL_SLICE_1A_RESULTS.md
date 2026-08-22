@@ -332,3 +332,9 @@ green under `REQUIRE_PG=1`).
 | Posture-change cooldown reset on restart | Timestamp promoted to persisted `cities.last_posture_change` column |
 | Daily quest progress / clue-cap usage lost on reload | Persisted in new `daily_state` table (one row per player for the current UTC day); load now clears + rehydrates the in-memory maps |
 | Expedition start applied stale dragon-progress snapshot | Stale-snapshot spread removed; stage writes mutate the recalculated record in place |
+
+### Commander system (this session)
+
+- Combat resolver accepts `SideInput.commander` army-wide stat bonus (2%/pt fixture, deterministic; `rulesVersion` bumped)
+- Roster/recruitment gated by `command_gallery` level; battle-XP star progression; wound-on-loss
+- Marches accept optional `commanderId` (BUSY/WOUNDED/SLOTS validation); commander state round-trips through PG persistence under `REQUIRE_PG`

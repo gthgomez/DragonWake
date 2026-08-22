@@ -1,6 +1,6 @@
 # Commander System Spec (M4 prerequisite · resolver v1 capability 1–2)
 
-Status: **DRAFT SPEC — IMPLEMENTATION CONTRACT**
+Status: **IMPLEMENTED (this session)**
 Generated: 2026-08-21
 Base: `main` @ `07d480b`
 Authority: `research/dragons-of-atlantis/pre-implementation/PRODUCT_FREEZE_S1.md` · V1 audit §I (Commander decision), §C3 (command_gallery UNKNOWN), §K (resolver destination v1)

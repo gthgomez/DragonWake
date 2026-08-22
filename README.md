@@ -155,6 +155,7 @@ pnpm --filter @tideforge/web typecheck                # T8
 | A9 Web screens | Done |
 | A10 Shop stub + tutorial + dailies + README | Done |
 | Exit gate | M1–M11 automated; **B0 residual closeout done** (T7 honesty + full PvP + scout/haul) |
+| B1 Commanders | Done (spec: docs/design/COMMANDER_SYSTEM_SPEC.md) |
 
 ## Next campaign (post-MVP)
 
