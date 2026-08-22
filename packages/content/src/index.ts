@@ -223,6 +223,11 @@ export type DragonClue = {
   readiness_value: number;
 };
 
+/** Commander name-pool entry (recruitment names). */
+export type CommanderName = {
+  name: string;
+};
+
 let cache: {
   units?: UnitDef[];
   rps?: Record<string, Record<string, number>>;
@@ -243,6 +248,7 @@ let cache: {
   expeditions?: Expedition[];
   dragonClues?: DragonClue[];
   medievalUnits?: UnitDef[];
+  commanderNames?: CommanderName[];
 } = {};
 
 export function getMeta(): ContentMeta {
@@ -347,6 +353,12 @@ export function getExpeditions(): Expedition[] {
 
 export function getDragonClues(): DragonClue[] {
   return (cache.dragonClues ??= loadJson<DragonClue[]>("dragon_clues.json"));
+}
+
+export function getCommanderNames(): string[] {
+  return (cache.commanderNames ??= loadJson<CommanderName[]>("commanders.json")).map(
+    (c) => c.name,
+  );
 }
 
 /** Check if a unit is unlocked by the city's research. */
