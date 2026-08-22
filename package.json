@@ -3,7 +3,6 @@
   "private": true,
   "version": "0.1.0",
   "description": "Tideforge Empires — multiplayer MMORTS MVP beta",
-  "packageManager": "pnpm@10.32.1",
   "scripts": {
     "dev": "pnpm -r --parallel --filter @tideforge/server --filter @tideforge/web dev",
     "dev:server": "pnpm --filter @tideforge/server dev",

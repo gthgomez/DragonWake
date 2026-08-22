@@ -2,8 +2,29 @@
 
 Multiplayer web MMORTS MVP beta (async city builder + map combat).
 
-**Design authority (read-only):**  
-`C:\Workspace\research\dragons-of-atlantis\pre-implementation\`
+## Design authority
+
+Read these before changing fiction, content IDs, or client presentation:
+
+1. [`docs/design/DIRECTION_FREEZE_V1.md`](docs/design/DIRECTION_FREEZE_V1.md) — **FROZEN** product + lore direction
+2. [`docs/design/CANON_AUTHORITY.md`](docs/design/CANON_AUTHORITY.md) — authority stack
+3. [`docs/design/LORE_BIBLE_V1_BRIEF.md`](docs/design/LORE_BIBLE_V1_BRIEF.md) — scope only; full Lore Bible v1 not written yet
+4. [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md) — Phase 0–7 sequence
+
+Current implementation is authoritative **only** where those documents do
+not contradict it.
+
+Historical Dragons of Atlantis research
+(`C:\Workspace\research\dragons-of-atlantis\pre-implementation\`) is
+**reference only, NON-AUTHORITATIVE.** Do not treat it as the product
+direction. The MMORTS loop survives because Direction Freeze §28
+explicitly preserves it.
+
+Lore Bible v1 is not written yet. Scope only:
+[`docs/design/LORE_BIBLE_V1_BRIEF.md`](docs/design/LORE_BIBLE_V1_BRIEF.md).
+
+Do not start content-heavy mobile UI against the current aquatic / elemental
+content model.
 
 ## Stack
 
@@ -18,11 +39,12 @@ Multiplayer web MMORTS MVP beta (async city builder + map combat).
 ## Packages
 
 ```text
-apps/web          — Castle / Lands / Realm / War / Alliance / Knowledge / Settings
+apps/web          — City / Grounds / Map / War / Alliance / Shop / Codex / Settings
 apps/server       — API + sim loop (queues, marches, combat, alliances)
 packages/shared   — shared types
 packages/combat   — resolveBattle (deterministic)
 packages/content  — JSON game data
+docs/design       — Direction Freeze, canon authority, migration plan
 ```
 
 ## Prerequisites
@@ -34,7 +56,7 @@ packages/content  — JSON game data
 ## Setup
 
 ```powershell
-cd C:\Workspace\Project_Games\TideforgeEmpires
+cd C:\Workspace\TideforgeEmpires
 copy .env.example .env
 pnpm install
 ```
@@ -47,7 +69,7 @@ docker compose up -d db
 # or: pnpm --filter @tideforge/server migrate
 ```
 
-With `DATABASE_URL` reachable, the server **loads/saves the full realm to PostgreSQL** (players, cities, sessions, marches, reports, alliances, …). Boot applies idempotent migrations to existing databases; saves are **delta-based** — only entities touched since the last flush are written (full dump happens once at boot). If Postgres is unreachable, it falls back to an in-memory realm and `/health` reports `db: "memory"`.
+With `DATABASE_URL` reachable, the server **loads/saves the full realm to PostgreSQL** (players, cities, sessions, marches, reports, alliances, …). `/health` reports `db: "postgres"` only when the store is actually attached (not merely when the env var is set). If Postgres is unreachable, it falls back to an in-memory realm and `/health` reports `db: "memory"`.
 
 ### Dev
 
@@ -71,45 +93,34 @@ Env flags (`.env`):
 | `DATABASE_URL` | Postgres URL for schema verify |
 | `VITE_API_URL` | Web → API base (default `http://localhost:3001`) |
 
-### Beta economy guards
-
-- Research costs resources scaled by tech level (`RESEARCH_COST` on shortfall).
-- Camp clue drops capped at 3/day/player.
-- Expedition stages require cumulative scout/camp actions (`EXPEDITION_REQ`).
-- Dev citadel self-unlock defaults on; set `DEV_CITADEL_UNLOCK=0` to disable.
-
 ### Admin grant (dev)
-
-`POST /api/v1/admin/grant` is gated by a real admin check:
-
-- Set `ADMIN_TOKEN` in `.env` (any environment) → requests must send it via the `x-admin-token` header.
-- Without `ADMIN_TOKEN`, admin/sim/dev-unlock endpoints work only when `NODE_ENV !== "production"`.
 
 ```http
 POST /api/v1/admin/grant
-Authorization: Bearer <session token>
-x-admin-token: <ADMIN_TOKEN>
-{ "units": { "levy": 200 }, "harness": true, "brineholdUnlock": true, "chronite": 100, "skipProtection": true }
+Authorization: Bearer <token>
+{ "units": { "reefbow": 200 }, "harness": true, "brineholdUnlock": true, "chronite": 100, "skipProtection": true }
 ```
-
-Dev citadel unlocks (`/citadels/found`, `/citadels/found-brinehold`) follow the same rule and can be disabled entirely with `DEV_CITADEL_UNLOCK=0`.
 
 ## ACCEPTANCE_MVP manual path (M1–M11)
 
 Environment: `pnpm dev` (or `docker compose up -d db` + server/web), two browser profiles or two guest logins.
 
+These steps still describe the **current implementation**. They are not the
+target fiction. Do not copy Brinecant / Reefbow / Harbinger / Brinehold /
+Harbor into new content.
+
 | Step | Action | Pass if |
 |------|--------|---------|
-| M1 | Create guest A (Northern Kingdom) | City at map coords, resources > 0 |
-| M2 | Create guest B (Mountain Realm) | Different city tile |
+| M1 | Create guest A (Brinecant) | City at map coords, resources > 0 |
+| M2 | Create guest B (Ashcoil) | Different city tile |
 | M3 | A builds Habitation + Barracks | Queues complete under fast time |
-| M4 | A researches Infantry Doctrine 1, trains Pikemen | Pikeman stack increases after tick |
+| M4 | A researches Longmark 1, trains Reefbows | Stack increases after tick |
 | M5 | A Map → Attack Camp L1 | Report in War tab |
 | M6 | A occupies wilderness | Claim owned on map |
 | M7 | Admin grant harness | Harbinger harness complete on City |
 | M8 | Found Brinehold | Second city kind `brinehold` |
 | M9 | A creates Tideband; B joins via API or second client | Members + chat visible |
-| M10 | A attacks B (B withdraw posture) | Report; resources plundered at 50% on withdraw |
+| M10 | A attacks B (B Harbor posture) | Report; resources move on harbor |
 | M11 | Codex formulas page | Non-empty formulas JSON |
 
 Scripted equivalent (no browser):
@@ -143,9 +154,9 @@ pnpm --filter @tideforge/web typecheck                # T8
 | Gate | Status (local) |
 |------|----------------|
 | T1–T6, T8 | Green via `pnpm test` + typecheck/build |
-| T7 PG apply + restart survival | **Green** (re-verified 2026-08-21) with `docker compose up -d db` + `REQUIRE_PG=1`; boot auto-migrates existing DBs (skip when DB down; never silent pass) |
+| T7 PG apply + restart survival | **B0 proven** with `docker compose up -d db` + `REQUIRE_PG=1` (skip when DB down; never silent pass) |
 | M1–M11 | Green via `pnpm accept` |
-| Docker db smoke | **Green** — compose `db` healthy; server `/health` `db:"postgres"` |
+| Docker db smoke | **B0 proven** — compose `db` healthy; server `/health` `db:"postgres"` |
 
 ## Implementation board
 
@@ -157,37 +168,40 @@ pnpm --filter @tideforge/web typecheck                # T8
 | A3 Queues + DEV_FAST_TIME | Done |
 | A4 Map camps/wilderness | Done |
 | A5 Marches + reports | Done |
-| A6 PvP postures + Saltvault + protection | Done |
+| A6 PvP harbor/full + Saltvault + protection | Done |
 | A7 Harbinger harness + Brinehold | Done |
 | A8 Tideband + chat | Done |
 | A9 Web screens | Done |
 | A10 Shop stub + tutorial + dailies + README | Done |
 | Exit gate | M1–M11 automated; **B0 residual closeout done** (T7 honesty + full PvP + scout/haul) |
-| B1 Commanders | Done (spec: docs/design/COMMANDER_SYSTEM_SPEC.md) |
 
-## Next campaign (post-MVP)
+## Next campaign
 
-Design plan (read-only authority):  
-`C:\Workspace\research\dragons-of-atlantis\pre-implementation\POST_MVP_ITERATION.md`
+This is a **domain-preserving migration**, not a rewrite and not a skin swap.
+See [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md).
 
 | Phase | Focus | Status |
 |-------|--------|--------|
-| **B0** | Residual closeout | **Done** |
-| **P0** | Playable polish | **Done** |
-| **S1.0–S1.1** | Freeze + **Stonekeel** citadel | **Done** |
-| **Phase 2.1** | Medieval retheme slice 1A (population/manpower, research gates, dragon foundation, camp variation) | **Landed** (`docs/VERTICAL_SLICE_1A_RESULTS.md`) |
-| **S1.2+** | Cinderreach → Mnemolith, Arena, Tidebeast, Market… | Next |
+| **0** | Authority freeze (this tree) | In progress |
+| **1** | Lore Bible v1 (one region) | Not started |
+| **2** | Mechanical translation design | Blocked on 1 |
+| **3** | Decouple old canon from engine (migrations) | Blocked on 2 |
+| **4** | Content conversion | Blocked on 2–3 |
+| **5** | Web vertical slice (castle → Codex → lesser dragon) | Blocked on 4 |
+| **6** | Mobile client against stabilized semantics | After 5 |
+| **7** | Dragon systems (expeditions, anatomy, bonding) | After 5 |
 
-S1 design authority:  
-`research/dragons-of-atlantis/pre-implementation/PRODUCT_FREEZE_S1.md`  
-Board: `IMPLEMENTATION_BOARD_S1.md` · Accept: `ACCEPTANCE_S1.md`
+P0 notes: `docs/P0_M1_M11_EVIDENCE.md` · events poll `GET /api/v1/events?since=` · SSE `/api/v1/events/stream` · CI `.github/workflows/ci.yml`
 
-Found Stonekeel: `POST /api/v1/citadels/found` `{ "kind": "stonekeel", "unlock": true }`  
-Found Marcher Keep (requires expedition charter): `POST /api/v1/citadels/found` via charter path
+## OUT OF SCOPE (until a later freeze)
 
-## OUT OF SCOPE (current freeze)
+Arena, world boss, citadels past the second-settlement system, Mnemolith/Echo,
+live market, real IAP, Hardcore realms.
 
-Arena, world boss, cinderreach/galeari/mnemolith citadel chain completion, live market, native mobile, real IAP, Hardcore realms. Sovereign/harness is legacy-compat pending M4 deletion (`docs/design/PHASE_2_1_CORRECTION_FREEZE.md`, Amendment A1).
+Native mobile **architecture** may be planned in parallel. Native mobile
+**content-heavy UI** waits until Phase 6.
+
+Old S1 labels (Tidebeast, Mnemolith, elemental factions) are historical.
 
 ## License
 
