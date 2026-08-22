@@ -597,3 +597,10 @@ button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Population & manpower bars: keep tracks visible even at 0% */
+.pop-bar-container .bar {
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 45%);
+}

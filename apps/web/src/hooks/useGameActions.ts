@@ -136,15 +136,19 @@ export function useGameActions(deps: UseGameActionsDeps) {
     });
   }
 
-  async function doBuild(buildingType: string) {
+  async function doBuild(buildingType: string, slotIndex?: number) {
     if (!token || !city) return;
     if (!canAfford(city.resources, BUILD_COST)) {
       setError(`Need ${BUILD_COST.food} food + ${BUILD_COST.timber} timber`);
       return;
     }
+    const slot =
+      slotIndex ?? Math.max(0, ...city.buildings.map((b) => b.slotIndex), -1) + 1;
+    if (city.buildings.some((b) => b.slotIndex === slot)) {
+      setError(`Plot ${slot} is already occupied`);
+      return;
+    }
     await run(`Queued ${buildingType}`, async () => {
-      const slot =
-        Math.max(0, ...city.buildings.map((b) => b.slotIndex), -1) + 1;
       await api(`/api/v1/cities/${city.id}/buildings`, token, {
         method: "POST",
         body: JSON.stringify({ slotIndex: slot, buildingType }),

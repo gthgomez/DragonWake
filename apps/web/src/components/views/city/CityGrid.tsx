@@ -14,7 +14,7 @@ type Tier = "stone" | "bronze" | "gold";
 
 type CityGridProps = {
   city: City;
-  doBuild: (buildingType: string) => Promise<void>;
+  doBuild: (buildingType: string, slotIndex?: number) => Promise<void>;
 };
 
 const GRID_COLUMNS = 4;
@@ -346,7 +346,7 @@ export function CityGrid({ city, doBuild }: CityGridProps) {
                   key={id}
                   type="button"
                   disabled={!canAfford(city.resources, BUILD_COST)}
-                  onClick={() => void doBuild(id)}
+                  onClick={() => void doBuild(id, selectedSlot)}
                 >
                   {BUILDING_LABELS[id]}
                 </button>

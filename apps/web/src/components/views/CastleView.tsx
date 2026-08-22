@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { canAfford, fmtNum, unitTrainCost } from "../../lib/format";
+import { Icon, type IconName } from "../../ui/icons";
 import type {
   City,
   DailyQuest,
@@ -19,7 +20,7 @@ type CastleViewProps = {
   researchDefs: ResearchDef[];
   sovereigns: Sovereign[];
   dailyQuests: DailyQuest[];
-  doBuild: (buildingType: string) => Promise<void>;
+  doBuild: (buildingType: string, slotIndex?: number) => Promise<void>;
   doResearch: (techId: string) => Promise<void>;
   doTrain: (unitId: string, count: number) => Promise<void>;
   foundMarcherKeep: () => Promise<void>;
@@ -87,7 +88,10 @@ export function CastleView({
       <ul className="res-grid">
         {(Object.keys(city.resources) as (keyof Resources)[]).map((k) => (
           <li key={k}>
-            <strong>{k.charAt(0).toUpperCase() + k.slice(1)}</strong>
+            <strong className="res-head">
+              <Icon name={k as IconName} size={16} />
+              {k.charAt(0).toUpperCase() + k.slice(1)}
+            </strong>
             <span className="res-val">{fmtNum(city.resources[k])}</span>
             {rates && (
               <span className="res-rate">+{fmtNum(rates[k])}/h</span>

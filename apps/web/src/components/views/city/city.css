@@ -156,11 +156,11 @@
 .city-sprite {
   --plinth-fill: #292219;
   --plinth-line: rgba(214, 197, 164, 0.55);
-  color: #ddcdaa;
+  color: #eedfbc;
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 76%;
+  width: 94%;
   aspect-ratio: 24 / 30;
   transform-origin: 50% 100%;
   transform: translate(-50%, calc(-100% - var(--lift, 0px)))
@@ -168,6 +168,7 @@
   transition: transform 150ms ease-out;
   pointer-events: none;
   transform-style: flat;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
 }
 
 .city-sprite-inner {
