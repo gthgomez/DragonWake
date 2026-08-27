@@ -108,7 +108,6 @@ export type March = {
   playerId: string;
   fromCityId: string;
   commanderId: string | null;
-  sovereignId: string | null;
   intent: MarchIntent;
   targetType: "camp" | "wilderness" | "city" | "coords";
   targetId: string | null;
@@ -186,18 +185,6 @@ export type ChatMessage = {
   body: string;
   createdAt: number;
 };
-export type Sovereign = {
-  id: string;
-  playerId: string;
-  sovereignType: string;
-  level: number;
-  woundedUntil: number | null;
-  harnessCrown: boolean;
-  harnessHeart: boolean;
-  harnessGrasp: boolean;
-  harnessKeel: boolean;
-};
-
 /** Rostered army leader (spec §4) — never a stackable troop. */
 export type Commander = {
   id: string;
@@ -731,7 +718,6 @@ export class World {
   alliances = new Map<string, Alliance>();
   allianceMembers = new Map<string, AllianceMember>(); // by playerId
   chat: ChatMessage[] = [];
-  sovereigns = new Map<string, Sovereign>();
   commanders = new Map<string, Commander>();
   inventory = new Map<string, Record<string, number>>(); // playerId -> items
   tutorials = new Map<string, Tutorial>();
@@ -767,7 +753,6 @@ export class World {
     marches: new Set<string>(),
     /** Reports are insert-only. */
     reports: new Set<string>(),
-    sovereigns: new Set<string>(),
     commanders: new Set<string>(),
     wilderness: new Set<string>(),
     /** Keyed by playerId for player-scoped bags/rows. */
@@ -814,11 +799,6 @@ export class World {
     this.reports.set(report.id, report);
     this.dirty.reports.add(report.id);
     return report;
-  }
-  private putSovereign(_key: string, sov: Sovereign): Sovereign {
-    this.sovereigns.set(sov.id, sov);
-    this.dirty.sovereigns.add(sov.id);
-    return sov;
   }
   private putCommander(_key: string, cmd: Commander): Commander {
     this.commanders.set(cmd.id, cmd);
@@ -1093,20 +1073,6 @@ export class World {
     city.maxPopulation = computeMaxPopulation(city);
     city.usedManpower = recalculateManpower(city);
     this.putCity(cityId, city);
-
-    // Default commanderless; create Harbinger stub not yet deployable
-    const sovId = randomUUID();
-    this.putSovereign(sovId, {
-      id: sovId,
-      playerId,
-      sovereignType: "harbinger",
-      level: 1,
-      woundedUntil: null,
-      harnessCrown: false,
-      harnessHeart: false,
-      harnessGrasp: false,
-      harnessKeel: false,
-    });
 
     const token = randomBytes(24).toString("hex");
     const tokenHash = hashToken(token);
@@ -2061,7 +2027,6 @@ export class World {
       targetX: number;
       targetY: number;
       composition: Record<string, number>;
-      sovereignId?: string | null;
       /** Commander leading this march (spec §6); validated + slot-capped. */
       commanderId?: string | null;
       /** Resource cargo for haul intent (deducted from origin city now). */
@@ -2166,18 +2131,6 @@ export class World {
     }
     this.putCity(city.id, city);
 
-    if (opts.sovereignId) {
-      const sov = this.sovereigns.get(opts.sovereignId);
-      if (!sov || sov.playerId !== playerId) {
-        throw Object.assign(new Error("bad sovereign"), { code: "NO_SOV" });
-      }
-      if (!this.harnessComplete(sov)) {
-        throw Object.assign(new Error("harness incomplete"), {
-          code: "NO_HARNESS",
-        });
-      }
-    }
-
     const dist = chebyshev(city.mapX, city.mapY, opts.targetX, opts.targetY);
     const musterFactor = marchSpeedFactor(
       bestBuildingLevel(this, playerId, "rally_quay"),
@@ -2190,7 +2143,6 @@ export class World {
       playerId,
       fromCityId: city.id,
       commanderId: commander?.id ?? null,
-      sovereignId: opts.sovereignId ?? null,
       intent: opts.intent,
       targetType: opts.targetType,
       targetId: opts.targetId ?? null,
@@ -2485,14 +2437,6 @@ export class World {
             seed,
             attacker: {
               groups: atkGroups,
-              sovereign: march.sovereignId
-                ? {
-                    sovereignId:
-                      this.sovereigns.get(march.sovereignId)?.sovereignType ??
-                      "harbinger",
-                    level: this.sovereigns.get(march.sovereignId)?.level ?? 1,
-                  }
-                : undefined,
               commander: marchCommander
                 ? {
                     leadership: marchCommander.leadership,
@@ -2858,21 +2802,11 @@ export class World {
     return report;
   }
 
-  harnessComplete(sov: Sovereign): boolean {
-    return (
-      sov.harnessCrown &&
-      sov.harnessHeart &&
-      sov.harnessGrasp &&
-      sov.harnessKeel
-    );
-  }
-
   adminGrant(
     playerId: string,
     body: {
       resources?: Partial<ResourceBag>;
       units?: Record<string, number>;
-      harness?: boolean;
       chronite?: number;
       skipProtection?: boolean;
       brineholdUnlock?: boolean;
@@ -2914,16 +2848,6 @@ export class World {
     if (body.skipProtection) {
       player.protectionUntil = null;
       this.putPlayer(player.id, player);
-    }
-    if (body.harness) {
-      for (const sov of this.sovereigns.values()) {
-        if (sov.playerId !== playerId) continue;
-        sov.harnessCrown = true;
-        sov.harnessHeart = true;
-        sov.harnessGrasp = true;
-        sov.harnessKeel = true;
-        this.putSovereign(sov.id, sov);
-      }
     }
     if (body.brineholdUnlock && city) {
       city.research["brinehold_unlock"] = 1;

@@ -204,6 +204,13 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     ALTER TABLE cities ADD COLUMN IF NOT EXISTS res_fraction JSONB NOT NULL DEFAULT '{}'::jsonb;
     ALTER TABLE cities ADD COLUMN IF NOT EXISTS pop_fraction DOUBLE PRECISION NOT NULL DEFAULT 0;
   `);
+
+  // 11. M4 — Sovereign deletion: drop the marches FK column first, then the
+  //     table. Idempotent so it is safe on fresh and legacy volumes.
+  await client.query(`
+    ALTER TABLE marches DROP COLUMN IF EXISTS sovereign_id;
+    DROP TABLE IF EXISTS sovereigns;
+  `);
 }
 
 export function findSchemaPath(): string | null {

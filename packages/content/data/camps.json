@@ -10,7 +10,6 @@
     ],
     "recommended_player_power": 80,
     "loot_notes": "food, tiny scrap",
-    "harness_drop": "no",
     "bestiary_entry": "claw_marks_stone"
   },
   {
@@ -24,7 +23,6 @@
     ],
     "recommended_player_power": 200,
     "loot_notes": "food",
-    "harness_drop": "no",
     "bestiary_entry": "claw_marks_stone"
   },
   {
@@ -38,7 +36,6 @@
     ],
     "recommended_player_power": 500,
     "loot_notes": "food, mats low",
-    "harness_drop": "no",
     "bestiary_entry": "shed_scale_phenomenon"
   },
   {
@@ -52,7 +49,6 @@
     ],
     "recommended_player_power": 1200,
     "loot_notes": "mats",
-    "harness_drop": "rare shard",
     "bestiary_entry": "burned_farmland"
   },
   {
@@ -65,8 +61,7 @@
       "250 Man-at-Arms + 50 Shieldman + 75 Crossbowman"
     ],
     "recommended_player_power": 2500,
-    "loot_notes": "Harbinger harness piece chance",
-    "harness_drop": "yes low",
+    "loot_notes": "dragon clue chance",
     "bestiary_entry": "burned_farmland"
   },
   {
@@ -79,8 +74,7 @@
       "300 Halberdier + 250 Crossbowman"
     ],
     "recommended_player_power": 5000,
-    "loot_notes": "harness",
-    "harness_drop": "yes",
+    "loot_notes": "dragon material chance",
     "bestiary_entry": "valley_drake"
   },
   {
@@ -93,8 +87,7 @@
       "500 Man-at-Arms + 200 Knight"
     ],
     "recommended_player_power": 10000,
-    "loot_notes": "talismans if Sov present",
-    "harness_drop": "yes",
+    "loot_notes": "dragon material chance",
     "bestiary_entry": "ridgeback_wyvern"
   },
   {
@@ -107,8 +100,7 @@
       "1000 Pikeman + 500 Heavy Crossbowman"
     ],
     "recommended_player_power": 20000,
-    "loot_notes": "talismans",
-    "harness_drop": "yes",
+    "loot_notes": "rare dragon material chance",
     "bestiary_entry": "mountain_wyrm"
   },
   {
@@ -121,8 +113,7 @@
       "1800 Man-at-Arms + 900 Longbowman"
     ],
     "recommended_player_power": 35000,
-    "loot_notes": "talismans high",
-    "harness_drop": "yes",
+    "loot_notes": "rare dragon material chance",
     "bestiary_entry": "ironback_wyrm"
   },
   {
@@ -135,8 +126,7 @@
       "2000 Knight + 2500 Longbowman + 1500 Pikeman"
     ],
     "recommended_player_power": 60000,
-    "loot_notes": "best talisman rate",
-    "harness_drop": "yes",
+    "loot_notes": "best dragon material chance",
     "bestiary_entry": "ash_drake"
   }
 ]

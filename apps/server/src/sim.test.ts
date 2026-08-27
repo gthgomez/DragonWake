@@ -258,14 +258,16 @@ describe("World queues + marches (shipped paths)", () => {
     expect(members).toHaveLength(2);
   });
 
-  it("harness grant enables complete harness; brinehold found", () => {
+  it("admin grant unlock enables brinehold found (sovereign removed in M4)", () => {
     const world = new World({ devFastTime: true });
     const { player } = world.createGuest("SovLord", "forest_people");
-    world.adminGrant(player.id, { harness: true, brineholdUnlock: true });
-    const sov = [...world.sovereigns.values()].find(
-      (s) => s.playerId === player.id,
-    )!;
-    expect(world.harnessComplete(sov)).toBe(true);
+    world.adminGrant(player.id, { brineholdUnlock: true });
+    // The unlock flag reaches the capital research (harness path deleted)
+    expect(
+      world
+        .citiesForPlayer(player.id)[0]!
+        .research.brinehold_unlock,
+    ).toBe(1);
     const brine = world.foundBrinehold(player.id, "Deep Brine");
     expect(brine.kind).toBe("brinehold");
     expect(brine.stacks.shieldman).toBeGreaterThan(0);

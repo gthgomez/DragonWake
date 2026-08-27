@@ -23,7 +23,7 @@ Coverage maps to ACCEPTANCE_MVP M1–M11 in `apps/server/src/acceptance.test.ts`
 | M1–M2 | Two guests, different tiles, resources |
 | M3–M4 | Build + research/train queues |
 | M5–M6 | Camp attack + wilderness occupy |
-| M7–M8 | Admin harness + Brinehold |
+| M7–M8 | Admin grant unlock (M4: Sovereign deleted) + Brinehold |
 | M9 | Tideband create/join + chat |
 | M10 | PvP (withdraw posture) |
 | M11 | Codex formulas non-empty |

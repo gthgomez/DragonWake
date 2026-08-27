@@ -8,14 +8,6 @@
     "purpose": "The heart of your keep — its hearth never goes cold."
   },
   {
-    "id": "sovereign_cradle",
-    "name": "Sovereign Cradle",
-    "category": "keep",
-    "max_level": 10,
-    "buildable": false,
-    "purpose": "Old foundations sleep beneath the keep."
-  },
-  {
     "id": "habitation",
     "name": "Homes",
     "category": "settlement",

@@ -19,7 +19,6 @@ import type {
   Player,
   QueueJob,
   Session,
-  Sovereign,
   Tutorial,
   Wilderness,
   World,
@@ -92,7 +91,6 @@ export class PgStore {
         world.alliances.clear();
         world.allianceMembers.clear();
         world.chat = [];
-        world.sovereigns.clear();
         world.commanders.clear();
         world.inventory.clear();
         world.tutorials.clear();
@@ -328,7 +326,6 @@ export class PgStore {
           playerId: row.player_id,
           fromCityId: row.from_city_id,
           commanderId: row.commander_id,
-          sovereignId: row.sovereign_id,
           intent: row.intent,
           targetType: row.target_type,
           targetId: row.target_id,
@@ -344,27 +341,6 @@ export class PgStore {
           landCount: row.status === "en_route" ? 0 : 1,
         };
         world.marches.set(m.id, m);
-      }
-
-      const sovs = await client.query(
-        `SELECT s.* FROM sovereigns s JOIN players p ON p.id = s.player_id WHERE p.realm_id = $1`,
-        [world.realmId],
-      );
-      for (const row of sovs.rows) {
-        const s: Sovereign = {
-          id: row.id,
-          playerId: row.player_id,
-          sovereignType: row.sovereign_type,
-          level: row.level,
-          woundedUntil: row.wounded_until
-            ? new Date(row.wounded_until).getTime()
-            : null,
-          harnessCrown: row.harness_crown,
-          harnessHeart: row.harness_heart,
-          harnessGrasp: row.harness_grasp,
-          harnessKeel: row.harness_keel,
-        };
-        world.sovereigns.set(s.id, s);
       }
 
       const items = await client.query(
@@ -710,37 +686,6 @@ export class PgStore {
     );
   }
 
-  private async upsertSovereign(client: pg.PoolClient, s: Sovereign): Promise<void> {
-    await client.query(
-      `INSERT INTO sovereigns (
-           id, player_id, sovereign_type, level, wounded_until,
-           harness_crown, harness_heart, harness_grasp, harness_keel
-         ) VALUES (
-           $1,$2,$3,$4,
-           CASE WHEN $5::float8 IS NULL THEN NULL ELSE to_timestamp($5/1000.0) END,
-           $6,$7,$8,$9
-         )
-         ON CONFLICT (id) DO UPDATE SET
-           level=EXCLUDED.level,
-           wounded_until=EXCLUDED.wounded_until,
-           harness_crown=EXCLUDED.harness_crown,
-           harness_heart=EXCLUDED.harness_heart,
-           harness_grasp=EXCLUDED.harness_grasp,
-           harness_keel=EXCLUDED.harness_keel`,
-      [
-        s.id,
-        s.playerId,
-        s.sovereignType,
-        s.level,
-        s.woundedUntil,
-        s.harnessCrown,
-        s.harnessHeart,
-        s.harnessGrasp,
-        s.harnessKeel,
-      ],
-    );
-  }
-
   private async upsertCommander(client: pg.PoolClient, cmd: Commander): Promise<void> {
     await client.query(
       `INSERT INTO commanders (
@@ -776,19 +721,19 @@ export class PgStore {
     );
   }
 
-  private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
+private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
     // Insert/update without the report FK first, then link — mirrors the
     // original two-step dance (marches ↔ reports circular reference).
     await client.query(
       `INSERT INTO marches (
-           id, realm_id, player_id, from_city_id, commander_id, sovereign_id,
+           id, realm_id, player_id, from_city_id, commander_id,
            intent, target_type, target_id, target_x, target_y, composition,
            depart_at, arrive_at, return_at, status, battle_report_id
          ) VALUES (
-           $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,
-           to_timestamp($13/1000.0), to_timestamp($14/1000.0),
-           CASE WHEN $15::float8 IS NULL THEN NULL ELSE to_timestamp($15/1000.0) END,
-           $16, NULL
+           $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,
+           to_timestamp($12/1000.0), to_timestamp($13/1000.0),
+           CASE WHEN $14::float8 IS NULL THEN NULL ELSE to_timestamp($14/1000.0) END,
+           $15, NULL
          )
          ON CONFLICT (id) DO UPDATE SET
            composition=EXCLUDED.composition,
@@ -801,7 +746,6 @@ export class PgStore {
         m.playerId,
         m.fromCityId,
         m.commanderId,
-        m.sovereignId,
         m.intent,
         m.targetType,
         m.targetId,
@@ -999,7 +943,6 @@ export class PgStore {
       d.jobs.size > 0 ||
       d.marches.size > 0 ||
       d.reports.size > 0 ||
-      d.sovereigns.size > 0 ||
       d.commanders.size > 0 ||
       d.wilderness.size > 0 ||
       d.inventory.size > 0 ||
@@ -1019,7 +962,6 @@ export class PgStore {
       sessions: [...d.sessions],
       cities: [...d.cities],
       jobs: [...d.jobs],
-      sovereigns: [...d.sovereigns],
       commanders: [...d.commanders],
       marches: [...d.marches],
       reports: [...d.reports],
@@ -1062,11 +1004,7 @@ export class PgStore {
         const j = world.jobs.get(id);
         if (j) await this.upsertJob(client, j);
       }
-      // Sovereigns/commanders before marches/reports (FK order).
-      for (const id of snap.sovereigns) {
-        const s = world.sovereigns.get(id);
-        if (s) await this.upsertSovereign(client, s);
-      }
+      // Commanders before marches/reports (FK order).
       for (const id of snap.commanders) {
         const cmd = world.commanders.get(id);
         if (cmd) await this.upsertCommander(client, cmd);
@@ -1124,7 +1062,6 @@ export class PgStore {
       for (const id of snap.sessions) d.sessions.delete(id);
       for (const id of snap.cities) d.cities.delete(id);
       for (const id of snap.jobs) d.jobs.delete(id);
-      for (const id of snap.sovereigns) d.sovereigns.delete(id);
       for (const id of snap.commanders) d.commanders.delete(id);
       for (const id of snap.marches) d.marches.delete(id);
       for (const id of snap.reports) d.reports.delete(id);
@@ -1179,10 +1116,7 @@ export class PgStore {
       for (const j of world.jobs.values()) {
         await this.upsertJob(client, j);
       }
-      // Sovereigns/commanders before marches (optional FK)
-      for (const s of world.sovereigns.values()) {
-        await this.upsertSovereign(client, s);
-      }
+      // Commanders before marches (optional FK)
       for (const cmd of world.commanders.values()) {
         await this.upsertCommander(client, cmd);
       }

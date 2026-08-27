@@ -318,7 +318,7 @@ record; this section is authoritative for current state.
 ### Still open (unchanged)
 
 - Sovereign/harness retained as legacy-compat; deletion deferred to M4 per
-  Phase 2.1 Amendment A1.
+  Phase 2.1 Amendment A1. → **CLOSED** by the M4 batch below (2026-08-27).
 
 ### Building mechanics batch (2026-08-27)
 
@@ -354,10 +354,36 @@ settlement classes), replacing the unshipped aquatic fiction units:
 - Mnemolith remains deferred (audit DEFER; `domain_catalog` marks it `_DEFERRED_`).
 - Test counts: combat 15·20 · server 128 (incl. citadel-ladder + building-mechanics cases).
 
-### Still open (unchanged)
+### M4 — Sovereign deletion (2026-08-27)
 
-- Sovereign/harness retained as legacy-compat; deletion deferred to M4 per
-  Phase 2.1 Amendment A1.
+The frozen M4 domain-model replacement from Amendment A1 is **complete**.
+All prerequisites (Commander system §12, dragon readiness incl. the facility
+gate) were in place. Deleted surfaces:
+
+- **Combat**: `SideInput.sovereign` removed; `sovereign` role + `isSovereign`
+  threat bonus + targeting branch gone; `harbinger` parsing/stripping removed;
+  M11 matchup deleted, M12 rewritten as a medieval elite showcase;
+  `COMBAT_RULES_VERSION` 0.3.0; `sovereign` column dropped from `rps.json`.
+- **Content**: `sovereigns.json` deleted; `SovereignDef`/`getSovereigns`/
+  `getSovereignById` removed; `sovereign_cradle` removed from buildings;
+  `harness_drop` field + legacy loot notes removed from camps.
+- **Server**: `Sovereign` domain, `world.sovereigns`, `harnessComplete`,
+  march `sovereignId` + `NO_SOV`/`NO_HARNESS`, `/sovereigns` route,
+  `/me.sovereigns`, admin-grant `harness` — all removed.
+- **Persistence**: `sovereigns` table + `marches.sovereign_id` dropped from
+  `schema.sql`; idempotent drop added to `migrateExistingSchema()` (step 11);
+  pg-store load/upsert/dirty-tracking removed.
+- **Web**: `Sovereign` type/state/props and the CastleView harness card removed.
+- **Acceptance**: M7 now asserts the admin-grant unlock path (Brinehold
+  unlock flag on the capital) and `/me` carries no sovereign payload.
+
+Test counts as of this update: combat 20 · server 128.
+
+### Still open
+
+- None of the §8 debt table / §12 still-open list remains: buildings have
+  mechanics, sovereign is deleted. Next campaigns are S1.4+ (Mnemolith,
+  Arena, Tidebeast, Market) per the README board.
 
 Test counts as of this update: combat 15 · server 90 (incl. 2 PG restart tests,
 green under `REQUIRE_PG=1`).

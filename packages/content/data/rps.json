@@ -4,47 +4,34 @@
     "range": 0.75,
     "speed": 1.35,
     "logistics": 1.5,
-    "scout": 1.4,
-    "sovereign": 0.9
+    "scout": 1.4
   },
   "range": {
     "melee": 1.35,
     "range": 1.0,
     "speed": 0.7,
     "logistics": 1.4,
-    "scout": 1.3,
-    "sovereign": 1.0
+    "scout": 1.3
   },
   "speed": {
     "melee": 0.7,
     "range": 1.4,
     "speed": 1.0,
     "logistics": 1.5,
-    "scout": 1.3,
-    "sovereign": 1.05
+    "scout": 1.3
   },
   "logistics": {
     "melee": 0.4,
     "range": 0.4,
     "speed": 0.4,
     "logistics": 1.0,
-    "scout": 0.8,
-    "sovereign": 0.3
+    "scout": 0.8
   },
   "scout": {
     "melee": 0.35,
     "range": 0.35,
     "speed": 0.35,
     "logistics": 0.5,
-    "scout": 1.0,
-    "sovereign": 0.25
-  },
-  "sovereign": {
-    "melee": 1.1,
-    "range": 1.1,
-    "speed": 1.1,
-    "logistics": 1.2,
-    "scout": 1.2,
-    "sovereign": 1.0
+    "scout": 1.0
   }
 }

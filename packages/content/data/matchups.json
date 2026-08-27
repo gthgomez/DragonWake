@@ -90,20 +90,11 @@
     "status": "draft"
   },
   {
-    "test_id": "M11",
-    "attacker": "Harbinger alone",
-    "defender": "2k Tidepike",
-    "expected_winner": "attacker",
-    "design_intent": "Sovereign crushes small melee",
-    "pass_criteria": "Sov not wounded",
-    "status": "draft"
-  },
-  {
     "test_id": "M12",
-    "attacker": "Harbinger + 1k Stormkeel",
-    "defender": "3k Colossus + 2k Reefbow",
+    "attacker": "1k Dragon Slayer + 1k Knight",
+    "defender": "3k Halberdier + 2k Bowman",
     "expected_winner": "contested",
-    "design_intent": "Mixed late army vs Sov package",
+    "design_intent": "Elite anti-dragon package vs mid counter",
     "pass_criteria": "report readable",
     "status": "draft"
   },

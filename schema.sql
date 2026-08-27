@@ -133,19 +133,6 @@ CREATE TABLE commanders (
   wounded_until   TIMESTAMPTZ
 );
 
-CREATE TABLE sovereigns (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  player_id       UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  sovereign_type  TEXT NOT NULL, -- harbinger, brine_sov, …
-  level           INT NOT NULL DEFAULT 1,
-  wounded_until   TIMESTAMPTZ,
-  harness_crown   BOOLEAN NOT NULL DEFAULT FALSE,
-  harness_heart   BOOLEAN NOT NULL DEFAULT FALSE,
-  harness_grasp   BOOLEAN NOT NULL DEFAULT FALSE,
-  harness_keel    BOOLEAN NOT NULL DEFAULT FALSE,
-  UNIQUE (player_id, sovereign_type)
-);
-
 CREATE TABLE item_stacks (
   player_id       UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
   item_id         TEXT NOT NULL,
@@ -187,7 +174,6 @@ CREATE TABLE marches (
   player_id       UUID NOT NULL REFERENCES players(id),
   from_city_id    UUID NOT NULL REFERENCES cities(id),
   commander_id    UUID REFERENCES commanders(id),
-  sovereign_id    UUID REFERENCES sovereigns(id),
   intent          TEXT NOT NULL
                   CHECK (intent IN ('scout','attack','occupy','reinforce','haul')),
   target_type     TEXT NOT NULL

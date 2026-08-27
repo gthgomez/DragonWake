@@ -174,12 +174,6 @@ export type DailyQuest = {
   claimed: boolean;
 };
 
-export type Sovereign = {
-  id: string;
-  sovereignType: string;
-  harnessComplete: boolean;
-};
-
 export type ResearchDef = {
   id: string;
   name: string;

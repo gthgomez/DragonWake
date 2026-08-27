@@ -225,6 +225,6 @@ describe("commander bonus (spec §5)", () => {
   });
 
   it("rules version bumped for the commander-capable resolver", () => {
-    expect(COMBAT_RULES_VERSION).toBe("0.2.0");
+    expect(COMBAT_RULES_VERSION).toBe("0.3.0");
   });
 });

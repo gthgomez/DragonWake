@@ -6,6 +6,15 @@ Base SHA: `0241e51` (main)
 
 ## Amendment A1 — Sovereign deletion DEFERRED to M4 (2026-08-21)
 
+> **M4 RESOLVED (2026-08-27)** — the Sovereign abstraction is now **deleted**.
+> The prerequisites this amendment waited for are in place: the Commander
+> system took over the army-leadership role and dragon readiness took over the
+> harness purpose. The `sovereigns` table/`marches.sovereign_id` are dropped
+> (idempotent boot migration), `/sovereigns` and `/me.sovereigns` are gone, the
+> resolver's sovereign term and the `sovereign` combat role are removed
+> (`COMBAT_RULES_VERSION` 0.3.0), and the web surfaces no longer render them.
+> ACCEPTANCE_MVP M7 now asserts the admin-grant unlock path instead of harness.
+
 The FREEZE NOW item "Sovereign DELETED as abstraction" is amended to
 **DEFER (M4, Phase 3 migration)**, per the C4 migration-class table which
 already classifies Sovereign deletion as M4.

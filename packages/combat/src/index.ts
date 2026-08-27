@@ -7,7 +7,6 @@ import {
   getFormulas,
   getMatchups,
   getRps,
-  getSovereignById,
   getStackEfficiency,
   getUnitById,
   type StackBand,
@@ -21,7 +20,6 @@ export type BattleGroup = {
 
 export type SideInput = {
   groups: BattleGroup[];
-  sovereign?: { sovereignId: string; level?: number };
   /** Commander leadership bonus (spec §5); absent ⇒ legacy behavior. */
   commander?: { leadership: number; attack: number };
 };
@@ -51,14 +49,13 @@ export type BattleResult = {
   note?: string;
 };
 
-export const COMBAT_RULES_VERSION = "0.2.0";
+export const COMBAT_RULES_VERSION = "0.3.0";
 
 const MAX_ROUNDS = 40;
 const COMBAT_ROLES = new Set([
   "melee",
   "range",
   "speed",
-  "sovereign",
   "scout",
   "logistics",
 ]);
@@ -78,7 +75,6 @@ type LiveGroup = {
   unitPower: number;
   hp: number;
   pos: number;
-  isSovereign: boolean;
   isCombat: boolean;
 };
 
@@ -140,35 +136,8 @@ function buildGroups(
       unitPower: unit.power,
       hp: count * life,
       pos: basePos,
-      isSovereign: false,
       isCombat: COMBAT_ROLES.has(unit.role),
     });
-  }
-  if (side.sovereign) {
-    const sov = getSovereignById(side.sovereign.sovereignId);
-    if (sov) {
-      const level = side.sovereign.level ?? 1;
-      const scale = 1 + (level - 1) * 0.05;
-      const life = Math.floor(sov.life * scale);
-      out.push({
-        key: `${sideName}:sov:${sov.id}`,
-        unitId: sov.id,
-        role: "sovereign",
-        side: sideName,
-        count: 1,
-        startCount: 1,
-        unitLife: life,
-        unitAtk: Math.max(sov.melee_atk, sov.ranged_atk) * scale,
-        unitRange: sov.range,
-        unitSpeed: sov.speed,
-        unitDefense: sov.defense,
-        unitPower: sov.power,
-        hp: life,
-        pos: basePos,
-        isSovereign: true,
-        isCombat: true,
-      });
-    }
   }
   return out;
 }
@@ -178,7 +147,7 @@ function buildGroups(
  * defense ×(1 + 0.02 × leadership) and melee/ranged attack ×(1 + 0.02 ×
  * attack). Absent commander ⇒ no-op (byte-identical legacy math). Applied in
  * resolveBattle after unit-stat lookup, before the round loop; pure and
- * deterministic. Composes multiplicatively with the sovereign aura term.
+ * deterministic.
  */
 const COMMANDER_BONUS_PER_POINT = 0.02; // INITIAL_TEST_FIXTURE
 
@@ -225,7 +194,7 @@ function rpsMul(
 }
 
 function threatScore(g: LiveGroup): number {
-  return g.count * g.unitAtk * (g.isSovereign ? 3 : 1);
+  return g.count * g.unitAtk;
 }
 
 function pickTarget(
@@ -254,8 +223,6 @@ function pickTarget(
     } else if (attacker.role === "melee") {
       if (e.role === "speed") score = 100 + threatScore(e);
       else score = 50 + threatScore(e);
-    } else if (attacker.role === "sovereign") {
-      score = threatScore(e) * 2;
     } else {
       score = threatScore(e);
     }
@@ -501,14 +468,6 @@ export function resolveBattle(input: BattleInput): BattleResult {
 /** Parse matchup strings like "5k Reefbow" or "3k Stormkeel + 2k Levy". */
 export function parseForceString(spec: string): SideInput {
   const s = spec.trim();
-  if (/^harbinger alone$/i.test(s)) {
-    return { groups: [], sovereign: { sovereignId: "harbinger", level: 1 } };
-  }
-  if (/^harbinger \+/i.test(s)) {
-    const rest = s.replace(/^harbinger \+/i, "").trim();
-    const groups = parseForceString(rest).groups;
-    return { groups, sovereign: { sovereignId: "harbinger", level: 1 } };
-  }
   if (/^same$/i.test(s)) {
     return { groups: [] };
   }
@@ -560,6 +519,12 @@ export const FORCE_NAME_TO_ID: Record<string, string> = {
   "supply wagon": "supply_wagon",
   mounted_scout: "mounted_scout",
   "mounted scout": "mounted_scout",
+  forest_ranger: "forest_ranger",
+  "forest ranger": "forest_ranger",
+  warhound: "warhound",
+  dragon_slayer: "dragon_slayer",
+  "dragon slayer": "dragon_slayer",
+  ballista: "ballista",
   // Legacy names (backward compat)
   tidepike: "pikeman",
   reefbow: "bowman",
@@ -594,15 +559,13 @@ export function validateBattleContent(): string[] {
     ] as const) {
       const s = String(force ?? "").trim();
       if (/^same$/i.test(s)) continue;
-      // Strip a sovereign prefix ("harbinger + …") — validated separately.
-      const body = s.replace(/^harbinger \+/i, "").replace(/^harbinger alone$/i, "");
-      for (const part of body.split(/\s*\+\s*/)) {
+      for (const part of s.split(/\s*\+\s*/)) {
         const name = part
           .trim()
           .replace(/^\d+(?:\.\d+)?\s*k?\s+/i, "")
           .replace(/\s+only$/i, "")
           .toLowerCase();
-        if (!name || /^harbinger$/i.test(name)) continue;
+        if (!name) continue;
         const id = FORCE_NAME_TO_ID[name] ?? name;
         if (!getUnitById(id)) {
           problems.push(

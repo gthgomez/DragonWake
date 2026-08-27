@@ -66,7 +66,6 @@ export type CampDef = {
   comps?: string[];
   recommended_player_power: number;
   loot_notes: string;
-  harness_drop: string;
   /** Bestiary entry recorded when this camp is defeated. */
   bestiary_entry?: string;
 };
@@ -103,22 +102,6 @@ export type ResearchDef = {
   group: string;
   /** Base resource cost; total scales with the next level number (L1 = base). */
   cost?: ResearchCost;
-};
-
-export type SovereignDef = {
-  id: string;
-  name: string;
-  life: number;
-  melee_atk: number;
-  ranged_atk: number;
-  range: number;
-  speed: number;
-  defense: number;
-  power: number;
-  aura_atk?: number;
-  aura_def?: number;
-  aura_life?: number;
-  ship?: string;
 };
 
 export type ShopItem = {
@@ -252,7 +235,6 @@ let cache: {
   camps?: CampDef[];
   buildings?: BuildingDef[];
   research?: ResearchDef[];
-  sovereigns?: SovereignDef[];
   shop?: ShopItem[];
   matchups?: MatchupDef[];
   citadels?: CitadelDef[];
@@ -319,14 +301,6 @@ export function getBuildingById(id: string): BuildingDef | undefined {
 
 export function getResearch(): ResearchDef[] {
   return (cache.research ??= loadJson<ResearchDef[]>("research.json"));
-}
-
-export function getSovereigns(): SovereignDef[] {
-  return (cache.sovereigns ??= loadJson<SovereignDef[]>("sovereigns.json"));
-}
-
-export function getSovereignById(id: string): SovereignDef | undefined {
-  return getSovereigns().find((s) => s.id === id);
 }
 
 export function getShop(): ShopItem[] {

@@ -338,20 +338,6 @@ export function createApp(world: World) {
       dailyQuests: world.listDailyQuests(player.id),
       serverNow: Date.now(),
       devMode: devModeEnabled(),
-      sovereigns: [...world.sovereigns.values()]
-        .filter((s) => s.playerId === player.id)
-        .map((s) => ({
-          id: s.id,
-          sovereignType: s.sovereignType,
-          level: s.level,
-          harnessComplete: world.harnessComplete(s),
-          harness: {
-            crown: s.harnessCrown,
-            heart: s.harnessHeart,
-            grasp: s.harnessGrasp,
-            keel: s.harnessKeel,
-          },
-        })),
     });
   });
 
@@ -569,7 +555,6 @@ export function createApp(world: World) {
         targetY: body.target.y,
         composition: body.composition ?? {},
         cargo: body.cargo,
-        sovereignId: body.sovereignId ?? null,
         commanderId: body.commanderId ?? null,
       });
       return c.json({ march });
@@ -608,18 +593,6 @@ export function createApp(world: World) {
       return err(c, "NO_REPORT", "not found", 404);
     }
     return c.json({ report });
-  });
-
-  api.get("/sovereigns", (c) => {
-    const player = c.get("player");
-    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const list = [...world.sovereigns.values()]
-      .filter((s) => s.playerId === player.id)
-      .map((s) => ({
-        ...s,
-        harnessComplete: world.harnessComplete(s),
-      }));
-    return c.json({ sovereigns: list });
   });
 
   api.get("/commanders", (c) => {
