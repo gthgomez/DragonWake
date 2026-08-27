@@ -7,6 +7,7 @@ import {
 import {
   getBestiaryEntries,
   getBuildings,
+  getCitadelById,
   getCitadels,
   getDragonClues,
   getExpeditions,
@@ -714,23 +715,33 @@ export function createApp(world: World) {
     }
     try {
       if (body.unlock !== false) {
-        // Dev/demo unlock for this citadel (and brinehold prereq if needed)
-        if (kind === "stonekeel" || kind === "brinehold") {
-          world.adminGrant(player.id, {
-            brineholdUnlock: true,
-            stonekeelUnlock: kind === "stonekeel",
-            citadelUnlock: kind,
-          });
-        } else {
-          world.adminGrant(player.id, { citadelUnlock: kind });
+        // Dev/demo unlock: walk the ladder's prerequisites so `kind` is
+        // reachable in one call (found chain brinehold → stonekeel →
+        // cinderreach → galeari).
+        const prereqs: string[] = [];
+        let cur = getCitadelById(kind);
+        while (cur && cur.requires && cur.requires.length > 0) {
+          const pid = cur.requires[0]!;
+          prereqs.unshift(pid);
+          cur = getCitadelById(pid);
         }
-        // Ensure prereq cities exist when demo-unlocking ladder rungs
-        if (kind === "stonekeel") {
-          if (!world.citiesForPlayer(player.id).some((x) => x.kind === "brinehold")) {
-            world.adminGrant(player.id, { brineholdUnlock: true });
-            world.foundBrinehold(player.id);
+        for (const id of prereqs) {
+          const def = getCitadelById(id);
+          if (!def) continue;
+          world.adminGrant(player.id, {
+            brineholdUnlock: id === "brinehold",
+            stonekeelUnlock: id === "stonekeel",
+            citadelUnlock: id,
+          });
+          if (!world.citiesForPlayer(player.id).some((x) => x.kind === id)) {
+            world.foundCitadel(player.id, id);
           }
         }
+        world.adminGrant(player.id, {
+          brineholdUnlock: kind === "brinehold",
+          stonekeelUnlock: kind === "stonekeel",
+          citadelUnlock: kind,
+        });
       }
       const city = world.foundCitadel(player.id, kind, body.name);
       return c.json({ city: publicCity(city, world) });

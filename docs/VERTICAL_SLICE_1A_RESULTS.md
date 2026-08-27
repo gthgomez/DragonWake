@@ -333,8 +333,26 @@ Closed the remaining content-only buildings by giving each a live mechanic
 | `skyreost` → Dragon Watch | Dragon-readiness facility requirement: new `building_level` readiness requirement type; `dragon_watch_facility` (skyreost ≥ L2) added to `dragon_readiness.json` — the readiness gate is now 5 factors |
 | `training_camp` → Training Camp | Extra concurrent training-queue slots: `5 + min(level, 3)` |
 
-March-time acceleration remains prohibited (Direction Freeze §21): Roads boost
-haul *capacity*, never travel time.
+March-time acceleration remains prohibited (Direction Freeze §21): Roads boost haul
+*capacity*, never travel time.
+
+### S1.2/S1.3 citadel rungs (2026-08-27)
+
+Completed the next two ladder rungs with a medieval retheme (audit §M
+settlement classes), replacing the unshipped aquatic fiction units:
+
+| Citadel (legacy id) | Medieval role | Exclusive units | Starter stacks | Craft mat |
+|---------------------|---------------|-----------------|----------------|-----------|
+| `cinderreach` | **Forest Citadel** — archery/ambush, scouting doctrine | `forest_ranger` (T3 range), `warhound` (T3 speed) | 8 ranger / 6 hound | ancient_heartwood |
+| `galeari` | **Dragon Watch** — slayer training, Dragon Studies | `dragon_slayer` (T3 melee), `ballista` (T3 range siege-grade) | 5 slayer / 3 ballista | dragon_scale |
+
+- Research gates: scouting L3 → forest_ranger, scouting L4 → warhound,
+  dragon_studies L2 → dragon_slayer, dragon_studies L3 → ballista.
+- `POST /citadels/found` demo unlock now walks the whole prereq chain
+  (brinehold → stonekeel → cinderreach → galeari) so any rung is reachable
+  in one call; `CITADEL_PREREQ` still enforced for honest play.
+- Mnemolith remains deferred (audit DEFER; `domain_catalog` marks it `_DEFERRED_`).
+- Test counts: combat 15·20 · server 128 (incl. citadel-ladder + building-mechanics cases).
 
 ### Still open (unchanged)
 

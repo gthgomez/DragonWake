@@ -72,6 +72,30 @@
     "kind": "unit"
   },
   {
+    "research_id": "scouting",
+    "research_level": 3,
+    "unlocks": ["forest_ranger"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "scouting",
+    "research_level": 4,
+    "unlocks": ["warhound"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "dragon_studies",
+    "research_level": 2,
+    "unlocks": ["dragon_slayer"],
+    "kind": "unit"
+  },
+  {
+    "research_id": "dragon_studies",
+    "research_level": 3,
+    "unlocks": ["ballista"],
+    "kind": "unit"
+  },
+  {
     "research_id": "metallurgy",
     "research_level": 3,
     "unlocks": ["shieldman"],

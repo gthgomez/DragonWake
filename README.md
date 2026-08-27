@@ -234,24 +234,38 @@ See [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md).
 | **0** | Authority freeze | **Done** (PR #1) |
 | — | **CLOSED_MOCKUP_V1 presentation closure** | **Done (2026-08-30)** |
 | **1** | Lore Bible v1 (one region) | Not started |
-| **2** | Mechanical translation design (incl. Sovereign decision) | Blocked on 1; a full Sovereign deletion already exists as unpushed local work |
+| **2** | Mechanical translation design (incl. Sovereign decision) | Blocked on 1; Sovereign deletion is being reconciled from preserved local work |
 | **3** | Decouple old canon from engine (migrations) | Blocked on 2 |
 | **4** | Content conversion | Blocked on 2–3 |
 | **5** | Web vertical slice (castle → Codex → lesser dragon) | Partially proven by CLOSED_MOCKUP_V1 |
 | **6** | Mobile client against stabilized semantics | After 5 |
 | **7** | Dragon systems (expeditions, anatomy, bonding) | After 5 |
+| **B0** | Residual closeout | **Done** |
+| **P0** | Playable polish | **Done** |
+| **S1.0–S1.1** | Freeze + **Stonekeel** citadel | **Done** |
+| **Phase 2.1** | Medieval retheme slice 1A (population/manpower, research gates, dragon foundation, camp variation) | **Landed** (`docs/VERTICAL_SLICE_1A_RESULTS.md`) |
+| **S1.2–S1.3** | **Forest Citadel** (cinderreach) + **Dragon Watch** (galeari) citadels | **Done** — medieval exclusive units (forest_ranger/warhound, dragon_slayer/ballista); demo-unlock walks the prereq chain |
+| **S1.4+** | Mnemolith (deferred), Arena, Tidebeast, Market… | Next |
 
 P0 notes: `docs/P0_M1_M11_EVIDENCE.md` · events poll `GET /api/v1/events?since=` · SSE `/api/v1/events/stream` · CI `.github/workflows/ci.yml`
 
-## OUT OF SCOPE (until a later freeze)
+## Citadel development routes
+
+Found Stonekeel: `POST /api/v1/citadels/found` `{ "kind": "stonekeel", "unlock": true }`  
+Found Forest Citadel / Dragon Watch: same route with `"kind": "cinderreach" | "galeari"` — the demo unlock auto-founds missing ladder rungs  
+Found Marcher Keep (requires expedition charter): `POST /api/v1/citadels/found` via charter path
 
 Arena, world boss, citadels past the second-settlement system, Mnemolith/Echo,
 live market, real IAP, Hardcore realms.
 
+## OUT OF SCOPE (until a later freeze)
 Native mobile **architecture** may be planned in parallel. Native mobile
 **content-heavy UI** waits until Phase 6.
 
 Old S1 labels (Tidebeast, Mnemolith, elemental factions) are historical.
+Sovereign/harness references are retained only where required for legacy
+migrations, compatibility tests, or historical documentation; live product
+support is being removed by the preserved M4 reconciliation work.
 
 ## License
 

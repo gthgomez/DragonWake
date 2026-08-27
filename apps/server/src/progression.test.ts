@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { World, pickCampTemplate, resolveCampDefGroups } from "./world.js";
+import { World, pickCampTemplate, resolveCampDefGroups, type City } from "./world.js";
 import { isUnitUnlocked, getBestiaryEntries, getDragonReadiness, getDragonClues, getUnitById, getUnits, getCamps } from "@tideforge/content";
 
 function freshWorld(): World {
@@ -1781,5 +1781,93 @@ describe("Building Mechanics", () => {
     trainOne();
     trainOne();
     expectCode(() => world.startTrain(city.id, player.id, "levy", 1), "QUEUE_FULL");
+  });
+});
+
+// ── 14. Citadel ladder (S1.2 Forest Citadel / S1.3 Dragon Watch) ───────────
+
+describe("Citadel Ladder S1.2/S1.3", () => {
+  /** Found the whole ladder up to `kind` through the real unlock gates. */
+  function foundThrough(world: World, playerId: string, kind: string): City {
+    for (const id of ["brinehold", "stonekeel", "cinderreach", "galeari"]) {
+      world.adminGrant(playerId, {
+        brineholdUnlock: id === "brinehold",
+        stonekeelUnlock: id === "stonekeel",
+        citadelUnlock: id,
+      });
+      if (!world.citiesForPlayer(playerId).some((x) => x.kind === id)) {
+        world.foundCitadel(playerId, id);
+      }
+      if (id === kind) break;
+    }
+    return world.citiesForPlayer(playerId).find((x) => x.kind === kind)!;
+  }
+
+  it("founds cinderreach (Forest Citadel) with medieval exclusive starters", () => {
+    const world = freshWorld();
+    const { player } = world.createGuest("LadderA", "northern_kingdom");
+    world.adminGrant(player.id, { brineholdUnlock: true });
+    world.foundBrinehold(player.id);
+    world.adminGrant(player.id, { stonekeelUnlock: true });
+    world.foundStonekeel(player.id);
+    world.adminGrant(player.id, { citadelUnlock: "cinderreach" });
+    const cinder = world.foundCitadel(player.id, "cinderreach", "Cinder");
+    expect(cinder.kind).toBe("cinderreach");
+    expect(cinder.stacks.forest_ranger).toBe(8);
+    expect(cinder.stacks.warhound).toBe(6);
+  });
+
+  it("founds galeari (Dragon Watch) with slayer/artillery starters", () => {
+    const world = freshWorld();
+    const { player } = world.createGuest("LadderB", "northern_kingdom");
+    const gale = foundThrough(world, player.id, "galeari");
+    expect(gale.kind).toBe("galeari");
+    expect(gale.stacks.dragon_slayer).toBe(5);
+    expect(gale.stacks.ballista).toBe(3);
+  });
+
+  it("enforces the prereq chain (CITADEL_PREREQ)", () => {
+    const world = freshWorld();
+    const { player } = world.createGuest("LadderC", "northern_kingdom");
+    // Unlocked but no stonekeel → blocked
+    world.adminGrant(player.id, { citadelUnlock: "cinderreach" });
+    expectCode(
+      () => world.foundCitadel(player.id, "cinderreach"),
+      "CITADEL_PREREQ",
+    );
+    // galeari requires cinderreach → still blocked after stonekeel only
+    world.adminGrant(player.id, { brineholdUnlock: true });
+    world.foundBrinehold(player.id);
+    world.adminGrant(player.id, { stonekeelUnlock: true });
+    world.foundStonekeel(player.id);
+    world.adminGrant(player.id, { citadelUnlock: "galeari" });
+    expectCode(
+      () => world.foundCitadel(player.id, "galeari"),
+      "CITADEL_PREREQ",
+    );
+  });
+
+  it("exclusive units train at the citadel once their research gate is met", () => {
+    const world = freshWorld();
+    const { player } = world.createGuest("LadderD", "northern_kingdom");
+    const cinder = foundThrough(world, player.id, "cinderreach");
+    // scouting L2 (capital research copied) is not enough for forest_ranger
+    const city = world.getCity(cinder.id)!;
+    city.research.scouting = 2;
+    world.cities.set(cinder.id, city);
+    expectCode(
+      () => world.startTrain(cinder.id, player.id, "forest_ranger", 1),
+      "UNIT_LOCKED",
+    );
+    // scouting L3 unlocks it; resources + manpower suffice
+    city.research.scouting = 3;
+    city.resources = { food: 9999, timber: 9999, stone: 9999, iron: 9999, coin: 9999 };
+    world.cities.set(cinder.id, city);
+    const job = world.startTrain(cinder.id, player.id, "forest_ranger", 2);
+    expect(job.kind).toBe("train");
+    // Units land when the train job completes (starter 8 + 2 trained = 10)
+    job.finishesAt = world.now() - 1;
+    world.processQueues(world.now());
+    expect(world.getCity(cinder.id)!.stacks.forest_ranger).toBe(10);
   });
 });
