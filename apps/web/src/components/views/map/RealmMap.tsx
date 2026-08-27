@@ -289,6 +289,8 @@ export function RealmMap({
             return Array.from({ length: cols }, (_, col) => {
               const x = mapFocus.x0 + col;
               const t = tileAt(mapData, x, y)!;
+              const isMineCity =
+                t.kind === "city" && t.city.playerId === player.id;
               const v = groundVariant(x, y);
               const cls = ["map-tile", `map-g${v}`];
               if (t.kind === "empty" && groundFlipped(x, y)) {
@@ -347,8 +349,12 @@ export function RealmMap({
                   )}
                   {t.kind === "wild" && <WildGlyph resourceType={t.wild.resourceType} />}
                   {t.kind === "city" && (
-                    <span className="map-glyph">
-                      <Icon name="crown" size={13} />
+                    <span
+                      className={
+                        isMineCity ? "map-glyph map-glyph-mine-crown" : "map-glyph"
+                      }
+                    >
+                      <Icon name="crown" size={isMineCity ? 15 : 13} />
                     </span>
                   )}
                 </button>

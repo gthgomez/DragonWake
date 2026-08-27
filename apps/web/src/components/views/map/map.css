@@ -27,6 +27,7 @@
       rgba(122, 92, 51, 0.14),
       transparent 60%
     ),
+    radial-gradient(120% 110% at 50% 118%, rgba(0, 0, 0, 0.4), transparent 55%),
     #0a1219;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -43,7 +44,9 @@ button.map-tile {
   min-height: 14px;
   margin: 0;
   padding: 0;
-  border: 1px solid rgba(6, 8, 5, 0.6);
+  /* Whisper-quiet seam instead of graph-paper border; the groove
+     lives on ::after so terrain overlays can take over. */
+  border: 1px solid rgba(12, 15, 9, 0.22);
   border-radius: var(--radius-xs);
   background: none;
   color: inherit;
@@ -52,24 +55,36 @@ button.map-tile {
   overflow: hidden;
   transition:
     filter 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 .map-tile::before {
   content: "";
   position: absolute;
   inset: 0;
+  /* Layer order (top→bottom): spotlight → per-variant mottle/grain
+     (--tex) → shared warm fractal-noise tooth → base gradient. */
   background:
     radial-gradient(
       150% 120% at var(--sx, 30%) var(--sy, 25%),
       var(--gs, transparent),
       transparent 55%
     ),
+    var(--tex, none),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.9 0 0 0 0 0.82 0 0 0 0 0.62 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"),
     linear-gradient(158deg, var(--ga) 0%, var(--gb) 100%);
 }
 
 .map-tile.map-flip::before {
   transform: scaleX(-1);
+}
+
+/* Gentle scale of tile content while selected (see .map-selected). */
+.map-tile::before,
+.map-glyph,
+.map-badge {
+  transition: transform 0.15s ease;
 }
 
 .map-g0 {
@@ -78,6 +93,14 @@ button.map-tile {
   --gs: rgba(196, 214, 160, 0.07);
   --sx: 30%;
   --sy: 25%;
+  --tex:
+    radial-gradient(38% 30% at 24% 68%, rgba(122, 150, 88, 0.16), transparent 70%),
+    radial-gradient(46% 36% at 78% 22%, rgba(84, 112, 62, 0.2), transparent 72%),
+    repeating-linear-gradient(
+      64deg,
+      rgba(180, 205, 140, 0.045) 0 1px,
+      transparent 1px 4px
+    );
 }
 
 .map-g1 {
@@ -86,6 +109,14 @@ button.map-tile {
   --gs: rgba(222, 200, 140, 0.06);
   --sx: 70%;
   --sy: 65%;
+  --tex:
+    radial-gradient(42% 34% at 70% 70%, rgba(196, 168, 96, 0.15), transparent 70%),
+    radial-gradient(34% 28% at 22% 30%, rgba(140, 116, 64, 0.18), transparent 70%),
+    repeating-conic-gradient(
+      from 12deg at 60% 40%,
+      rgba(222, 200, 140, 0.035) 0deg 14deg,
+      transparent 14deg 28deg
+    );
 }
 
 .map-g2 {
@@ -94,6 +125,14 @@ button.map-tile {
   --gs: rgba(170, 205, 190, 0.05);
   --sx: 60%;
   --sy: 30%;
+  --tex:
+    radial-gradient(40% 32% at 30% 26%, rgba(150, 178, 158, 0.13), transparent 70%),
+    radial-gradient(44% 36% at 76% 74%, rgba(96, 124, 108, 0.17), transparent 72%),
+    repeating-linear-gradient(
+      -38deg,
+      rgba(170, 205, 190, 0.04) 0 1px,
+      transparent 1px 5px
+    );
 }
 
 .map-g3 {
@@ -102,6 +141,14 @@ button.map-tile {
   --gs: rgba(210, 180, 130, 0.05);
   --sx: 40%;
   --sy: 75%;
+  --tex:
+    radial-gradient(46% 36% at 66% 30%, rgba(146, 112, 72, 0.15), transparent 70%),
+    radial-gradient(36% 30% at 24% 76%, rgba(96, 70, 44, 0.2), transparent 70%),
+    repeating-linear-gradient(
+      118deg,
+      rgba(210, 180, 130, 0.04) 0 1px,
+      transparent 1px 4px
+    );
 }
 
 .map-tile::after {
@@ -109,6 +156,11 @@ button.map-tile {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* Soft bevel groove: faint top light + shallow bottom shade.
+     Overridden by terrain-type overlays below, as intended. */
+  box-shadow:
+    inset 0 1px 0 rgba(235, 215, 175, 0.03),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.18);
 }
 
 .map-camp::after {
@@ -131,12 +183,51 @@ button.map-tile {
 }
 
 .map-city-mine::after {
-  background: linear-gradient(160deg, rgba(139, 90, 43, 0.62), rgba(80, 50, 20, 0.72));
+  background:
+    radial-gradient(
+      120% 100% at 50% 28%,
+      rgba(255, 214, 130, 0.2),
+      transparent 62%
+    ),
+    linear-gradient(160deg, rgba(158, 104, 48, 0.8), rgba(86, 52, 20, 0.88));
 }
 
 .map-city-mine {
-  box-shadow: 0 0 9px rgba(185, 141, 74, 0.4);
-  z-index: 1;
+  /* Static fallback (also the reduced-motion resting state); the halo
+     keyframes below carry these same rings while animating. */
+  box-shadow:
+    0 0 0 1px rgba(236, 202, 126, 0.55),
+    0 0 12px rgba(233, 196, 120, 0.45),
+    0 0 24px rgba(185, 141, 74, 0.3);
+  z-index: 2;
+  animation: map-halo-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes map-halo-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(236, 202, 126, 0.55),
+      0 0 12px rgba(233, 196, 120, 0.45),
+      0 0 24px rgba(185, 141, 74, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(240, 208, 134, 0.7),
+      0 0 16px rgba(233, 196, 120, 0.6),
+      0 0 30px rgba(185, 141, 74, 0.42);
+  }
+}
+
+.map-city-mine .map-glyph.map-glyph-mine-crown {
+  color: #f6d488;
+}
+
+.map-city-mine .map-glyph.map-glyph-mine-crown svg {
+  stroke-width: 1.75;
+  filter:
+    drop-shadow(0 0 3px rgba(246, 212, 136, 0.65))
+    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
 }
 
 .map-city-foe::after {
@@ -176,7 +267,11 @@ button.map-tile {
 }
 
 .map-camp .map-glyph {
-  color: #f0b083;
+  color: #f6a877;
+}
+
+.map-camp .map-glyph svg {
+  stroke-width: 1.9;
 }
 
 .map-wild .map-glyph {
@@ -200,23 +295,34 @@ button.map-tile {
   right: 1px;
   bottom: 1px;
   z-index: 3;
-  min-width: 9px;
-  padding: 1px 2px;
+  min-width: 10px;
+  padding: 1.5px 3px;
   border-radius: var(--radius-pill);
-  background: rgba(10, 8, 5, 0.78);
-  color: #ffd9a0;
+  background: rgba(12, 7, 3, 0.92);
+  border: 1px solid rgba(255, 186, 128, 0.4);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  color: #ffdfae;
   font-family: var(--font-body);
-  font-size: 8px;
+  font-size: 9px;
   line-height: 1;
   font-weight: 600;
   text-align: center;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
 }
 
 .map-tile:hover:not(:disabled),
 .map-tile:focus-visible {
   background: none;
-  filter: brightness(1.3);
+  filter: brightness(1.22);
   z-index: 1;
+}
+
+.map-camp:hover:not(:disabled),
+.map-camp:focus-visible {
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.45),
+    0 0 10px rgba(210, 95, 62, 0.35);
 }
 
 .map-tile:focus-visible {
@@ -225,21 +331,49 @@ button.map-tile {
   box-shadow: var(--glow-gold);
 }
 
+/* Crisp double ring: inset accent line inside, ornate outline outside,
+   soft gold glow breathing between them. Tile content eases down a
+   notch so the rings read as a frame around the tile. */
 .map-selected {
-  outline: 2px solid var(--border-ornate-strong);
-  outline-offset: 1px;
+  outline: 1px solid var(--border-ornate-strong);
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgba(233, 196, 120, 0.85),
+    0 0 10px rgba(185, 141, 74, 0.35);
   z-index: 2;
-  animation: map-select-pulse 1.8s ease-in-out infinite;
+  animation: map-select-pulse 1.9s ease-in-out infinite;
 }
 
 @keyframes map-select-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(185, 141, 74, 0);
+    box-shadow:
+      inset 0 0 0 1px rgba(233, 196, 120, 0.85),
+      0 0 10px rgba(185, 141, 74, 0.35);
   }
   50% {
-    box-shadow: 0 0 0 5px rgba(185, 141, 74, 0.28);
+    box-shadow:
+      inset 0 0 0 1px rgba(236, 202, 126, 0.95),
+      0 0 16px rgba(185, 141, 74, 0.55);
   }
+}
+
+.map-selected::before {
+  transform: scale(0.93);
+}
+
+.map-flip.map-selected::before {
+  transform: scaleX(-1) scale(0.93);
+}
+
+.map-selected .map-glyph,
+.map-selected .map-badge {
+  transform: scale(0.93);
+}
+
+/* Selection outranks the idle halo while your city is selected. */
+.map-city-mine.map-selected {
+  animation: map-select-pulse 1.9s ease-in-out infinite;
 }
 
 .map-paths,
@@ -386,7 +520,7 @@ button.map-tile {
   border-radius: var(--radius-xs);
   margin-right: 0.3rem;
   vertical-align: middle;
-  border: 1px solid rgba(6, 8, 5, 0.6);
+  border: 1px solid rgba(6, 8, 5, 0.35);
   background: linear-gradient(158deg, var(--sa), var(--sb));
 }
 
@@ -435,6 +569,10 @@ button.map-tile {
     animation: none;
   }
 
+  .map-city-mine {
+    animation: none;
+  }
+
   .map-path-dots {
     animation: none;
   }
@@ -445,7 +583,10 @@ button.map-tile {
     opacity: 0.4;
   }
 
-  button.map-tile {
+  button.map-tile,
+  .map-tile::before,
+  .map-glyph,
+  .map-badge {
     transition: none;
   }
 }

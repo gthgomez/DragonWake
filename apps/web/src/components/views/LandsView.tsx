@@ -4,6 +4,7 @@ import { canAfford, fmtNum } from "../../lib/format";
 import { PLOT_ASSIGN_COST } from "../../lib/gameConfig";
 import { Icon, type IconName } from "../../ui/icons";
 import type { City, Resources } from "../../lib/types";
+import "../../styles/lands.css";
 
 type Plot = City["plots"][number];
 
@@ -124,7 +125,9 @@ export function LandsView({ city, assignPlot, upgradePlot }: LandsViewProps) {
                 type="button"
                 className={[
                   "lands-tile",
+                  "land-tile",
                   info ? "lands-tile-worked" : "lands-tile-empty",
+                  info ? "" : "land-tile-empty",
                   `lands-${p.plotType ?? "none"}`,
                   isSel ? "lands-selected" : "",
                 ]
@@ -140,14 +143,14 @@ export function LandsView({ city, assignPlot, upgradePlot }: LandsViewProps) {
                   setSelectedSlot(isSel ? null : p.slotIndex)
                 }
               >
-                <span className="lands-glyph" aria-hidden="true">
+                <span className="lands-glyph land-glyph" aria-hidden="true">
                   {info ? <Icon name={info.glyph} size={22} /> : <Icon name="hammer" size={18} />}
                 </span>
                 <span className="lands-tile-name">
                   {info ? info.name : "Unclaimed"}
                 </span>
                 {p.level > 0 && (
-                  <span className="lands-pips" aria-hidden="true">
+                  <span className="lands-pips land-pips" aria-hidden="true">
                     {Array.from({ length: p.level }, (_, i) => (
                       <i key={i} />
                     ))}
