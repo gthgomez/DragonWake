@@ -404,6 +404,17 @@ const BASE_POPULATION = 200;
 const HOMES_CAPACITY_PER_LEVEL = 100;
 const POPULATION_GROWTH_RATE = 0.01; // per hour per occupied habitation slot
 
+// ── Building mechanics (INITIAL_TEST_FIXTURE) ──────────────────────────────
+
+/** Haul carry multiplier per rivetworks level: total carry × (1 + 0.25 × level). */
+export const ROADS_HAUL_BONUS_PER_LEVEL = 0.25; // INITIAL_TEST_FIXTURE
+/** Extra concurrent training slots per training_camp level (capped bonus). */
+export const TRAINING_CAMP_QUEUE_SLOTS_PER_LEVEL = 1; // INITIAL_TEST_FIXTURE
+export const TRAINING_CAMP_QUEUE_SLOTS_MAX_BONUS = 3; // INITIAL_TEST_FIXTURE
+/** Watchtower scout-intel depth thresholds (level across the player's cities). */
+export const LOOKOUT_INTEL_CAMP_LEVEL = 1; // INITIAL_TEST_FIXTURE — camp intel reveals real composition
+export const LOOKOUT_INTEL_CITY_LEVEL = 3; // INITIAL_TEST_FIXTURE — city intel reveals exact troop count
+
 export const PLOT_TYPES = [
   "farm",
   "lumber_yard",
@@ -1407,11 +1418,7 @@ export class World {
     const runningTrains = [...this.jobs.values()].filter(
       (j) => j.cityId === cityId && j.kind === "train" && j.status === "running",
     );
-    const campBonus = Math.min(
-      TRAIN_SLOT_CAMP_BONUS_CAP,
-      bestBuildingLevel(this, playerId, "training_camp") * TRAIN_SLOTS_PER_CAMP_LEVEL,
-    );
-    if (runningTrains.length >= MAX_TRAIN_JOBS + campBonus) {
+    if (runningTrains.length >= this.trainJobLimit(city)) {
       throw Object.assign(new Error("train queue full"), {
         code: "QUEUE_FULL",
       });
@@ -1489,6 +1496,37 @@ export class World {
       n += 1;
     }
     return n;
+  }
+
+  // ── Building mechanics (lookout / rivetworks / skyreost / training_camp) ─
+
+  /** Highest level of a building across the player's cities (0 = none). */
+  buildingLevel(playerId: string, buildingType: string): number {
+    let level = 0;
+    for (const city of this.citiesForPlayer(playerId)) {
+      for (const b of city.buildings) {
+        if (b.buildingType === buildingType) {
+          level = Math.max(level, b.level);
+        }
+      }
+    }
+    return level;
+  }
+
+  /** Max lookout (Watchtower) level across the player's cities → intel depth. */
+  scoutIntelLevel(playerId: string): number {
+    return this.buildingLevel(playerId, "lookout");
+  }
+
+  /** Max concurrent train jobs per city: base + training_camp bonus (capped). */
+  trainJobLimit(city: City): number {
+    let camp = 0;
+    for (const b of city.buildings) {
+      if (b.buildingType === "training_camp") {
+        camp += TRAINING_CAMP_QUEUE_SLOTS_PER_LEVEL * b.level;
+      }
+    }
+    return MAX_TRAIN_JOBS + Math.min(camp, TRAINING_CAMP_QUEUE_SLOTS_MAX_BONUS);
   }
 
   /** Max concurrently-commanded marches: min(gallery level, hard cap). */
@@ -1824,6 +1862,11 @@ export class World {
         case "camps_defeated":
           met = (progress?.campTypesDefeated.size ?? 0) >= req.threshold;
           break;
+        case "building_level": {
+          const id = String(req.building_id ?? "");
+          met = id !== "" && this.buildingLevel(playerId, id) >= req.threshold;
+          break;
+        }
       }
       return { id: req.id, met, description: req.description };
     });
@@ -2070,7 +2113,7 @@ export class World {
     }
     city.marchedManpower = computeMarchedManpower(this, playerId, city.id);
 
-    // Haul: deduct cargo from origin now; deliver on land
+    // Haul: validate against carry capacity, then deduct cargo from origin now
     const cargo: Partial<ResourceBag> = {};
     if (opts.intent === "haul") {
       const requested = opts.cargo ?? {};
@@ -2088,13 +2131,37 @@ export class World {
             code: "NO_RES",
           });
         }
-        city.resources[key] -= want;
         cargo[key] = want;
       }
       if (Object.keys(cargo).length === 0) {
         throw Object.assign(new Error("haul requires cargo"), {
           code: "NO_CARGO",
         });
+      }
+      // Rivetworks (roads) raise the haul ceiling: logistics units carry the
+      // goods; roads multiply the total by (1 + 0.25 × level).
+      const roads = this.buildingLevel(playerId, "rivetworks");
+      const rawCarry = Object.entries(opts.composition).reduce(
+        (sum, [uid, cnt]) => {
+          const unit = getUnitById(uid);
+          return sum + (unit ? unit.carry * cnt : 0);
+        },
+        0,
+      );
+      const cap = Math.floor(
+        rawCarry * (1 + ROADS_HAUL_BONUS_PER_LEVEL * roads),
+      );
+      const totalCargo = Object.values(cargo).reduce((s, n) => s + (n ?? 0), 0);
+      if (totalCargo > cap) {
+        throw Object.assign(
+          new Error(
+            `haul cargo ${totalCargo} exceeds carry capacity ${cap} (bring logistics units or raise Rivetworks)`,
+          ),
+          { code: "HAUL_CAP", cap, total: totalCargo },
+        );
+      }
+      for (const [key, want] of Object.entries(cargo)) {
+        city.resources[key as keyof ResourceBag] -= want;
       }
     }
     this.putCity(city.id, city);
@@ -2637,6 +2704,10 @@ export class World {
         level: camp.level,
         exampleComp: def?.example_comp ?? null,
         threatBand: camp.level <= 3 ? "low" : camp.level <= 7 ? "mid" : "high",
+        // Watchtower intel: reveal the camp's actual seeded composition.
+        ...(this.scoutIntelLevel(march.playerId) >= LOOKOUT_INTEL_CAMP_LEVEL
+          ? { actualComp: resolveCampDefGroups(def, `${camp.id}:${camp.x},${camp.y}`) }
+          : {}),
       };
       if (lookoutLevel >= 1 && def) {
         const groups = resolveCampDefGroups(def, `${camp.id}:${camp.x},${camp.y}`);
@@ -2704,7 +2775,10 @@ export class World {
         faction: owner?.faction ?? null,
         defensePosture: city.defensePosture,
         troopBand,
-        ...(lookoutLevel >= 3 ? { troopCount: troopEstimate } : {}),
+        // Watchtower intel: reveal the exact troop count at depth 3+.
+        ...(this.scoutIntelLevel(march.playerId) >= LOOKOUT_INTEL_CITY_LEVEL
+          ? { troopCount: troopEstimate }
+          : {}),
         protected:
           !!owner?.protectionUntil && owner.protectionUntil > this.now(),
       };

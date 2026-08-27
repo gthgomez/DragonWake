@@ -205,6 +205,7 @@ export type DragonReadinessConfig = {
     threshold: number;
     research_id?: string;
     item_id?: string;
+    building_id?: string;
   }>;
   reward: string;
 };

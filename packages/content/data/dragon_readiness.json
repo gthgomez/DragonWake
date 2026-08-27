@@ -28,6 +28,13 @@
       "type": "camps_defeated",
       "description": "Defeat camps of at least 3 different types",
       "threshold": 3
+    },
+    {
+      "id": "dragon_watch_facility",
+      "type": "building_level",
+      "description": "Raise the Dragon Watch to level 2",
+      "building_id": "skyreost",
+      "threshold": 2
     }
   ],
   "reward": "dragon_expedition_charter"

@@ -399,7 +399,7 @@ describe("World queues + marches (shipped paths)", () => {
     const world = new World({ devFastTime: true });
     const { player, city } = world.createGuest("Hauler", "coastal_lords");
     world.adminGrant(player.id, {
-      units: { levy: 30 },
+      units: { porter: 30 },
       brineholdUnlock: true,
       resources: { food: 500 },
     });
@@ -414,7 +414,8 @@ describe("World queues + marches (shipped paths)", () => {
       targetId: brine.id,
       targetX: brine.mapX,
       targetY: brine.mapY,
-      composition: { levy: 10 },
+      // 10 porters × 20 carry = 200 — fits the 200-food cargo exactly
+      composition: { porter: 10 },
       cargo: { food: 200 },
     });
     expect(world.getCity(city.id)!.resources.food).toBe(kelpBeforeOrigin - 200);
@@ -430,7 +431,7 @@ describe("World queues + marches (shipped paths)", () => {
     const a = world.createGuest("HaulFailA", "northern_kingdom");
     const b = world.createGuest("HaulFailB", "mountain_realm");
     world.adminGrant(a.player.id, {
-      units: { levy: 20 },
+      units: { porter: 20 },
       resources: { timber: 300 },
     });
     const originKelp = world.getCity(a.city.id)!.resources.timber;
@@ -441,7 +442,7 @@ describe("World queues + marches (shipped paths)", () => {
       targetId: b.city.id,
       targetX: b.city.mapX,
       targetY: b.city.mapY,
-      composition: { levy: 10 },
+      composition: { porter: 10 },
       cargo: { timber: 100 },
     });
     expect(world.getCity(a.city.id)!.resources.timber).toBe(

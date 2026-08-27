@@ -57,6 +57,30 @@ function driveGameplayCounters(
   }
 }
 
+/** Build/upgrade a building to a level through the real build-queue path. */
+function buildUp(
+  world: World,
+  playerId: string,
+  cityId: string,
+  slot: number,
+  buildingType: string,
+  level: number,
+): void {
+  const city = world.getCity(cityId)!;
+  const existing = city.buildings.find((b) => b.slotIndex === slot);
+  const startLevel = existing?.level ?? 0;
+  for (let l = startLevel; l < level; l++) {
+    const job = world.startBuild(cityId, playerId, slot, buildingType);
+    job.finishesAt = world.now() - 1;
+    world.processQueues(world.now());
+  }
+}
+
+/** Stub the Dragon Watch at the readiness requirement level (real build path). */
+function raiseDragonWatch(world: World, playerId: string, cityId: string): void {
+  buildUp(world, playerId, cityId, 7, "skyreost", 2);
+}
+
 // ── 1. Population / Manpower ──────────────────────────────────────────────
 
 describe("Population and Manpower", () => {
@@ -311,12 +335,12 @@ describe("Research Resource Costs", () => {
 // ── 3. Dragon Readiness ───────────────────────────────────────────────────
 
 describe("Dragon Readiness", () => {
-  it("initial readiness is 0/4", () => {
+  it("initial readiness is 0/5", () => {
     const world = freshWorld();
     const { player } = world.createGuest("DrgA", "northern_kingdom");
     const status = world.checkDragonReadiness(player.id);
     expect(status.ready).toBe(false);
-    expect(status.requirements).toHaveLength(4);
+    expect(status.requirements).toHaveLength(5);
     expect(status.requirements.every((r) => r.met)).toBe(false);
   });
 
@@ -414,7 +438,7 @@ describe("Dragon Readiness", () => {
     expect(campReq.met).toBe(true);
   });
 
-  it("all 4 requirements met returns charter reward", () => {
+  it("all 5 requirements met returns charter reward", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("DrgF", "northern_kingdom");
     // Fulfill bestiary requirement
@@ -438,9 +462,25 @@ describe("Dragon Readiness", () => {
       }),
       campTypesDefeated: new Set(["camp_l1", "camp_l2", "camp_l3"]),
     });
+    // Fulfill facility requirement — Dragon Watch L2 via the real build path
+    raiseDragonWatch(world, player.id, city.id);
     const status = world.checkDragonReadiness(player.id);
     expect(status.ready).toBe(true);
     expect(status.reward).toBe("dragon_expedition_charter");
+  });
+
+  it("Dragon Watch L2 satisfies the facility requirement; L1 does not", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("DrgFac", "coastal_lords");
+    const facilityReq = (status: ReturnType<World["checkDragonReadiness"]>) =>
+      status.requirements.find((r) => r.id === "dragon_watch_facility")!;
+    expect(facilityReq(world.checkDragonReadiness(player.id)).met).toBe(false);
+    // L1 is not enough
+    buildUp(world, player.id, city.id, 7, "skyreost", 1);
+    expect(facilityReq(world.checkDragonReadiness(player.id)).met).toBe(false);
+    // L2 meets the threshold
+    buildUp(world, player.id, city.id, 7, "skyreost", 2);
+    expect(facilityReq(world.checkDragonReadiness(player.id)).met).toBe(true);
   });
 
   it("readiness check returns correct status for each requirement", () => {
@@ -454,6 +494,7 @@ describe("Dragon Readiness", () => {
     expect(status.requirements.find((r) => r.id === "dragon_studies_research")!.met).toBe(true);
     expect(status.requirements.find((r) => r.id === "dragon_material")!.met).toBe(false);
     expect(status.requirements.find((r) => r.id === "camp_mastery")!.met).toBe(false);
+    expect(status.requirements.find((r) => r.id === "dragon_watch_facility")!.met).toBe(false);
   });
 });
 
@@ -575,6 +616,8 @@ describe("Expedition System", () => {
       campsDefeated: 3,
       scoutsSent: 2,
     });
+    // 5. Facility: Dragon Watch L2
+    raiseDragonWatch(world, player.id, city.id);
     const result = world.startExpedition(player.id, "first_dragon_expedition");
     expect(result).not.toBeNull();
     expect(result!.stage).toBe(1);
@@ -600,6 +643,7 @@ describe("Expedition System", () => {
       campsDefeated: 3,
       scoutsSent: 2,
     });
+    raiseDragonWatch(world, player.id, city.id);
     const result = world.completeExpeditionStage(
       player.id,
       "first_dragon_expedition",
@@ -709,6 +753,8 @@ describe("Expedition Stage Gameplay Gates", () => {
       campsDefeated: 0,
       scoutsSent: 0,
     });
+    // Facility requirement: Dragon Watch L2
+    raiseDragonWatch(world, player.id, city.id);
     return { player, city };
   }
 
@@ -1059,7 +1105,7 @@ describe("Camp Variation", () => {
 
   it("dragon readiness config is deterministic", () => {
     const readiness = getDragonReadiness();
-    expect(readiness.requirements).toHaveLength(4);
+    expect(readiness.requirements).toHaveLength(5);
   });
 
   it("dragon clues are deterministic content", () => {
@@ -1245,6 +1291,8 @@ describe("Slice 1A Progression Path", () => {
     world.adminGrant(player.id, {
       items: { shed_scale: 1, burned_livestock: 1, claw_marks: 1, dragon_bone: 1, dragon_material: 2 },
     });
+    // Facility requirement: Dragon Watch L2
+    raiseDragonWatch(world, player.id, city.id);
     // Ensure camp types defeated for readiness
     const currentProgress = world.dragonProgress.get(player.id);
     world.dragonProgress.set(player.id, {
@@ -1616,5 +1664,122 @@ describe("Commanders", () => {
         ),
       "NO_COMMANDER",
     );
+  });
+});
+
+// ── 13. Building mechanics (lookout / rivetworks / training_camp) ──────────
+
+describe("Building Mechanics", () => {
+  it("watchtower (lookout) reveals the camp's actual composition at L1", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("BldLookoutA", "northern_kingdom");
+    const target = [...world.camps.values()][0]!;
+    const scout = (): unknown => {
+      const march = world.createMarch(player.id, {
+        fromCityId: city.id,
+        intent: "scout",
+        targetType: "camp",
+        targetId: target.id,
+        targetX: target.x,
+        targetY: target.y,
+        composition: { scout: 1 },
+      });
+      march.arriveAt = 0;
+      const report = world.landMarch(march, world.now());
+      return report!.result.intel as Record<string, unknown>;
+    };
+    // Without a watchtower the intel only shows the example template
+    const baseIntel = scout() as Record<string, unknown>;
+    expect(baseIntel.kind).toBe("camp");
+    expect(baseIntel.actualComp).toBeUndefined();
+    // L1 reveals the seeded real composition
+    buildUp(world, player.id, city.id, 5, "lookout", 1);
+    const deepIntel = scout() as { actualComp?: unknown[] };
+    expect(Array.isArray(deepIntel.actualComp)).toBe(true);
+    expect(deepIntel.actualComp!.length).toBeGreaterThan(0);
+  });
+
+  it("watchtower reveals exact city troop count at L3", () => {
+    const world = freshWorld();
+    const a = world.createGuest("BldLookoutB", "northern_kingdom");
+    const b = world.createGuest("BldLookoutC", "mountain_realm");
+    b.city.stacks = { levy: 340, bowman: 160 };
+    world.cities.set(b.city.id, b.city);
+    const scoutCity = (): Record<string, unknown> => {
+      const march = world.createMarch(a.player.id, {
+        fromCityId: a.city.id,
+        intent: "scout",
+        targetType: "city",
+        targetId: b.city.id,
+        targetX: b.city.mapX,
+        targetY: b.city.mapY,
+        composition: { scout: 1 },
+      });
+      march.arriveAt = 0;
+      const report = world.landMarch(march, world.now());
+      return report!.result.intel as Record<string, unknown>;
+    };
+    expect((scoutCity() as { troopCount?: number }).troopCount).toBeUndefined();
+    buildUp(world, a.player.id, a.city.id, 5, "lookout", 3);
+    const intel = scoutCity() as { troopCount?: number; troopBand: string };
+    expect(intel.troopCount).toBe(500);
+    expect(intel.troopBand).toBe("massed");
+  });
+
+  it("haul rejects cargo above carry capacity (HAUL_CAP); Rivetworks raises it", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("BldRoads", "northern_kingdom");
+    world.adminGrant(player.id, {
+      units: { porter: 40 },
+      brineholdUnlock: true,
+      resources: { food: 5000 },
+    });
+    const brine = world.foundBrinehold(player.id, "Dock");
+    const haul = (cargo: { food?: number }): ReturnType<World["createMarch"]> =>
+      world.createMarch(player.id, {
+        fromCityId: city.id,
+        intent: "haul",
+        targetType: "city",
+        targetId: brine.id,
+        targetX: brine.mapX,
+        targetY: brine.mapY,
+        composition: { porter: 5 }, // 5 × 20 = 100 base carry
+        cargo,
+      });
+    // 150 > 100 → rejected without mutating resources
+    expectCode(() => haul({ food: 150 }), "HAUL_CAP");
+    const foodBefore = world.getCity(city.id)!.resources.food;
+    // At capacity → accepted
+    expect(haul({ food: 100 }).intent).toBe("haul");
+    expect(world.getCity(city.id)!.resources.food).toBe(foodBefore - 100);
+    // Rivetworks L1: 100 × 1.25 = 125 → 150 still over, 125 accepted
+    buildUp(world, player.id, city.id, 5, "rivetworks", 1);
+    expectCode(() => haul({ food: 150 }), "HAUL_CAP");
+    expect(haul({ food: 125 }).intent).toBe("haul");
+    // Rivetworks L2: 100 × 1.5 = 150 → 150 now accepted
+    buildUp(world, player.id, city.id, 5, "rivetworks", 2);
+    expect(haul({ food: 150 }).intent).toBe("haul");
+  });
+
+  it("training_camp adds extra training queue slots (cap +3)", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("BldCamp", "northern_kingdom");
+    world.adminGrant(player.id, { resources: { food: 5000, timber: 5000 } });
+    const trainOne = (): void => {
+      const job = world.startTrain(city.id, player.id, "levy", 1);
+      job.finishesAt = world.now() + 60_000; // stay running
+    };
+    // Base limit is 5 concurrent trains
+    for (let i = 0; i < 5; i++) trainOne();
+    expectCode(() => world.startTrain(city.id, player.id, "levy", 1), "QUEUE_FULL");
+    // Training Camp L1 → 6th slot
+    buildUp(world, player.id, city.id, 5, "training_camp", 1);
+    trainOne();
+    expectCode(() => world.startTrain(city.id, player.id, "levy", 1), "QUEUE_FULL");
+    // Training Camp L3 → cap at 8 (5 + 3)
+    buildUp(world, player.id, city.id, 5, "training_camp", 3);
+    trainOne();
+    trainOne();
+    expectCode(() => world.startTrain(city.id, player.id, "levy", 1), "QUEUE_FULL");
   });
 });

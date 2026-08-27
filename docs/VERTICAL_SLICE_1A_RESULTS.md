@@ -319,8 +319,27 @@ record; this section is authoritative for current state.
 
 - Sovereign/harness retained as legacy-compat; deletion deferred to M4 per
   Phase 2.1 Amendment A1.
-- Content-only buildings awaiting design-phase mechanics (`skyreost`,
-  `rivetworks`, `command_gallery`, `lookout`, `training_camp`).
+
+### Building mechanics batch (2026-08-27)
+
+Closed the remaining content-only buildings by giving each a live mechanic
+(all `INITIAL_TEST_FIXTURE`, all test-covered in `progression.test.ts`
+"Building Mechanics" + "Dragon Readiness"):
+
+| Building (legacy → medieval) | Mechanic |
+|------------------------------|----------|
+| `lookout` → Watchtower | Scout-intel depth: L1 reveals a camp's actual seeded composition (`actualComp`); L3 reveals a city's exact `troopCount` alongside the band |
+| `rivetworks` → Roads | Haul carry ceiling = total `carry` of the marching composition × (1 + 0.25 × level); cargo above it rejected with `HAUL_CAP` (makes the previously-dead `carry` stat live) |
+| `skyreost` → Dragon Watch | Dragon-readiness facility requirement: new `building_level` readiness requirement type; `dragon_watch_facility` (skyreost ≥ L2) added to `dragon_readiness.json` — the readiness gate is now 5 factors |
+| `training_camp` → Training Camp | Extra concurrent training-queue slots: `5 + min(level, 3)` |
+
+March-time acceleration remains prohibited (Direction Freeze §21): Roads boost
+haul *capacity*, never travel time.
+
+### Still open (unchanged)
+
+- Sovereign/harness retained as legacy-compat; deletion deferred to M4 per
+  Phase 2.1 Amendment A1.
 
 Test counts as of this update: combat 15 · server 90 (incl. 2 PG restart tests,
 green under `REQUIRE_PG=1`).
