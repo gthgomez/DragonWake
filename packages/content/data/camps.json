@@ -10,7 +10,8 @@
     ],
     "recommended_player_power": 80,
     "loot_notes": "food, tiny scrap",
-    "harness_drop": "no"
+    "harness_drop": "no",
+    "bestiary_entry": "claw_marks_stone"
   },
   {
     "camp_level": 2,
@@ -23,7 +24,8 @@
     ],
     "recommended_player_power": 200,
     "loot_notes": "food",
-    "harness_drop": "no"
+    "harness_drop": "no",
+    "bestiary_entry": "claw_marks_stone"
   },
   {
     "camp_level": 3,
@@ -36,7 +38,8 @@
     ],
     "recommended_player_power": 500,
     "loot_notes": "food, mats low",
-    "harness_drop": "no"
+    "harness_drop": "no",
+    "bestiary_entry": "shed_scale_phenomenon"
   },
   {
     "camp_level": 4,
@@ -49,7 +52,8 @@
     ],
     "recommended_player_power": 1200,
     "loot_notes": "mats",
-    "harness_drop": "rare shard"
+    "harness_drop": "rare shard",
+    "bestiary_entry": "burned_farmland"
   },
   {
     "camp_level": 5,
@@ -62,7 +66,8 @@
     ],
     "recommended_player_power": 2500,
     "loot_notes": "Harbinger harness piece chance",
-    "harness_drop": "yes low"
+    "harness_drop": "yes low",
+    "bestiary_entry": "burned_farmland"
   },
   {
     "camp_level": 6,
@@ -75,7 +80,8 @@
     ],
     "recommended_player_power": 5000,
     "loot_notes": "harness",
-    "harness_drop": "yes"
+    "harness_drop": "yes",
+    "bestiary_entry": "valley_drake"
   },
   {
     "camp_level": 7,
@@ -88,7 +94,8 @@
     ],
     "recommended_player_power": 10000,
     "loot_notes": "talismans if Sov present",
-    "harness_drop": "yes"
+    "harness_drop": "yes",
+    "bestiary_entry": "ridgeback_wyvern"
   },
   {
     "camp_level": 8,
@@ -101,7 +108,8 @@
     ],
     "recommended_player_power": 20000,
     "loot_notes": "talismans",
-    "harness_drop": "yes"
+    "harness_drop": "yes",
+    "bestiary_entry": "mountain_wyrm"
   },
   {
     "camp_level": 9,
@@ -114,7 +122,8 @@
     ],
     "recommended_player_power": 35000,
     "loot_notes": "talismans high",
-    "harness_drop": "yes"
+    "harness_drop": "yes",
+    "bestiary_entry": "ironback_wyrm"
   },
   {
     "camp_level": 10,
@@ -127,6 +136,7 @@
     ],
     "recommended_player_power": 60000,
     "loot_notes": "best talisman rate",
-    "harness_drop": "yes"
+    "harness_drop": "yes",
+    "bestiary_entry": "ash_drake"
   }
 ]

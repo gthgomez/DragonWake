@@ -2474,13 +2474,23 @@ export class World {
         progress.campTypesDefeated.add(`camp_l${camp.level}`);
         progress.campsDefeated += 1;
         this.putDragonProgress(march.playerId, progress);
-        // Update bestiary for camp creatures
+        // Update bestiary from the camp's content-mapped entry (falls back
+        // to subject matching for content without an explicit mapping).
         const campDef = getCamps().find((c) => c.camp_level === camp.level);
         if (campDef) {
-          const entries = getBestiaryEntries();
-          for (const entry of entries) {
-            if (entry.category === "creature" && campDef.example_comp.toLowerCase().includes(entry.subject.split(" ")[0].toLowerCase())) {
-              this.updateBestiary(march.playerId, entry.id, 1);
+          if (campDef.bestiary_entry) {
+            this.updateBestiary(march.playerId, campDef.bestiary_entry, 1);
+          } else {
+            const entries = getBestiaryEntries();
+            for (const entry of entries) {
+              if (
+                entry.category === "creature" &&
+                campDef.example_comp
+                  .toLowerCase()
+                  .includes(entry.subject.split(" ")[0]!.toLowerCase())
+              ) {
+                this.updateBestiary(march.playerId, entry.id, 1);
+              }
             }
           }
         }

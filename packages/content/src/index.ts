@@ -67,6 +67,8 @@ export type CampDef = {
   recommended_player_power: number;
   loot_notes: string;
   harness_drop: string;
+  /** Bestiary entry recorded when this camp is defeated. */
+  bestiary_entry?: string;
 };
 
 export type BuildingCost = Partial<

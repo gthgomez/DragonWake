@@ -141,6 +141,14 @@ export function CastleView({
         )}
       </header>
 
+      {city.kind === "marcher_keep" && (
+        <div className="marcher-banner" role="note">
+          <strong>Forward march.</strong> This keep stands where the realm ends
+          — a mustering point for expeditions and a watch post against whatever
+          crosses the border fens.
+        </div>
+      )}
+
       <ul className="res-grid" aria-label="Resources">
         {(Object.keys(city.resources) as (keyof Resources)[]).map((k) => (
           <li key={k}>

@@ -173,12 +173,14 @@ export function Shell({
           </section>
         )}
 
-        {/* P0: queues + marches always visible when logged in */}
-        <section className="card ops hud-ops">
+        {children}
+
+        {/* Stewards' ledger sits below the world — the keep comes first. */}
+        <section className="card ops hud-ops" aria-label="Queues and marches">
           <div className="ops-col">
             <h2>Queues</h2>
             {jobs.length === 0 ? (
-              <p className="muted">No running jobs</p>
+              <p className="muted">Nothing under construction</p>
             ) : (
               <ul className="ops-list">
                 {jobs.map((j) => {
@@ -250,8 +252,6 @@ export function Shell({
             )}
           </div>
         </section>
-
-        {children}
       </main>
     </div>
   );

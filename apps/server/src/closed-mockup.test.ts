@@ -161,6 +161,32 @@ describe("authoritative building construction + upgrade", () => {
     );
   });
 
+  it("camp victories record bestiary entries (dragon-sign progression is reachable)", () => {
+    const world = new World({ devFastTime: true });
+    const { player, city } = world.createGuest("BeastA", "northern_kingdom");
+    world.adminGrant(player.id, { units: { levy: 500, bowman: 200 } });
+    const camp = [...world.camps.values()].find((c) => c.level === 1)!;
+    const march = world.createMarch(player.id, {
+      fromCityId: city.id,
+      intent: "attack",
+      targetType: "camp",
+      targetId: camp.id,
+      targetX: camp.x,
+      targetY: camp.y,
+      composition: { levy: 120, bowman: 60 },
+    });
+    march.arriveAt = 0;
+    const report = world.landMarch(march, world.now())!;
+    expect(
+      (report.result.battle as { winner: string }).winner,
+    ).toBe("attacker");
+    const entry = [...world.bestiary.values()].find(
+      (e) => e.playerId === undefined && e.entryId === "claw_marks_stone",
+    ) ?? [...world.bestiary.values()].find((e) => e.entryId === "claw_marks_stone");
+    expect(entry).toBeTruthy();
+    expect(entry!.encounterCount).toBeGreaterThanOrEqual(1);
+  });
+
   it("watchtower depth: L1 reveals camp defenders, L3 reveals exact city troops", async () => {
     const world = new World({ devFastTime: true, skipTutorial: true });
     const app = createApp(world);
