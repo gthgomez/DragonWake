@@ -32,6 +32,7 @@ export type UseGameActionsDeps = {
   refreshMe: (tok: string) => Promise<void>;
   refreshQueues: (tok: string, cId: string | null) => Promise<void>;
   refreshMarches: (tok: string) => Promise<void>;
+  refreshKnowledge: () => Promise<void>;
 
   // login form
   displayName: string;
@@ -83,6 +84,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
     refreshMe,
     refreshQueues,
     refreshMarches,
+    refreshKnowledge,
     displayName,
     faction,
     setToken,
@@ -395,6 +397,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
         body: JSON.stringify({}),
       });
       await refreshMe(token);
+      await refreshKnowledge();
     });
   }
 
@@ -406,6 +409,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
         body: JSON.stringify({ stageNumber }),
       });
       await refreshMe(token);
+      await refreshKnowledge();
     });
   }
 

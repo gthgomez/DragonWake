@@ -79,6 +79,27 @@ export function RealmView({
 
   useEffect(() => setConfirmIntent(null), [selectedTile?.x, selectedTile?.y]);
 
+  // Keep the composition consistent with owned stacks — companies lost in
+  // battle or away on march must not leave the composer stuck in an
+  // over-selected state.
+  useEffect(() => {
+    if (!city) return;
+    setComp((c) => {
+      let changed = false;
+      const next: Record<string, number> = {};
+      for (const [k, v] of Object.entries(c)) {
+        const have = city.stacks[k] ?? 0;
+        if (v > have) {
+          next[k] = have;
+          changed = true;
+        } else {
+          next[k] = v;
+        }
+      }
+      return changed ? next : c;
+    });
+  }, [city, setComp]);
+
   const roster = useMemo(() => {
     if (!city) return [] as UnitDef[];
     return units

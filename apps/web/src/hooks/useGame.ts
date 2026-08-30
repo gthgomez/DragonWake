@@ -62,10 +62,7 @@ export function useGame() {
   const [chatBody, setChatBody] = useState("");
   const [allyName, setAllyName] = useState("Alliance");
   const [allyTag, setAllyTag] = useState("TIDE");
-  const [comp, setComp] = useState<Record<string, number>>({
-    levy: 20,
-    bowman: 10,
-  });
+  const [comp, setComp] = useState<Record<string, number>>({});
   const [pvpX, setPvpX] = useState(0);
   const [pvpY, setPvpY] = useState(0);
   const [pvpIntent, setPvpIntent] = useState<"attack" | "scout" | "reinforce">(
@@ -370,6 +367,7 @@ export function useGame() {
     refreshMe,
     refreshQueues,
     refreshMarches,
+    refreshKnowledge,
     displayName,
     faction,
     setToken,

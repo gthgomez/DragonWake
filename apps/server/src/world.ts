@@ -2899,7 +2899,10 @@ export class World {
         code: "NO_CHARTER",
       });
     }
-    return this.foundCitadel(playerId, "marcher_keep", name);
+    // The earned charter IS the unlock — no separate research flag needed.
+    return this.foundCitadel(playerId, "marcher_keep", name, {
+      skipUnlockCheck: true,
+    });
   }
 
   foundBrinehold(playerId: string, name?: string): City {
@@ -2914,7 +2917,12 @@ export class World {
    * Found a ladder citadel from content (S1+). Requires unlock research on capital
    * (admin grant path allowed). One city per kind per player.
    */
-  foundCitadel(playerId: string, kind: string, name?: string): City {
+  foundCitadel(
+    playerId: string,
+    kind: string,
+    name?: string,
+    opts?: { skipUnlockCheck?: boolean },
+  ): City {
     const def = getCitadelById(kind);
     if (!def) {
       throw Object.assign(new Error(`unknown citadel ${kind}`), {
@@ -2946,7 +2954,7 @@ export class World {
         });
       }
     }
-    if (!capital.research[def.unlock_research]) {
+    if (!opts?.skipUnlockCheck && !capital.research[def.unlock_research]) {
       throw Object.assign(new Error(`${kind} not unlocked`), {
         code: "NO_UNLOCK",
       });
