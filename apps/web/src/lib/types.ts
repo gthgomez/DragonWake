@@ -29,7 +29,7 @@ export type City = {
   population?: number;
   maxPopulation?: number;
   usedManpower?: number;
-  maxManpower?: number;
+  availableManpower?: number;
 };
 
 export type Player = {
@@ -115,6 +115,9 @@ export type UnitDef = {
   unlock?: string;
   role?: string;
   tier?: number;
+  pop?: number;
+  power?: number;
+  carry?: number;
 };
 
 export type Commander = {
@@ -160,6 +163,7 @@ export type TutorialState = {
   completed: boolean;
   totalSteps: number;
   currentLabel: string;
+  progress?: { current: number; target: number } | null;
 };
 
 export type DailyQuest = {
@@ -176,14 +180,53 @@ export type Sovereign = {
   harnessComplete: boolean;
 };
 
-export type ResearchDef = { id: string; name: string; group: string };
+export type ResearchDef = {
+  id: string;
+  name: string;
+  group?: string;
+  per_level?: number;
+  max_level?: number;
+  cost?: Partial<Resources>;
+};
+
+export type ResearchUnlock = {
+  research_id: string;
+  research_level: number;
+  unlocks: string[];
+  kind: "unit" | "building" | "capability";
+};
+
+export type BestiaryEntryDef = {
+  id: string;
+  subject: string;
+  category: string;
+  known_traits?: string[];
+  unknown_traits?: string[];
+  habitat?: string | null;
+  known_attacks?: string[];
+  suspected_weakness?: string | null;
+  confirmed_weakness?: string | null;
+  lore_notes?: string;
+};
 
 export type AllianceInfo = { id: string; name: string; tag: string };
 
 export type ChatMessage = {
   body: string;
   fromPlayerId: string;
+  fromPlayerName?: string;
   createdAt?: number;
+};
+
+export type BuildingDef = {
+  id: string;
+  name: string;
+  category: string;
+  max_level: number;
+  buildable?: boolean;
+  purpose?: string;
+  build_cost?: Partial<Resources>;
+  build_sec_L1?: number;
 };
 
 export type AllianceSummary = {

@@ -5,6 +5,7 @@ import {
   COMBAT_RULES_VERSION,
 } from "@tideforge/combat";
 import {
+  getBestiaryEntries,
   getBuildings,
   getCitadels,
   getDragonClues,
@@ -12,6 +13,7 @@ import {
   getFormulas,
   getMeta,
   getResearch,
+  getResearchUnlocks,
   getShop,
   getUnits,
 } from "@tideforge/content";
@@ -204,6 +206,12 @@ export function createApp(world: World) {
   );
   api.get("/content/buildings", (c) => c.json({ buildings: getBuildings() }));
   api.get("/content/research", (c) => c.json({ research: getResearch() }));
+  api.get("/content/research-unlocks", (c) =>
+    c.json({ unlocks: getResearchUnlocks() }),
+  );
+  api.get("/content/bestiary", (c) =>
+    c.json({ entries: getBestiaryEntries() }),
+  );
 
   api.post("/auth/guest", async (c) => {
     const ip =

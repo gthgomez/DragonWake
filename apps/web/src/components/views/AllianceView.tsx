@@ -67,7 +67,7 @@ export function AllianceView({
             {chat.map((m, i) => (
               <li key={i}>
                 <span className="muted tiny">
-                  {m.fromPlayerId.slice(0, 8)}
+                  {m.fromPlayerName ?? "Messenger"}
                   {m.createdAt ? ` · ${fmtTime(m.createdAt)}` : ""}
                 </span>
                 : {m.body}

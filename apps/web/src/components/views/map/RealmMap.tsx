@@ -1,9 +1,10 @@
-import { useMemo } from "react";
-import type { CSSProperties } from "react";
+import { useMemo, useRef, useState } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 
 import "./map.css";
 
 import { fmtEta } from "../../../lib/format";
+import { campLabel, intentLabel, wildInfo } from "../../../lib/labels";
 import type { MapData, MapFocus, March, Player } from "../../../lib/types";
 import { Icon } from "../../../ui/icons";
 
@@ -34,6 +35,8 @@ export type RealmMapProps = {
   mapFocus: MapFocus;
   selectedTile: { x: number; y: number } | null;
   onSelectTile: (tile: { x: number; y: number }) => void;
+  /** Pan by whole tiles (positive = reveal content right/down). */
+  onPan?: (dxTiles: number, dyTiles: number) => void;
   marches?: March[];
 };
 
@@ -85,6 +88,42 @@ function LeafGlyph() {
   );
 }
 
+function WildGlyph({ resourceType }: { resourceType: string }) {
+  if (resourceType === "quarry") {
+    return (
+      <span className="map-glyph">
+        <Icon name="stone" size={13} />
+      </span>
+    );
+  }
+  if (resourceType === "iron_hills") {
+    return (
+      <span className="map-glyph">
+        <Icon name="iron" size={13} />
+      </span>
+    );
+  }
+  if (resourceType === "fertile_land") {
+    return (
+      <span className="map-glyph">
+        <Icon name="food" size={13} />
+      </span>
+    );
+  }
+  if (resourceType === "crossroads" || resourceType === "watch_hill") {
+    return (
+      <span className="map-glyph">
+        <Icon name="shield" size={13} />
+      </span>
+    );
+  }
+  return (
+    <span className="map-glyph">
+      <LeafGlyph />
+    </span>
+  );
+}
+
 type MarchPath = {
   id: string;
   ox: number;
@@ -114,12 +153,15 @@ function etaLabel(m: March, now: number): string {
   return fmtEta(m.arriveAt - now);
 }
 
+const DRAG_THRESHOLD_PX = 10;
+
 export function RealmMap({
   player,
   mapData,
   mapFocus,
   selectedTile,
   onSelectTile,
+  onPan,
   marches = [],
 }: RealmMapProps) {
   const cols = mapFocus.x1 - mapFocus.x0 + 1;
@@ -127,6 +169,54 @@ export function RealmMap({
   const worldW = mapData.mapW ?? null;
   const worldH = mapData.mapH ?? null;
   const now = Date.now();
+
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const drag = useRef<{
+    startX: number;
+    startY: number;
+    active: boolean;
+  } | null>(null);
+  const movedRef = useRef(false);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
+  const [dragging, setDragging] = useState(false);
+
+  const endDrag = (commit: boolean) => {
+    const d = drag.current;
+    drag.current = null;
+    setDragging(false);
+    const off = dragOffset;
+    movedRef.current = Math.hypot(off.x, off.y) > DRAG_THRESHOLD_PX;
+    setDragOffset({ x: 0, y: 0 });
+    if (!commit || !d || !onPan) return;
+    const frame = frameRef.current;
+    if (!frame) return;
+    const tileW = frame.clientWidth / cols;
+    const tileH = frame.clientHeight / rows;
+    // Dragging content right (positive dx) reveals ground to the west.
+    const dx = Math.round(off.x / tileW);
+    const dy = Math.round(off.y / tileH);
+    if (dx !== 0 || dy !== 0) onPan(dx, dy);
+  };
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    drag.current = { startX: e.clientX, startY: e.clientY, active: false };
+  };
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (!d.active && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+    d.active = true;
+    setDragging(true);
+    setDragOffset({ x: dx, y: dy });
+  };
+  const onPointerUp = () => endDrag(true);
+  const onCancel = () => endDrag(false);
 
   const marks = useMemo<MarchMark[]>(() => {
     const byTarget = new Map<string, MarchMark>();
@@ -148,7 +238,7 @@ export function RealmMap({
         mark = { key, tx, ty, intent: m.intent, paths: [], chips: [] };
         byTarget.set(key, mark);
       }
-      mark.chips.push(`${m.intent} · ${etaLabel(m, now)}`);
+      mark.chips.push(`${intentLabel(m.intent)} · ${etaLabel(m, now)}`);
       const originCity = mapData.cities.find((c) => c.id === m.fromCityId);
       if (
         m.status === "en_route" &&
@@ -172,12 +262,25 @@ export function RealmMap({
 
   return (
     <>
-      <div className="map-frame">
+      <div
+        className={`map-frame ${dragging ? "map-panning" : ""}`}
+        ref={frameRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onCancel}
+        onPointerCancel={onCancel}
+      >
         <div
           className="map-grid"
-          style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+          style={{
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            transform: dragOffset
+              ? `translate(${dragOffset.x}px, ${dragOffset.y}px)`
+              : undefined,
+          }}
           role="grid"
-          aria-label="Realm map"
+          aria-label="Realm map — drag to travel, click a tile to inspect"
           aria-rowcount={rows}
           aria-colcount={cols}
         >
@@ -191,21 +294,21 @@ export function RealmMap({
               if (t.kind === "empty" && groundFlipped(x, y)) {
                 cls.push("map-flip");
               }
-              let label = `Open ground at ${x},${y}`;
+              let label = `Open ground at ${x}, ${y}`;
               if (t.kind === "camp") {
                 cls.push("map-camp");
-                label = `Camp level ${t.camp.level} at ${x},${y}`;
+                label = `${campLabel(t.camp.level)}, level ${t.camp.level}, at ${x}, ${y}`;
               } else if (t.kind === "wild") {
                 cls.push("map-wild");
                 if (t.wild.ownerPlayerId) cls.push("map-wild-claimed");
-                label = `${t.wild.resourceType} wilderness level ${t.wild.level}${
+                label = `${wildInfo(t.wild.resourceType).label}, level ${t.wild.level}${
                   t.wild.ownerPlayerId ? ", claimed" : ", unclaimed"
-                } at ${x},${y}`;
+                }, at ${x}, ${y}`;
               } else if (t.kind === "city") {
                 const mine = t.city.playerId === player.id;
                 cls.push("map-city", mine ? "map-city-mine" : "map-city-foe");
-                label = `${t.city.name} (${t.city.kind}) at ${x},${y}${
-                  mine ? ", your city" : ""
+                label = `${t.city.name} at ${x}, ${y}${
+                  mine ? ", your settlement" : ""
                 }`;
               }
               if (worldW !== null && x === 0) cls.push("map-edge-w");
@@ -222,7 +325,14 @@ export function RealmMap({
                   aria-label={label}
                   title={label}
                   aria-pressed={selected}
-                  onClick={() => onSelectTile({ x, y })}
+                  onClick={(e) => {
+                    if (movedRef.current) {
+                      e.preventDefault();
+                      movedRef.current = false;
+                      return;
+                    }
+                    onSelectTile({ x, y });
+                  }}
                 >
                   {t.kind === "camp" && (
                     <>
@@ -235,11 +345,7 @@ export function RealmMap({
                       <span className="map-badge">{t.camp.level}</span>
                     </>
                   )}
-                  {t.kind === "wild" && (
-                    <span className="map-glyph">
-                      <LeafGlyph />
-                    </span>
-                  )}
+                  {t.kind === "wild" && <WildGlyph resourceType={t.wild.resourceType} />}
                   {t.kind === "city" && (
                     <span className="map-glyph">
                       <Icon name="crown" size={13} />

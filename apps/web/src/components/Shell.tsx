@@ -1,7 +1,12 @@
 import type { ReactNode } from "react";
 
 import "../styles/hud.css";
-import { jobLabel, fmtEta } from "../lib/format";
+import { jobLabel, fmtEta, fmtNum } from "../lib/format";
+import {
+  intentLabel,
+  targetPhrase,
+  unitName,
+} from "../lib/labels";
 import {
   TAB_LABELS,
   type FactionMeta,
@@ -40,7 +45,6 @@ type ShellProps = {
   marches: March[];
   now: number;
   tutorial: TutorialState | null;
-  advanceTutorial: () => Promise<void>;
   unreadReports: number;
   setUnreadReports: (value: number) => void;
   loadMap: () => Promise<void>;
@@ -65,7 +69,6 @@ export function Shell({
   marches,
   now,
   tutorial,
-  advanceTutorial,
   unreadReports,
   setUnreadReports,
   loadMap,
@@ -138,17 +141,35 @@ export function Shell({
         {status && <p className="ok banner hud-banner">{status}</p>}
 
         {tutorial && !tutorial.completed && (
-          <section className="card tutorial-banner hud-tutorial">
+          <section className="card tutorial-banner hud-tutorial" aria-live="polite">
             <div className="ops-head">
               <h2>
-                Tutorial {Math.min(tutorial.step + 1, tutorial.totalSteps)}/
+                Objective {Math.min(tutorial.step + 1, tutorial.totalSteps)}/
                 {tutorial.totalSteps}
               </h2>
-              <button type="button" onClick={() => void advanceTutorial()}>
-                Next step
-              </button>
+              {tutorial.progress ? (
+                <span className="muted tiny">
+                  {tutorial.progress.current}/{tutorial.progress.target}
+                </span>
+              ) : null}
             </div>
             <p>{tutorial.currentLabel}</p>
+            {tutorial.progress && tutorial.progress.target > 1 ? (
+              <div className="bar">
+                <div
+                  className="bar-fill"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Math.round(
+                        (tutorial.progress.current / tutorial.progress.target) *
+                          100,
+                      ),
+                    )}%`,
+                  }}
+                />
+              </div>
+            ) : null}
           </section>
         )}
 
@@ -211,7 +232,7 @@ export function Shell({
                           <span className="hud-job-icon">
                             <Icon name={marchIcon(m.intent)} size={14} />
                           </span>
-                          {m.intent} → {m.targetX},{m.targetY}{" "}
+                          {intentLabel(m.intent)} — {targetPhrase(m.targetType)}{" "}
                           <span className="muted">({label})</span>
                         </span>
                         <span className="muted hud-eta">{fmtEta(eta)}</span>
@@ -219,8 +240,8 @@ export function Shell({
                       <p className="muted tiny">
                         {Object.entries(m.composition)
                           .filter(([, n]) => n > 0)
-                          .map(([k, v]) => `${v} ${k}`)
-                          .join(", ") || "empty stack"}
+                          .map(([k, v]) => `${fmtNum(v)} ${unitName(k)}`)
+                          .join(", ") || "No troops listed"}
                       </p>
                     </li>
                   );
