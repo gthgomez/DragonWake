@@ -272,7 +272,8 @@ export function tutorialProgress(
       return { current: Math.min(1, farms), target: 1 };
     }
     case 3: {
-      const researched = (city?.research?.forced_cadence ?? 0) >= 1 ? 1 : 0;
+      const researched =
+        ((city?.research?.infantry_doctrine ?? 0) >= 1 ? 1 : 0);
       const levied = (city?.stacks?.levy ?? 0) > LEVY_START_COUNT ? 1 : 0;
       return { current: researched + levied, target: 2 };
     }
@@ -2795,6 +2796,14 @@ export class World {
       stonekeelUnlock?: boolean;
       citadelUnlock?: string;
       items?: Record<string, number>;
+      /** Dev/test fixture: set cumulative dragon counters outright. */
+      dragonCounters?: {
+        camps?: number;
+        scouts?: number;
+        campTypes?: string[];
+      };
+      /** Dev/test fixture: add bestiary encounters without battles. */
+      bestiaryEncounters?: Record<string, number>;
     },
   ): void {
     const player = this.players.get(playerId);
@@ -2854,6 +2863,32 @@ export class World {
         inv[id] = (inv[id] ?? 0) + n;
       }
       this.putInventory(playerId, inv);
+    }
+    if (body.dragonCounters) {
+      const progress = this.ensureDragonProgress(playerId);
+      if (Number.isFinite(body.dragonCounters.camps)) {
+        progress.campsDefeated = Math.max(
+          progress.campsDefeated,
+          Number(body.dragonCounters.camps),
+        );
+      }
+      if (Number.isFinite(body.dragonCounters.scouts)) {
+        progress.scoutsSent = Math.max(
+          progress.scoutsSent,
+          Number(body.dragonCounters.scouts),
+        );
+      }
+      for (const t of body.dragonCounters.campTypes ?? []) {
+        progress.campTypesDefeated.add(t);
+      }
+      this.putDragonProgress(playerId, progress);
+    }
+    if (body.bestiaryEncounters) {
+      for (const [entryId, count] of Object.entries(
+        body.bestiaryEncounters,
+      )) {
+        this.updateBestiary(playerId, entryId, Number(count) || 0);
+      }
     }
   }
 

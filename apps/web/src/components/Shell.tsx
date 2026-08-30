@@ -140,6 +140,14 @@ export function Shell({
         )}
         {status && <p className="ok banner hud-banner">{status}</p>}
 
+        {tutorial && tutorial.completed && (
+          <section className="card tutorial-banner hud-tutorial" aria-live="polite">
+            <div className="ops-head">
+              <h2>The march is yours</h2>
+            </div>
+            <p>{tutorial.currentLabel}</p>
+          </section>
+        )}
         {tutorial && !tutorial.completed && (
           <section className="card tutorial-banner hud-tutorial" aria-live="polite">
             <div className="ops-head">
