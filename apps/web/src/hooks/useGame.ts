@@ -63,12 +63,6 @@ export function useGame() {
   const [allyName, setAllyName] = useState("Alliance");
   const [allyTag, setAllyTag] = useState("TIDE");
   const [comp, setComp] = useState<Record<string, number>>({});
-  const [pvpX, setPvpX] = useState(0);
-  const [pvpY, setPvpY] = useState(0);
-  const [pvpIntent, setPvpIntent] = useState<"attack" | "scout" | "reinforce">(
-    "attack",
-  );
-  const [plotPick, setPlotPick] = useState("farm");
   const [now, setNow] = useState(() => Date.now());
   const [mapFocus, setMapFocus] = useState<MapFocus>({
     x0: 0,
@@ -160,7 +154,7 @@ export function useGame() {
       setBuildingDefs(buildingsData.buildings);
       setUnlockDefs(unlockData.unlocks);
       setBestiaryDefs(bestiaryData.entries);
-      registerLabels(unitsData.units, buildingsData.buildings);
+      registerLabels(unitsData.units, buildingsData.buildings, researchData.research);
     } catch {
       /* optional at boot */
     }
@@ -378,12 +372,6 @@ export function useGame() {
     researchDefs,
     comp,
     marchLeaderId,
-    mapData,
-    selectedTile,
-    pvpX,
-    pvpY,
-    pvpIntent,
-    plotPick,
     allyName,
     allyTag,
     alliance,
@@ -459,14 +447,6 @@ export function useGame() {
     setJoinTag,
     comp,
     setComp,
-    pvpX,
-    setPvpX,
-    pvpY,
-    setPvpY,
-    pvpIntent,
-    setPvpIntent,
-    plotPick,
-    setPlotPick,
     marchLeaderId,
     setMarchLeaderId,
 
@@ -487,3 +467,4 @@ export function useGame() {
 }
 
 export type Game = ReturnType<typeof useGame>;
+

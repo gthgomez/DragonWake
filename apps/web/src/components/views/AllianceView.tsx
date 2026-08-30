@@ -58,6 +58,7 @@ export function AllianceView({
               value={chatBody}
               onChange={(e) => setChatBody(e.target.value)}
               placeholder="Alliance chat"
+              aria-label="Message to the alliance"
             />
             <button type="button" onClick={() => void sendChat()}>
               Send
@@ -65,7 +66,7 @@ export function AllianceView({
           </div>
           <ul>
             {chat.map((m, i) => (
-              <li key={i}>
+              <li key={m.id ?? i}>
                 <span className="muted tiny">
                   {m.fromPlayerName ?? "Messenger"}
                   {m.createdAt ? ` · ${fmtTime(m.createdAt)}` : ""}
@@ -83,11 +84,13 @@ export function AllianceView({
               value={allyName}
               onChange={(e) => setAllyName(e.target.value)}
               placeholder="Name"
+              aria-label="Alliance name"
             />
             <input
               value={allyTag}
               onChange={(e) => setAllyTag(e.target.value)}
               placeholder="Tag"
+              aria-label="Alliance tag"
             />
             <button type="button" onClick={() => void createAlly()}>
               Create alliance
@@ -99,6 +102,7 @@ export function AllianceView({
               value={joinTag}
               onChange={(e) => setJoinTag(e.target.value)}
               placeholder="e.g. TIDE"
+              aria-label="Alliance tag to join"
             />
             <button
               type="button"

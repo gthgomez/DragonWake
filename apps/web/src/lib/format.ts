@@ -1,5 +1,11 @@
 import type { BattleReport, QueueJob, Resources, UnitDef } from "./types";
-import { unitName, buildingName, wildInfo, postureLabel } from "./labels";
+import {
+  unitName,
+  buildingName,
+  researchName,
+  wildInfo,
+  postureLabel,
+} from "./labels";
 
 export function fmtEta(ms: number): string {
   if (ms <= 0) return "ready";
@@ -46,7 +52,9 @@ export function jobLabel(job: QueueJob): string {
     const name = buildingName(String(job.payload.buildingType));
     return to > 1 ? `Raising ${name} to level ${to}` : `Building ${name}`;
   }
-  if (job.kind === "research") return `Research ${String(job.payload.techId)}`;
+  if (job.kind === "research") {
+    return `Studying ${researchName(String(job.payload.techId))}`;
+  }
   if (job.kind === "train") {
     return `Training ${job.payload.count}× ${unitName(String(job.payload.unitId))}`;
   }

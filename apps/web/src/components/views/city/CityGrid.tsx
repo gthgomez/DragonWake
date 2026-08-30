@@ -48,7 +48,7 @@ function effectLine(id: string, level: number): string {
         ? "Scouts report exact garrison counts"
         : "Scouts report camp defenders";
     case "saltvault":
-      return `Shields about ${Math.min(90, 20 + 5 * level)}% of stores from raiders`;
+      return `Shields about ${Math.min(90, 50 + 5 * level)}% of stores from raiders`;
     case "training_camp":
       return `Allows ${5 + Math.min(3, level)} training queues`;
     default:
@@ -519,7 +519,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                 >
                   Improve to level {selected.level + 1}
                   {selectedDef?.build_sec_L1
-                    ? ` · about ${fmtEta((selectedDef.build_sec_L1 * 1000) / 60)}`
+                    ? ` · about ${fmtEta(selectedDef.build_sec_L1 * 1000)}`
                     : ""}
                 </button>
               </>
@@ -528,6 +528,44 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                 This structure stands at its highest level.
               </p>
             )}
+          </div>
+        ) : selectedSlot !== null && selectedJob ? (
+          // Under construction on a still-empty plot — show progress, not
+          // the picker (the slot cannot take a second project).
+          <div className="city-detail-body">
+            <header className="city-detail-head">
+              <span className="city-detail-glyph city-empty-glyph" aria-hidden="true">
+                <Icon name="hammer" size={26} />
+              </span>
+              <div>
+                <h4>{buildingName(String(selectedJob.payload.buildingType))}</h4>
+                <p className="muted tiny">
+                  {Number(selectedJob.payload.upgradeTo ?? 0) > 1
+                    ? `Improving to level ${String(selectedJob.payload.upgradeTo)}`
+                    : "Under construction"}
+                </p>
+              </div>
+            </header>
+            <p className="city-effect">
+              <strong>Time remaining:</strong>{" "}
+              {fmtEta(Math.max(0, selectedJob.finishesAt - now))}
+            </p>
+            <div className="bar">
+              <div
+                className="bar-fill"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.round(
+                      ((Math.max(1, selectedJob.finishesAt - selectedJob.startedAt) -
+                        Math.max(0, selectedJob.finishesAt - now)) /
+                        Math.max(1, selectedJob.finishesAt - selectedJob.startedAt)) *
+                        100,
+                    ),
+                  )}%`,
+                }}
+              />
+            </div>
           </div>
         ) : selectedSlot !== null ? (
           <div className="city-detail-body">
@@ -561,7 +599,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                     <CostRow cost={cost} have={city.resources as unknown as Record<string, number>} />
                     <span className="muted tiny">
                       {def.build_sec_L1
-                        ? `about ${fmtEta((def.build_sec_L1 * 1000) / 60)}`
+                        ? `about ${fmtEta(def.build_sec_L1 * 1000)}`
                         : ""}
                     </span>
                   </button>
@@ -579,3 +617,4 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
     </div>
   );
 }
+

@@ -203,8 +203,11 @@ export function KnowledgeView({
                 Stage {expeditionStatus.currentStage} of{" "}
                 {expeditionStatus.stages.length}
               </div>
-              {expeditionStatus.stages.map((stage: any) => {
-                const requires = stage.requires ?? {};
+              {expeditionStatus.stages.map((stage: any, idx: number) => {
+                // Completing stage N is gated on the NEXT stage's
+                // requirements (server rule: entering N+1 needs them).
+                const next = expeditionStatus.stages[idx + 1];
+                const requires = next?.requires ?? {};
                 const scoutsDone =
                   (expeditionStatus.progress?.scoutsSent ?? 0) >=
                   (requires.scouts ?? 0);
@@ -235,10 +238,11 @@ export function KnowledgeView({
                       {requires.scouts || requires.camps ? (
                         <span className="muted tiny">
                           {" "}
-                          · requires {requires.scouts ?? 0} scout landings (
-                          {scoutsDone ? "done" : "pending"}),{" "}
+                          · needs {requires.scouts ?? 0} scout landings (
+                          {expeditionStatus.progress?.scoutsSent ?? 0} so far),{" "}
                           {requires.camps ?? 0} camps broken (
-                          {campsDone ? "done" : "pending"})
+                          {expeditionStatus.progress?.campsDefeated ?? 0} so
+                          far)
                         </span>
                       ) : null}
                     </span>

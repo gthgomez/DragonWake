@@ -89,6 +89,7 @@ export function App() {
           city={city}
           assignPlot={g.assignPlot}
           upgradePlot={g.upgradePlot}
+          key={city.id}
         />
       )}
 

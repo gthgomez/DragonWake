@@ -281,14 +281,6 @@ export function CastleView({
                     />
                     <button
                       type="button"
-                      className="muster-max"
-                      onClick={() => setCountFor(u.id, count)}
-                      aria-label={`Keep ${count} of ${unitName(u.id)}`}
-                    >
-                      {count}
-                    </button>
-                    <button
-                      type="button"
                       disabled={
                         locked || !affordable || !enoughPeople
                       }

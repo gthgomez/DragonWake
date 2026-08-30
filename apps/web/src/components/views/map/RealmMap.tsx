@@ -149,7 +149,7 @@ function marchIntentClass(intent: string): string {
 
 function etaLabel(m: March, now: number): string {
   if (m.status === "returning") return "returning";
-  if (m.status === "resolving") return "resolving";
+  if (m.status === "resolving") return "settling the field";
   return fmtEta(m.arriveAt - now);
 }
 

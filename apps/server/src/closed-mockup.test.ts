@@ -237,6 +237,53 @@ describe("authoritative building construction + upgrade", () => {
   });
 });
 
+describe("progression honesty fixes", () => {
+  it("clue grants count toward distinct dragon materials (readiness reachable)", () => {
+    const world = new World({ devFastTime: true });
+    const { player } = world.createGuest("ClueA", "northern_kingdom");
+    const clues = [
+      "shed_scale",
+      "burned_livestock",
+      "claw_marks",
+      "dragon_bone",
+      "shed_scale",
+    ];
+    for (const id of clues) world.grantDragonClue(player.id, id);
+    // 4 distinct clue ids + the generic stack
+    expect(world.countDistinctDragonMaterials(player.id)).toBeGreaterThanOrEqual(4);
+  });
+
+  it("reinforce delivers to your own second settlement without an alliance", () => {
+    const world = new World({ devFastTime: true });
+    const { player, city } = world.createGuest("ReinfA", "northern_kingdom");
+    world.adminGrant(player.id, { brineholdUnlock: true });
+    const keep = world.foundBrinehold(player.id);
+    const march = world.createMarch(player.id, {
+      fromCityId: city.id,
+      intent: "reinforce",
+      targetType: "city",
+      targetId: keep.id,
+      targetX: keep.mapX,
+      targetY: keep.mapY,
+      composition: { levy: 10 },
+    });
+    expect(world.applyReinforce(march)).toBe(true);
+    expect(keep.stacks["levy"]).toBe(10);
+  });
+
+  it("rejects a second construction project on a slot already being built", () => {
+    const world = new World({ devFastTime: true });
+    const { player, city } = world.createGuest("BusyA", "northern_kingdom");
+    world.startBuild(city.id, player.id, 2, "barracks");
+    try {
+      world.startBuild(city.id, player.id, 2, "saltvault");
+      throw new Error("should have thrown");
+    } catch (e) {
+      expect((e as { code?: string }).code).toBe("SLOT_BUSY");
+    }
+  });
+});
+
 describe("alliance chat display names", () => {
   it("chat messages carry the sender display name", async () => {
     const world = new World({ devFastTime: true, skipTutorial: true });

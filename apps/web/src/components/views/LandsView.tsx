@@ -9,7 +9,7 @@ type Plot = City["plots"][number];
 
 type LandsViewProps = {
   city: City;
-  assignPlot: (slotIndex: number) => Promise<void>;
+  assignPlot: (slotIndex: number, plotType: string) => Promise<void>;
   upgradePlot: (slotIndex: number, level: number) => Promise<void>;
 };
 
@@ -187,7 +187,7 @@ export function LandsView({ city, assignPlot, upgradePlot }: LandsViewProps) {
                 type="button"
                 className="city-build-btn"
                 disabled={!canAfford(city.resources, PLOT_ASSIGN_COST)}
-                onClick={() => void assignPlot(selected.slotIndex)}
+                onClick={() => void assignPlot(selected.slotIndex, pendingType)}
               >
                 Stake as {plotDef(pendingType)?.name}
               </button>

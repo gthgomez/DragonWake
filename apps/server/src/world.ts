@@ -251,9 +251,6 @@ export function tutorialProgress(
   if (!player) return null;
   const city = world.citiesForPlayer(playerId)[0];
   const progress = world.dragonProgress.get(playerId);
-  const bestiaryStudied = [...world.bestiary.keys()].filter(
-    (k) => k.startsWith(`${playerId}:`) && world.bestiary.get(k)!.observationLevel >= 1,
-  ).length;
   const idx = Math.min(
     world.tutorials.get(playerId)?.step ?? 0,
     TUTORIAL_STEPS.length - 1,
@@ -286,8 +283,16 @@ export function tutorialProgress(
         current: Math.min(1, world.ownedWildernessCount(playerId)),
         target: 1,
       };
-    case 7:
-      return { current: Math.min(1, bestiaryStudied), target: 1 };
+    case 7: {
+      // First study requires 3 recorded encounters of one creature/sign.
+      let maxEncounters = 0;
+      for (const [k, val] of world.bestiary.entries()) {
+        if (k.startsWith(`${playerId}:`)) {
+          maxEncounters = Math.max(maxEncounters, val.encounterCount);
+        }
+      }
+      return { current: Math.min(3, maxEncounters), target: 3 };
+    }
     case 8:
       return {
         current: Math.min(1, progress?.expeditionStage ?? 0),
@@ -1251,8 +1256,8 @@ export class World {
     if (
       running.some(
         (j) =>
-          Number(j.payload.slotIndex) === slotIndex &&
-          String(j.payload.buildingType) === buildingType,
+          j.kind === "build" &&
+          Number(j.payload.slotIndex) === slotIndex,
       )
     ) {
       throw Object.assign(
@@ -1930,8 +1935,10 @@ export class World {
     const clue = clues.find((c) => c.id === clueId);
     if (!clue) return null;
 
-    // Add to inventory
+    // Add to inventory: per-clue stack (feeds distinct-material readiness)
+    // plus a generic counter for legacy displays.
     const inv = this.inventory.get(playerId) ?? {};
+    inv[clue.id] = (inv[clue.id] ?? 0) + 1;
     inv["dragon_clue"] = (inv["dragon_clue"] ?? 0) + 1;
     this.putInventory(playerId, inv);
 
@@ -2578,16 +2585,18 @@ export class World {
     return loot;
   }
 
-  /** Deliver troops to an allied city at the target coords. False if undeliverable. */
-  private applyReinforce(march: March): boolean {
+  /** Deliver troops to an allied (or own) city at the target coords. False if undeliverable. */
+  applyReinforce(march: March): boolean {
     const targetCity = [...this.cities.values()].find(
       (c) => c.mapX === march.targetX && c.mapY === march.targetY,
     );
     if (!targetCity) return false;
-    // Same alliance only
-    const a = this.allianceMembers.get(march.playerId);
-    const b = this.allianceMembers.get(targetCity.playerId);
-    if (!a || !b || a.allianceId !== b.allianceId) return false;
+    // Own settlements always accept reinforcements; otherwise alliance only.
+    if (targetCity.playerId !== march.playerId) {
+      const a = this.allianceMembers.get(march.playerId);
+      const b = this.allianceMembers.get(targetCity.playerId);
+      if (!a || !b || a.allianceId !== b.allianceId) return false;
+    }
     for (const [uid, cnt] of Object.entries(march.composition)) {
       targetCity.stacks[uid] = (targetCity.stacks[uid] ?? 0) + cnt;
     }

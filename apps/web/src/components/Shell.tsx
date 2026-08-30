@@ -234,7 +234,9 @@ export function Shell({
                       ? "returning"
                       : m.status === "en_route"
                         ? "en route"
-                        : m.status;
+                        : m.status === "resolving"
+                          ? "settling the field"
+                          : m.status;
                   return (
                     <li key={m.id}>
                       <div className="ops-head">

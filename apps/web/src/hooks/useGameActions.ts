@@ -15,7 +15,6 @@ import type {
   ChatMessage,
   City,
   Commander,
-  MapData,
   March,
   Player,
   QueueJob,
@@ -49,14 +48,8 @@ export type UseGameActionsDeps = {
   // marches
   comp: Record<string, number>;
   marchLeaderId: string;
-  mapData: MapData | null;
-  selectedTile: { x: number; y: number } | null;
-  pvpX: number;
-  pvpY: number;
-  pvpIntent: "attack" | "scout" | "reinforce";
 
   // plots / alliance / chat / tutorial
-  plotPick: string;
   allyName: string;
   allyTag: string;
   alliance: AllianceInfo | null;
@@ -95,12 +88,6 @@ export function useGameActions(deps: UseGameActionsDeps) {
     researchDefs,
     comp,
     marchLeaderId,
-    mapData,
-    selectedTile,
-    pvpX,
-    pvpY,
-    pvpIntent,
-    plotPick,
     allyName,
     allyTag,
     alliance,
@@ -279,65 +266,6 @@ export function useGameActions(deps: UseGameActionsDeps) {
     );
   }
 
-  async function attackSelectedCamp() {
-    if (!mapData || !selectedTile) {
-      setError("Select a camp tile on the map");
-      return;
-    }
-    const camp = mapData.camps.find(
-      (c) => c.x === selectedTile.x && c.y === selectedTile.y,
-    );
-    if (!camp) {
-      setError("Selected tile is not a camp");
-      return;
-    }
-    await sendMarch({
-      intent: "attack",
-      target: { type: "camp", id: camp.id, x: camp.x, y: camp.y },
-    });
-  }
-
-  async function occupySelectedWild() {
-    if (!mapData || !selectedTile) {
-      setError("Select a wilderness tile on the map");
-      return;
-    }
-    const wild = mapData.wilderness.find(
-      (w) => w.x === selectedTile.x && w.y === selectedTile.y,
-    );
-    if (!wild) {
-      setError("Selected tile is not wilderness");
-      return;
-    }
-    if (wild.ownerPlayerId) {
-      setError("Wilderness already claimed");
-      return;
-    }
-    await sendMarch({
-      intent: "occupy",
-      target: { type: "wilderness", id: wild.id, x: wild.x, y: wild.y },
-    });
-  }
-
-  async function attackPvp() {
-    if (!mapData) {
-      setError("Load the map first");
-      return;
-    }
-    const targetCity = mapData.cities.find(
-      (c) => c.x === pvpX && c.y === pvpY,
-    );
-    await sendMarch({
-      intent: pvpIntent,
-      target: {
-        type: targetCity ? "city" : "coords",
-        id: targetCity?.id,
-        x: pvpX,
-        y: pvpY,
-      },
-    });
-  }
-
   async function recruitCommander() {
     if (!token) return;
     await run("Commander recruited", async () => {
@@ -415,7 +343,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
 
   async function claimQuest(questId: string) {
     if (!token) return;
-    await run(`Claimed a daily deed (${questId})`, async () => {
+    await run("Daily deed claimed", async () => {
       await api(`/api/v1/quests/daily/${questId}/claim`, token, {
         method: "POST",
       });
@@ -484,7 +412,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
 
   async function setPosture(posture: string) {
     if (!token || !city) return;
-    await run(`Set defense posture: ${posture}`, async () => {
+    await run("Defense posture updated", async () => {
       await api(`/api/v1/cities/${city.id}/posture`, token, {
         method: "POST",
         body: JSON.stringify({ posture }),
@@ -493,18 +421,18 @@ export function useGameActions(deps: UseGameActionsDeps) {
     });
   }
 
-  async function assignPlot(slotIndex: number) {
+  async function assignPlot(slotIndex: number, plotType: string) {
     if (!token || !city) return;
     if (!canAfford(city.resources, PLOT_ASSIGN_COST)) {
       setError(
-        `Need ${PLOT_ASSIGN_COST.food} food + ${PLOT_ASSIGN_COST.timber} timber`,
+        `Not enough resources — staking ground costs ${PLOT_ASSIGN_COST.food} food and ${PLOT_ASSIGN_COST.timber} timber.`,
       );
       return;
     }
     await run("New plot staked", async () => {
       await api(`/api/v1/cities/${city.id}/plots`, token, {
         method: "POST",
-        body: JSON.stringify({ slotIndex, plotType: plotPick }),
+        body: JSON.stringify({ slotIndex, plotType }),
       });
       await refreshMe(token);
     });
@@ -544,9 +472,6 @@ export function useGameActions(deps: UseGameActionsDeps) {
     doResearch,
     doTrain,
     sendMarch,
-    attackSelectedCamp,
-    occupySelectedWild,
-    attackPvp,
     recruitCommander,
     createAlly,
     joinAlly,
@@ -567,3 +492,5 @@ export function useGameActions(deps: UseGameActionsDeps) {
 }
 
 export type GameActions = ReturnType<typeof useGameActions>;
+
+

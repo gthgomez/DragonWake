@@ -134,18 +134,11 @@ export function RealmView({
     return e.count > have;
   });
 
-  /** Observed march-speed factor from this city's recent marches. */
+  /** March-speed factor: Muster Yard levels (mirrors server rule). */
   const speedFactor = useMemo(() => {
-    for (const m of marches) {
-      if (m.fromCityId !== city?.id) continue;
-      const dur = m.arriveAt - m.departAt;
-      const base = Math.max(5, chebyshev(city.mapX, city.mapY, m.targetX, m.targetY) * 8) * 1000;
-      if (dur > 0 && base > 0) {
-        return Math.max(1 / 60, Math.min(1, dur / base));
-      }
-    }
-    return 1;
-  }, [marches, city]);
+    const yard = city?.buildings.find((b) => b.buildingType === "rally_quay");
+    return Math.max(0.6, 1 - 0.04 * (yard?.level ?? 0));
+  }, [city]);
 
   const travelEstimate =
     city && selectedTile

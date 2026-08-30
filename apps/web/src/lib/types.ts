@@ -212,6 +212,7 @@ export type BestiaryEntryDef = {
 export type AllianceInfo = { id: string; name: string; tag: string };
 
 export type ChatMessage = {
+  id?: string;
   body: string;
   fromPlayerId: string;
   fromPlayerName?: string;

@@ -18,12 +18,20 @@ export type BuildingLite = {
 const registry: {
   units: Record<string, string>;
   buildings: Record<string, BuildingLite>;
-} = { units: {}, buildings: {} };
+  research: Record<string, string>;
+} = { units: {}, buildings: {}, research: {} };
+
+export type ResearchLite = { id: string; name: string };
 
 /** Called whenever content defs load (and again if they change). */
-export function registerLabels(units: UnitLite[], buildings: BuildingLite[]) {
+export function registerLabels(
+  units: UnitLite[],
+  buildings: BuildingLite[],
+  research: ResearchLite[] = [],
+) {
   for (const u of units) registry.units[u.id] = u.name;
   for (const b of buildings) registry.buildings[b.id] = b;
+  for (const r of research) registry.research[r.id] = r.name;
 }
 
 export function unitName(id: string): string {
@@ -36,6 +44,10 @@ export function buildingName(id: string): string {
 
 export function buildingDef(id: string): BuildingLite | undefined {
   return registry.buildings[id];
+}
+
+export function researchName(id: string): string {
+  return registry.research[id] ?? prettify(id);
 }
 
 export function prettify(id: string): string {
@@ -170,6 +182,10 @@ const ERROR_COPY: Record<string, string> = {
   NO_CITY: "That settlement could not be found.",
   NO_REPORT: "That report could not be found.",
   MARCH_FAIL: "The march could not be launched. Your army may have changed since you opened this panel.",
+  EXPEDITION_FAIL: "The expedition cannot set out yet — every readiness requirement must be met first.",
+  EXPEDITION_REQ: "The expedition is not ready for that stage yet — its requirements are not all met.",
+  DEV_DISABLED: "That shortcut is disabled on this realm.",
+  SLOT_BUSY_CONSTRUCTION: "Construction is already under way on that plot.",
   BUILD_FAIL: "The construction could not be queued.",
   TRAIN_FAIL: "The training could not be queued.",
   RESEARCH_FAIL: "The research could not be queued.",
@@ -193,6 +209,13 @@ export function translateError(e: unknown): string {
       : inferCode(raw);
   console.warn(`[tideforge] action failed (${code ?? "unknown"}): ${raw}`);
   if (code && ERROR_COPY[code]) return ERROR_COPY[code];
+  if (code === "EXPEDITION_REQ") {
+    // The raw message carries useful per-counter progress; keep the numbers.
+    const detail = /\((.*)\)/.exec(raw)?.[1];
+    return `The expedition is not ready for that stage yet${
+      detail ? ` — ${detail.replace(/[()]/g, "").replace(/;/g, " · ")}` : "."
+    }`;
+  }
   // Cost/supply errors carry useful numbers — keep them, lightly cleaned.
   if (code === "NO_RES" || code === "RESEARCH_COST" || code === "RECRUIT_COST") {
     return raw.replace(/^cannot afford /, "").replace(/;/g, " · ") || "Not enough resources.";
