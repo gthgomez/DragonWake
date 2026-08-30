@@ -14,12 +14,14 @@ import {
   getCamps,
   getCitadelById,
   getCommanderNames,
+  getBuildingById,
   getUnitById,
   getUnitCost,
   getResearch,
   canonTechId,
   canonResourceId,
   isUnitUnlocked,
+  isBuildingUnlocked,
   getBestiaryEntries,
   getDragonReadiness,
   getExpeditions,
@@ -222,19 +224,95 @@ export type Session = {
 };
 export type Tutorial = { playerId: string; step: number; completed: boolean };
 
-/** Product-freeze tutorial steps (10). DEV_SKIP_TUTORIAL starts completed. */
+/**
+ * Product-freeze objective ladder (10). Each step completes only when its
+ * condition is verified against authoritative player state — never by a
+ * client button press. DEV_SKIP_TUTORIAL starts completed.
+ */
 export const TUTORIAL_STEPS = [
   "Welcome, Lord — your keep stands in a dangerous age.",
-  "Open Castle and review your Food, Timber, and other supplies.",
-  "Build Homes to grow your population and manpower.",
-  "Assign farmland in the Lands to raise food production.",
-  "Research Infantry Doctrine and train Levy Spearman.",
-  "Open Realm, scout a Bandit Camp, and send your army.",
-  "Capture wilderness to boost your resource production.",
-  "Study the Bestiary — dragon signs are appearing.",
-  "Complete the Dragon Expedition readiness requirements.",
-  "Found a Marcher Keep to expand your kingdom.",
+  "Raise Homes beyond the first cottage so your people can grow.",
+  "Stake a farmstead in the Lands to feed your realm.",
+  "Research Infantry Doctrine and muster more spearmen.",
+  "Send scouts to watch a nearby camp in the Realm.",
+  "Break a bandit camp with your army.",
+  "Claim a wilderness to strengthen your economy.",
+  "Record dragon signs in the Bestiary.",
+  "Prepare the first Dragon Expedition.",
+  "Found a Marcher Keep to extend your march.",
 ] as const;
+
+/** Per-step progress snapshot for the objective panel (current/target). */
+export function tutorialProgress(
+  world: World,
+  playerId: string,
+): { current: number; target: number } | null {
+  const player = world.players.get(playerId);
+  if (!player) return null;
+  const city = world.citiesForPlayer(playerId)[0];
+  const progress = world.dragonProgress.get(playerId);
+  const bestiaryStudied = [...world.bestiary.keys()].filter(
+    (k) => k.startsWith(`${playerId}:`) && world.bestiary.get(k)!.observationLevel >= 1,
+  ).length;
+  const idx = Math.min(
+    world.tutorials.get(playerId)?.step ?? 0,
+    TUTORIAL_STEPS.length - 1,
+  );
+  switch (idx) {
+    case 1: {
+      const homesLevels = (city?.buildings ?? [])
+        .filter((b) => b.buildingType === "habitation")
+        .reduce((s, b) => s + b.level, 0);
+      return { current: Math.min(2, homesLevels), target: 2 };
+    }
+    case 2: {
+      const farms = (city?.plots ?? []).filter(
+        (p) => p.plotType === "farm" && p.level > 0,
+      ).length;
+      return { current: Math.min(1, farms), target: 1 };
+    }
+    case 3: {
+      const researched = (city?.research?.forced_cadence ?? 0) >= 1 ? 1 : 0;
+      const levied = (city?.stacks?.levy ?? 0) > LEVY_START_COUNT ? 1 : 0;
+      return { current: researched + levied, target: 2 };
+    }
+    case 4:
+      return { current: Math.min(1, progress?.scoutsSent ?? 0), target: 1 };
+    case 5:
+      return { current: Math.min(1, progress?.campsDefeated ?? 0), target: 1 };
+    case 6:
+      return {
+        current: Math.min(1, world.ownedWildernessCount(playerId)),
+        target: 1,
+      };
+    case 7:
+      return { current: Math.min(1, bestiaryStudied), target: 1 };
+    case 8:
+      return {
+        current: Math.min(1, progress?.expeditionStage ?? 0),
+        target: 1,
+      };
+    case 9:
+      return {
+        current: world.citiesForPlayer(playerId).some((c) => c.kind === "marcher_keep")
+          ? 1
+          : 0,
+        target: 1,
+      };
+    default:
+      return null;
+  }
+}
+
+const LEVY_START_COUNT = 50;
+
+/** Is the objective at `step` satisfied by authoritative state? */
+export function tutorialStepMet(world: World, playerId: string, step: number): boolean {
+  const p = tutorialProgress(world, playerId);
+  if (step === 0) return true;
+  if (!p) return false;
+  return p.current >= p.target;
+}
 
 export const DAILY_QUEST_DEFS = [
   {
@@ -381,8 +459,39 @@ function availableManpower(city: City): number {
   return Math.max(0, (city.maxPopulation ?? 0) - (city.usedManpower ?? 0) - (city.marchedManpower ?? 0));
 }
 
-/** Max concurrent train jobs per city (spam guard; correctness is via reservation). */
+/** Max concurrent train jobs per city base (spam guard; Training Camp adds more). */
 const MAX_TRAIN_JOBS = 5;
+/** Extra concurrent train queues per Training Camp level (capped). */
+const TRAIN_SLOTS_PER_CAMP_LEVEL = 1;
+const TRAIN_SLOT_CAMP_BONUS_CAP = 3;
+
+/** Best level of a building type across all of a player's cities. */
+export function bestBuildingLevel(world: World, playerId: string, buildingType: string): number {
+  let level = 0;
+  for (const city of world.citiesForPlayer(playerId)) {
+    for (const b of city.buildings) {
+      if (b.buildingType === buildingType) {
+        level = Math.max(level, b.level);
+      }
+    }
+  }
+  return level;
+}
+
+/** Barracks drill bonus: each level speeds training 5% (floor 50% duration). */
+export function trainSpeedFactor(barracksLevel: number): number {
+  return Math.max(0.5, 1 - 0.05 * barracksLevel);
+}
+
+/** Scriptorium scholarship: each level speeds research 5% (floor 50%). */
+export function researchSpeedFactor(scriptoriumLevel: number): number {
+  return Math.max(0.5, 1 - 0.05 * scriptoriumLevel);
+}
+
+/** Muster Yard logistics: each level speeds marches 4% (floor 60% duration). */
+export function marchSpeedFactor(musterYardLevel: number): number {
+  return Math.max(0.6, 1 - 0.04 * musterYardLevel);
+}
 
 /**
  * Manpower committed by running-but-not-yet-completed train jobs.
@@ -1040,6 +1149,10 @@ export class World {
     }
     this.processQueues(now);
     this.processMarches(now);
+    // Objective ladder auto-advances from authoritative state only.
+    for (const t of this.tutorials.values()) {
+      if (!t.completed) this.advanceTutorial(t.playerId);
+    }
   }
 
   processQueues(now: number): void {
@@ -1084,10 +1197,10 @@ export class World {
     this.putCity(city.id, city);
     const label =
       job.kind === "build"
-        ? `Build complete: ${String(job.payload.buildingType)}`
+        ? `Construction complete: ${getBuildingById(String(job.payload.buildingType))?.name ?? String(job.payload.buildingType)}`
         : job.kind === "research"
-          ? `Research complete: ${String(job.payload.techId)}`
-          : `Train complete: ${job.payload.count}× ${String(job.payload.unitId)}`;
+          ? `Research complete: ${getResearch().find((t) => t.id === canonTechId(String(job.payload.techId)))?.name ?? String(job.payload.techId)}`
+          : `Training complete: ${job.payload.count}× ${getUnitById(String(job.payload.unitId))?.name ?? String(job.payload.unitId)}`;
     this.pushEvent(job.playerId, "queue_complete", label, {
       jobId: job.id,
       kind: job.kind,
@@ -1095,6 +1208,13 @@ export class World {
     });
   }
 
+  /**
+   * Queue construction on a slot. Empty slot = new building at L1;
+   * occupied slot with the SAME type = authoritative upgrade to level+1.
+   * Cost scales with the next level number and duration is the building's
+   * base build time (both defined in content buildings.json — the smallest
+   * deterministic extension, mirroring the research/plot cost models).
+   */
   startBuild(
     cityId: string,
     playerId: string,
@@ -1102,6 +1222,24 @@ export class World {
     buildingType: string,
   ): QueueJob {
     const city = this.requireCityOwner(cityId, playerId);
+    const def = getBuildingById(buildingType);
+    if (!def) {
+      throw Object.assign(new Error(`unknown building: ${buildingType}`), {
+        code: "BAD_BUILDING",
+      });
+    }
+    if (def.buildable === false) {
+      throw Object.assign(
+        new Error(`${def.name} cannot be constructed here`),
+        { code: "BUILDING_FIXED" },
+      );
+    }
+    if (!isBuildingUnlocked(buildingType, city.research)) {
+      throw Object.assign(
+        new Error(`${def.name} requires further research`),
+        { code: "BUILDING_LOCKED" },
+      );
+    }
     const running = [...this.jobs.values()].filter(
       (j) =>
         j.cityId === cityId && j.kind === "build" && j.status === "running",
@@ -1109,23 +1247,67 @@ export class World {
     if (running.length >= 2) {
       throw Object.assign(new Error("build queue full"), { code: "QUEUE_FULL" });
     }
-    const cost = 100;
-    if (city.resources.food < cost || city.resources.timber < cost) {
-      throw Object.assign(new Error("insufficient resources"), {
-        code: "NO_RES",
-      });
+    if (
+      running.some(
+        (j) =>
+          Number(j.payload.slotIndex) === slotIndex &&
+          String(j.payload.buildingType) === buildingType,
+      )
+    ) {
+      throw Object.assign(
+        new Error("already constructing on that plot"),
+        { code: "SLOT_BUSY" },
+      );
     }
-    city.resources.food -= cost;
-    city.resources.timber -= cost;
+
+    const existing = city.buildings.find((b) => b.slotIndex === slotIndex);
+    let nextLevel = 1;
+    if (existing) {
+      if (existing.buildingType !== buildingType) {
+        throw Object.assign(
+          new Error(`plot occupied by ${existing.buildingType}`),
+          { code: "SLOT_OCCUPIED" },
+        );
+      }
+      nextLevel = existing.level + 1;
+      if (nextLevel > def.max_level) {
+        throw Object.assign(
+          new Error(`${def.name} is at max level`),
+          { code: "BUILDING_MAX" },
+        );
+      }
+    }
+
+    const baseCost = def.build_cost ?? { food: 100, timber: 100 };
+    const missing: string[] = [];
+    for (const [res, base] of Object.entries(baseCost)) {
+      const key = res as keyof ResourceBag;
+      const total = Math.floor((base ?? 0) * nextLevel);
+      if (total <= 0) continue;
+      if ((city.resources[key] ?? 0) < total) {
+        missing.push(`${key} need ${total} have ${city.resources[key] ?? 0}`);
+      }
+    }
+    if (missing.length > 0) {
+      throw Object.assign(
+        new Error(`cannot afford ${def.name} L${nextLevel}: ${missing.join("; ")}`),
+        { code: "NO_RES" },
+      );
+    }
+    for (const [res, base] of Object.entries(baseCost)) {
+      const key = res as keyof ResourceBag;
+      city.resources[key] -= Math.floor((base ?? 0) * nextLevel);
+    }
+    const buildSec = def.build_sec_L1 ?? 30;
     const now = this.now();
     const job: QueueJob = {
       id: randomUUID(),
       cityId,
       playerId,
       kind: "build",
-      payload: { slotIndex, buildingType },
+      payload: { slotIndex, buildingType, upgradeTo: existing ? nextLevel : 1 },
       startedAt: now,
-      finishesAt: now + durationMs(30, this.devFastTime),
+      finishesAt: now + durationMs(buildSec, this.devFastTime),
       status: "running",
     };
     this.putJob(job.id, job);
@@ -1186,7 +1368,12 @@ export class World {
       kind: "research",
       payload: { techId },
       startedAt: now,
-      finishesAt: now + durationMs(45, this.devFastTime),
+      finishesAt:
+        now +
+        durationMs(
+          45 * researchSpeedFactor(bestBuildingLevel(this, playerId, "archive_spire")),
+          this.devFastTime,
+        ),
       status: "running",
     };
     this.putJob(job.id, job);
@@ -1214,7 +1401,11 @@ export class World {
     const runningTrains = [...this.jobs.values()].filter(
       (j) => j.cityId === cityId && j.kind === "train" && j.status === "running",
     );
-    if (runningTrains.length >= MAX_TRAIN_JOBS) {
+    const campBonus = Math.min(
+      TRAIN_SLOT_CAMP_BONUS_CAP,
+      bestBuildingLevel(this, playerId, "training_camp") * TRAIN_SLOTS_PER_CAMP_LEVEL,
+    );
+    if (runningTrains.length >= MAX_TRAIN_JOBS + campBonus) {
       throw Object.assign(new Error("train queue full"), {
         code: "QUEUE_FULL",
       });
@@ -1247,7 +1438,10 @@ export class World {
     city.resources.timber -= costD;
     city.resources.stone -= costB;
     city.resources.iron -= costS;
-    const trainSec = (unit.train_sec_L1 ?? 20) * n;
+    const barracksFactor = trainSpeedFactor(
+      bestBuildingLevel(this, playerId, "barracks"),
+    );
+    const trainSec = (unit.train_sec_L1 ?? 20) * n * barracksFactor;
     const now = this.now();
     const job: QueueJob = {
       id: randomUUID(),
@@ -1910,7 +2104,10 @@ export class World {
     }
 
     const dist = chebyshev(city.mapX, city.mapY, opts.targetX, opts.targetY);
-    const travelSec = Math.max(5, dist * 8);
+    const musterFactor = marchSpeedFactor(
+      bestBuildingLevel(this, playerId, "rally_quay"),
+    );
+    const travelSec = Math.max(5, dist * 8 * musterFactor);
     const now = this.now();
     const march: March = {
       id: randomUUID(),
@@ -1990,10 +2187,18 @@ export class World {
     if (report) {
       march.battleReportId = report.id;
     }
+    const targetWord =
+      march.targetType === "camp"
+        ? "a camp"
+        : march.targetType === "wilderness"
+          ? "the wilds"
+          : march.targetType === "city"
+            ? "a settlement"
+            : "the open country";
     this.pushEvent(
       march.playerId,
       "march_land",
-      `March landed: ${march.intent} @ ${march.targetX},${march.targetY}`,
+      `Your ${march.intent === "attack" ? "attack" : march.intent === "occupy" ? "occupation" : march.intent} force reached ${targetWord}`,
       {
         marchId: march.id,
         intent: march.intent,
@@ -2042,7 +2247,7 @@ export class World {
     this.pushEvent(
       march.playerId,
       "march_return",
-      `March returned (${march.intent})`,
+      "Your forces returned home",
       { marchId: march.id, intent: march.intent },
     );
   }
@@ -2070,13 +2275,17 @@ export class World {
         ? String((result.battle as { winner?: string }).winner)
         : null;
     const msg = winner
-      ? `${type}: ${winner} wins`
+      ? winner === "attacker"
+        ? `Victory — your force held the field (${type})`
+        : winner === "defender"
+          ? `Defeat — your force was driven off (${type})`
+          : `${type}: inconclusive`
       : type === "scout"
-        ? "Scout report ready"
+        ? "Scouts return with intelligence"
         : type === "haul"
           ? result.delivered
-            ? "Haul delivered"
-            : "Haul returned (undelivered)"
+            ? "Wagons delivered their cargo"
+            : "Wagons returned with the cargo"
           : `Report: ${type}`;
     this.pushEvent(march.playerId, "report", msg, {
       reportId: report.id,
@@ -2385,6 +2594,9 @@ export class World {
       y: march.targetY,
       targetType: march.targetType,
     };
+    // Watchtower depth: L1+ names the camp's mustered defenders,
+    // L3+ gives an exact city troop count instead of a band.
+    const lookoutLevel = bestBuildingLevel(this, march.playerId, "lookout");
     if (march.targetType === "camp") {
       const camp =
         (march.targetId ? this.camps.get(march.targetId) : null) ??
@@ -2398,7 +2610,7 @@ export class World {
       const def = getCamps().find(
         (c: { camp_level: number }) => c.camp_level === camp.level,
       );
-      return {
+      const intel: Record<string, unknown> = {
         ...base,
         kind: "camp",
         campId: camp.id,
@@ -2406,6 +2618,13 @@ export class World {
         exampleComp: def?.example_comp ?? null,
         threatBand: camp.level <= 3 ? "low" : camp.level <= 7 ? "mid" : "high",
       };
+      if (lookoutLevel >= 1 && def) {
+        const groups = resolveCampDefGroups(def, `${camp.id}:${camp.x},${camp.y}`);
+        intel.defenders = groups
+          .map((g) => `${g.count}× ${getUnitById(g.unitId)?.name ?? g.unitId}`)
+          .join(", ");
+      }
+      return intel;
     }
     if (march.targetType === "wilderness") {
       const wild =
@@ -2449,7 +2668,8 @@ export class World {
         (s, n) => s + n,
         0,
       );
-      // Fog of war lite: banded stack estimate, exact posture
+      // Fog of war: banded estimate by default; a Watchtower at L3+
+      // counts exact troops.
       let troopBand = "sparse";
       if (troopEstimate >= 500) troopBand = "massed";
       else if (troopEstimate >= 100) troopBand = "garrisoned";
@@ -2464,6 +2684,7 @@ export class World {
         faction: owner?.faction ?? null,
         defensePosture: city.defensePosture,
         troopBand,
+        ...(lookoutLevel >= 3 ? { troopCount: troopEstimate } : {}),
         protected:
           !!owner?.protectionUntil && owner.protectionUntil > this.now(),
       };
@@ -2873,15 +3094,39 @@ export class World {
     return { chronite: player.chronite, questId };
   }
 
+  /**
+   * Advance the objective ladder only while the current objective is
+   * verified against authoritative state. A client button press is never
+   * proof — this evaluates conditions and auto-advances (possibly several
+   * steps) or returns the unchanged ladder.
+   */
   advanceTutorial(playerId: string): Tutorial {
     const t = this.tutorials.get(playerId) ?? {
       playerId,
       step: 0,
       completed: false,
     };
-    t.step = Math.min(TUTORIAL_STEPS.length, t.step + 1);
-    if (t.step >= TUTORIAL_STEPS.length) t.completed = true;
-    this.putTutorial(playerId, t);
+    if (t.completed) return t;
+    let advanced = false;
+    while (
+      !t.completed &&
+      t.step < TUTORIAL_STEPS.length &&
+      tutorialStepMet(this, playerId, t.step)
+    ) {
+      t.step += 1;
+      advanced = true;
+      if (t.step >= TUTORIAL_STEPS.length) {
+        t.completed = true;
+        this.pushEvent(playerId, "info", "All objectives complete — the march is yours.");
+      } else {
+        this.pushEvent(
+          playerId,
+          "info",
+          `Objective complete — next: ${TUTORIAL_STEPS[t.step]}`,
+        );
+      }
+    }
+    if (advanced) this.putTutorial(playerId, t);
     return t;
   }
 
@@ -2896,8 +3141,9 @@ export class World {
       ...t,
       totalSteps: TUTORIAL_STEPS.length,
       currentLabel: t.completed
-        ? "Tutorial complete"
+        ? "All objectives complete — the march is yours."
         : TUTORIAL_STEPS[idx] ?? TUTORIAL_STEPS[0],
+      progress: t.completed ? null : tutorialProgress(this, playerId),
       steps: [...TUTORIAL_STEPS],
     };
   }

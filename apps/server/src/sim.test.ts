@@ -83,12 +83,23 @@ describe("World daily quests + tutorial", () => {
     );
   });
 
-  it("advances tutorial to complete", () => {
+  it("objective ladder auto-advances only from verified state", () => {
     const world = new World({ devFastTime: true, skipTutorial: false });
-    const { player } = world.createGuest("TutA", "forest_people");
+    const { player, city } = world.createGuest("TutA", "forest_people");
     expect(world.tutorialView(player.id).completed).toBe(false);
-    for (let i = 0; i < 10; i++) world.advanceTutorial(player.id);
-    expect(world.tutorialView(player.id).completed).toBe(true);
+    // Step 0 (welcome) is unconditional and auto-advances on the next tick.
+    world.tick();
+    expect(world.tutorialView(player.id).step).toBe(1);
+    // Step 1 requires Homes levels >= 2 — blind advance must NOT progress.
+    world.advanceTutorial(player.id);
+    expect(world.tutorialView(player.id).step).toBe(1);
+    // Satisfy the objective authoritatively: complete another Homes level.
+    world.adminGrant(player.id, { resources: { food: 5000, timber: 5000 } });
+    const job = world.startBuild(city.id, player.id, 3, "habitation");
+    job.finishesAt = world.now() - 1;
+    world.processQueues(world.now());
+    world.tick();
+    expect(world.tutorialView(player.id).step).toBe(2);
   });
 });
 

@@ -69,11 +69,23 @@ export type CampDef = {
   harness_drop: string;
 };
 
+export type BuildingCost = Partial<
+  Record<"food" | "timber" | "stone" | "iron" | "coin", number>
+>;
+
 export type BuildingDef = {
   id: string;
   name: string;
   category: string;
   max_level: number;
+  /** False = story/keep structure never offered for construction. */
+  buildable?: boolean;
+  /** One-line player-facing purpose (no implementation language). */
+  purpose?: string;
+  /** Base resource cost; totals scale with the next level number (L1 = base). */
+  build_cost?: BuildingCost;
+  /** Base construction duration in seconds (flat per level, like research). */
+  build_sec_L1?: number;
 };
 
 /** Resource cost bag for research (subset of the canonical resource set). */
@@ -296,6 +308,10 @@ export function getCamps(): CampDef[] {
 
 export function getBuildings(): BuildingDef[] {
   return (cache.buildings ??= loadJson<BuildingDef[]>("buildings.json"));
+}
+
+export function getBuildingById(id: string): BuildingDef | undefined {
+  return getBuildings().find((b) => b.id === id);
 }
 
 export function getResearch(): ResearchDef[] {

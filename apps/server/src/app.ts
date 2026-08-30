@@ -78,6 +78,13 @@ function publicCity(c: City, world: World) {
     research: c.research,
     productionPerHour: world.effectiveProduction(c),
     ownedWilderness: world.ownedWildernessCount(c.playerId),
+    population: c.population,
+    maxPopulation: c.maxPopulation,
+    usedManpower: c.usedManpower,
+    availableManpower: Math.max(
+      0,
+      c.maxPopulation - c.usedManpower - c.marchedManpower,
+    ),
   };
 }
 
@@ -846,9 +853,15 @@ export function createApp(world: World) {
       return err(c, "FORBIDDEN", "not an alliance member", 403);
     }
     const since = Number(c.req.query("since") ?? 0);
-    const messages = world.chat.filter(
-      (m) => m.allianceId === allianceId && m.createdAt >= since,
-    );
+    const messages = world.chat
+      .filter(
+        (m) => m.allianceId === allianceId && m.createdAt >= since,
+      )
+      .map((m) => ({
+        ...m,
+        fromPlayerName:
+          world.players.get(m.fromPlayerId)?.displayName ?? "Messenger",
+      }));
     return c.json({ messages });
   });
 
