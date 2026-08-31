@@ -1382,8 +1382,12 @@ function expectCode(fn: () => void, code: string): void {
   throw new Error(`expected throw with code ${code}`);
 }
 
-/** Build or upgrade command_gallery one level instantly (fast-time fixture). */
+/** Build or upgrade command_gallery one level instantly (fast-time fixture).
+ *  Grants resources first — build costs scale with the next level number. */
 function buildGallery(world: World, playerId: string, cityId: string): void {
+  world.adminGrant(playerId, {
+    resources: { food: 20000, timber: 20000, stone: 20000 },
+  });
   const city = world.getCity(cityId)!;
   const existing = city.buildings.find(
     (b) => b.buildingType === "command_gallery",

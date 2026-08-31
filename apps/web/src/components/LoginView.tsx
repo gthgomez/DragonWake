@@ -1,6 +1,5 @@
 import type { Toast, FactionMeta } from "../lib/gameConfig";
 import { FACTION_META } from "../lib/gameConfig";
-import { apiBase } from "../lib/api";
 import "../styles/hud.css";
 
 const ACCENT_COLOR: Record<string, string> = {
@@ -86,9 +85,7 @@ export function LoginView({
           >
             Enter realm
           </button>
-          <p className="muted">
-            API: <code>{apiBase || "(same origin)"}</code>
-          </p>
+          <p className="muted">Guest keeps are saved on this realm.</p>
         </section>
       </main>
     </div>

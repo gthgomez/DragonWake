@@ -18,7 +18,10 @@ export async function api<T>(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message ?? `HTTP ${res.status}`);
+    const message = err?.error?.message ?? `HTTP ${res.status}`;
+    const e = new Error(message) as Error & { code?: string };
+    e.code = err?.error?.code;
+    throw e;
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;

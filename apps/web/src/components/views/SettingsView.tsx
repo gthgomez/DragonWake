@@ -1,4 +1,5 @@
 import type { FactionMeta } from "../../lib/gameConfig";
+import { postureLabel } from "../../lib/labels";
 import type { City, Player } from "../../lib/types";
 
 type SettingsViewProps = {
@@ -8,6 +9,8 @@ type SettingsViewProps = {
   devMode: boolean;
   setPosture: (posture: string) => Promise<void>;
   grantDev: (body: Record<string, unknown>, label: string) => Promise<void>;
+  foundBrine: () => Promise<void>;
+  foundStone: () => Promise<void>;
   logout: () => void;
 };
 
@@ -15,7 +18,11 @@ export function SettingsView({
   player,
   city,
   factionMeta,
+  devMode,
   setPosture,
+  grantDev,
+  foundBrine,
+  foundStone,
   logout,
 }: SettingsViewProps) {
   return (
@@ -25,10 +32,10 @@ export function SettingsView({
       <p>
         Protection:{" "}
         {player.protectionUntil
-          ? `until ${player.protectionUntil}`
-          : "none"}
+          ? `until ${new Date(player.protectionUntil).toLocaleString()}`
+          : "none — the realm is dangerous now"}
       </p>
-      <p>Defense posture: {city.defensePosture}</p>
+      <p>Defense posture: {postureLabel(city.defensePosture)}</p>
       <div className="row">
         <button type="button" onClick={() => void setPosture("withdraw")}>
           Withdraw
@@ -37,13 +44,46 @@ export function SettingsView({
           Garrison
         </button>
         <button type="button" onClick={() => void setPosture("full")}>
-          Full
+          Full defense
         </button>
       </div>
+      <p className="muted tiny">
+        Withdraw keeps your people safe but leaves stores to raiders. Garrison
+        meets the enemy with part of the army. Full defense answers with every
+        sword in the keep.
+      </p>
 
       <button type="button" className="danger" onClick={logout}>
         Log out
       </button>
+
+      {devMode && (
+        <details className="dev-panel">
+          <summary>Developer tools</summary>
+          <p className="muted tiny">
+            Demo unlocks — not part of the player journey.
+          </p>
+          <div className="row">
+            <button type="button" onClick={() => void foundBrine()}>
+              Dev: found Brinehold
+            </button>
+            <button type="button" onClick={() => void foundStone()}>
+              Dev: found Stonekeel
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                void grantDev(
+                  { units: { levy: 100, bowman: 50, scout: 10 } },
+                  "Granted starter companies",
+                )
+              }
+            >
+              Dev: grant starter companies
+            </button>
+          </div>
+        </details>
+      )}
     </section>
   );
 }

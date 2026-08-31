@@ -6,6 +6,8 @@ import type {
   AllianceInfo,
   AllianceSummary,
   BattleReport,
+  BestiaryEntryDef,
+  BuildingDef,
   ChatMessage,
   City,
   Commander,
@@ -16,11 +18,12 @@ import type {
   Player,
   QueueJob,
   ResearchDef,
-  Sovereign,
+  ResearchUnlock,
   TutorialState,
   UnitDef,
   WorldEventDto,
 } from "../lib/types";
+import { registerLabels } from "../lib/labels";
 import { useGameActions } from "./useGameActions";
 
 export function useGame() {
@@ -51,22 +54,15 @@ export function useGame() {
   const [expeditionStatus, setExpeditionStatus] = useState<any>(null);
   const [clueData, setClueData] = useState<any>(null);
   const [units, setUnits] = useState<UnitDef[]>([]);
-  const [sovereigns, setSovereigns] = useState<Sovereign[]>([]);
+  const [buildingDefs, setBuildingDefs] = useState<BuildingDef[]>([]);
+  const [unlockDefs, setUnlockDefs] = useState<ResearchUnlock[]>([]);
+  const [bestiaryDefs, setBestiaryDefs] = useState<BestiaryEntryDef[]>([]);
   const [displayName, setDisplayName] = useState("Guest");
   const [faction, setFaction] = useState("northern_kingdom");
   const [chatBody, setChatBody] = useState("");
   const [allyName, setAllyName] = useState("Alliance");
   const [allyTag, setAllyTag] = useState("TIDE");
-  const [comp, setComp] = useState<Record<string, number>>({
-    levy: 20,
-    bowman: 10,
-  });
-  const [pvpX, setPvpX] = useState(0);
-  const [pvpY, setPvpY] = useState(0);
-  const [pvpIntent, setPvpIntent] = useState<"attack" | "scout" | "reinforce">(
-    "attack",
-  );
-  const [plotPick, setPlotPick] = useState("farm");
+  const [comp, setComp] = useState<Record<string, number>>({});
   const [now, setNow] = useState(() => Date.now());
   const [mapFocus, setMapFocus] = useState<MapFocus>({
     x0: 0,
@@ -98,7 +94,6 @@ export function useGame() {
       player: Player;
       cities: City[];
       alliance: AllianceInfo | null;
-      sovereigns: Sovereign[];
       serverNow?: number;
       tutorial?: TutorialState;
       dailyQuests?: DailyQuest[];
@@ -109,7 +104,6 @@ export function useGame() {
     setCities(me.cities);
     setCityId((id) => id ?? me.cities[0]?.id ?? null);
     setAlliance(me.alliance);
-    setSovereigns(me.sovereigns ?? []);
     if (me.tutorial) setTutorial(me.tutorial);
     if (me.dailyQuests) setDailyQuests(me.dailyQuests);
     if (me.serverNow) setNow(me.serverNow);
@@ -141,12 +135,26 @@ export function useGame() {
 
   const loadUnits = useCallback(async () => {
     try {
-      const [unitsData, researchData] = await Promise.all([
-        api<{ units: UnitDef[] }>("/api/v1/content/units", null),
-        api<{ research: ResearchDef[] }>("/api/v1/content/research", null),
-      ]);
+      const [unitsData, researchData, buildingsData, unlockData, bestiaryData] =
+        await Promise.all([
+          api<{ units: UnitDef[] }>("/api/v1/content/units", null),
+          api<{ research: ResearchDef[] }>("/api/v1/content/research", null),
+          api<{ buildings: BuildingDef[] }>("/api/v1/content/buildings", null),
+          api<{ unlocks: ResearchUnlock[] }>(
+            "/api/v1/content/research-unlocks",
+            null,
+          ),
+          api<{ entries: BestiaryEntryDef[] }>(
+            "/api/v1/content/bestiary",
+            null,
+          ),
+        ]);
       setUnits(unitsData.units);
       setResearchDefs(researchData.research);
+      setBuildingDefs(buildingsData.buildings);
+      setUnlockDefs(unlockData.unlocks);
+      setBestiaryDefs(bestiaryData.entries);
+      registerLabels(unitsData.units, buildingsData.buildings, researchData.research);
     } catch {
       /* optional at boot */
     }
@@ -353,6 +361,7 @@ export function useGame() {
     refreshMe,
     refreshQueues,
     refreshMarches,
+    refreshKnowledge,
     displayName,
     faction,
     setToken,
@@ -360,14 +369,9 @@ export function useGame() {
     setCities,
     setCityId,
     units,
+    researchDefs,
     comp,
     marchLeaderId,
-    mapData,
-    selectedTile,
-    pvpX,
-    pvpY,
-    pvpIntent,
-    plotPick,
     allyName,
     allyTag,
     alliance,
@@ -410,7 +414,9 @@ export function useGame() {
     expeditionStatus,
     clueData,
     units,
-    sovereigns,
+    buildingDefs,
+    unlockDefs,
+    bestiaryDefs,
     tutorial,
     dailyQuests,
     allianceList,
@@ -441,14 +447,6 @@ export function useGame() {
     setJoinTag,
     comp,
     setComp,
-    pvpX,
-    setPvpX,
-    pvpY,
-    setPvpY,
-    pvpIntent,
-    setPvpIntent,
-    plotPick,
-    setPlotPick,
     marchLeaderId,
     setMarchLeaderId,
 
@@ -469,3 +467,4 @@ export function useGame() {
 }
 
 export type Game = ReturnType<typeof useGame>;
+

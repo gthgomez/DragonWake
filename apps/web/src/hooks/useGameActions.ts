@@ -2,13 +2,19 @@ import type { Dispatch, SetStateAction } from "react";
 
 import { api } from "../lib/api";
 import { canAfford, unitTrainCost } from "../lib/format";
-import { BUILD_COST, PLOT_ASSIGN_COST, type Toast } from "../lib/gameConfig";
+import { PLOT_ASSIGN_COST, type Toast } from "../lib/gameConfig";
+import {
+  buildingDef,
+  buildingName,
+  intentLabel,
+  translateError,
+  unitName,
+} from "../lib/labels";
 import type {
   AllianceInfo,
   ChatMessage,
   City,
   Commander,
-  MapData,
   March,
   Player,
   QueueJob,
@@ -25,6 +31,7 @@ export type UseGameActionsDeps = {
   refreshMe: (tok: string) => Promise<void>;
   refreshQueues: (tok: string, cId: string | null) => Promise<void>;
   refreshMarches: (tok: string) => Promise<void>;
+  refreshKnowledge: () => Promise<void>;
 
   // login form
   displayName: string;
@@ -36,18 +43,13 @@ export type UseGameActionsDeps = {
 
   // build / train
   units: UnitDef[];
+  researchDefs: { id: string; name: string }[];
 
   // marches
   comp: Record<string, number>;
   marchLeaderId: string;
-  mapData: MapData | null;
-  selectedTile: { x: number; y: number } | null;
-  pvpX: number;
-  pvpY: number;
-  pvpIntent: "attack" | "scout" | "reinforce";
 
   // plots / alliance / chat / tutorial
-  plotPick: string;
   allyName: string;
   allyTag: string;
   alliance: AllianceInfo | null;
@@ -75,6 +77,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
     refreshMe,
     refreshQueues,
     refreshMarches,
+    refreshKnowledge,
     displayName,
     faction,
     setToken,
@@ -82,14 +85,9 @@ export function useGameActions(deps: UseGameActionsDeps) {
     setCities,
     setCityId,
     units,
+    researchDefs,
     comp,
     marchLeaderId,
-    mapData,
-    selectedTile,
-    pvpX,
-    pvpY,
-    pvpIntent,
-    plotPick,
     allyName,
     allyTag,
     alliance,
@@ -112,7 +110,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
       setStatus(label);
       pushToast(label, "ok");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = translateError(e);
       setError(msg);
       pushToast(msg, "err");
     }
@@ -138,36 +136,59 @@ export function useGameActions(deps: UseGameActionsDeps) {
 
   async function doBuild(buildingType: string, slotIndex?: number) {
     if (!token || !city) return;
-    if (!canAfford(city.resources, BUILD_COST)) {
-      setError(`Need ${BUILD_COST.food} food + ${BUILD_COST.timber} timber`);
-      return;
-    }
+    const def = buildingDef(buildingType);
+    const baseCost = def?.build_cost ?? { food: 100, timber: 100 };
     const slot =
       slotIndex ?? Math.max(0, ...city.buildings.map((b) => b.slotIndex), -1) + 1;
-    if (city.buildings.some((b) => b.slotIndex === slot)) {
-      setError(`Plot ${slot} is already occupied`);
+    const existing = city.buildings.find((b) => b.slotIndex === slot);
+    const nextLevel = existing
+      ? existing.buildingType === buildingType
+        ? existing.level + 1
+        : 0
+      : 1;
+    if (existing && nextLevel === 0) {
+      setError("That plot is held by another structure.");
       return;
     }
-    await run(`Queued ${buildingType}`, async () => {
-      await api(`/api/v1/cities/${city.id}/buildings`, token, {
-        method: "POST",
-        body: JSON.stringify({ slotIndex: slot, buildingType }),
-      });
-      await refreshMe(token);
-      await refreshQueues(token, city.id);
-    });
+    const cost: Record<string, number> = {};
+    for (const [k, v] of Object.entries(baseCost)) {
+      cost[k as keyof typeof cost] = (v ?? 0) * nextLevel;
+    }
+    if (!canAfford(city.resources, cost)) {
+      const need = Object.entries(cost)
+        .filter(([k, v]) => (city.resources[k as keyof typeof city.resources] ?? 0) < (v ?? 0))
+        .map(([k, v]) => `${(v ?? 0) - (city.resources[k as keyof typeof city.resources] ?? 0)} more ${k}`);
+      setError(`Not enough resources — you need ${need.join(", ")}.`);
+      return;
+    }
+    const name = buildingName(buildingType);
+    await run(
+      existing ? `Raising ${name} to level ${nextLevel}` : `Building ${name}`,
+      async () => {
+        await api(`/api/v1/cities/${city.id}/buildings`, token, {
+          method: "POST",
+          body: JSON.stringify({ slotIndex: slot, buildingType }),
+        });
+        await refreshMe(token);
+        await refreshQueues(token, city.id);
+      },
+    );
   }
 
   async function doResearch(techId: string) {
     if (!token || !city) return;
-    await run(`Queued research ${techId}`, async () => {
-      await api(`/api/v1/cities/${city.id}/research`, token, {
-        method: "POST",
-        body: JSON.stringify({ techId }),
-      });
-      await refreshMe(token);
-      await refreshQueues(token, city.id);
-    });
+    const def = researchDefs.find((t) => t.id === techId);
+    await run(
+      `Studying ${def?.name ?? techId.replace(/_/g, " ")}`,
+      async () => {
+        await api(`/api/v1/cities/${city.id}/research`, token, {
+          method: "POST",
+          body: JSON.stringify({ techId }),
+        });
+        await refreshMe(token);
+        await refreshQueues(token, city.id);
+      },
+    );
   }
 
   async function doTrain(unitId: string, count: number) {
@@ -177,7 +198,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
       setError("Not enough resources to train");
       return;
     }
-    await run(`Queued train ${count}× ${unitId}`, async () => {
+    await run(`Training ${count}× ${unitName(unitId)}`, async () => {
       await api(`/api/v1/cities/${city.id}/train`, token, {
         method: "POST",
         body: JSON.stringify({ unitId, count }),
@@ -208,21 +229,21 @@ export function useGameActions(deps: UseGameActionsDeps) {
     if (!token || !city) return;
     const composition = compositionFromUi();
     if (Object.keys(composition).length === 0) {
-      setError("Set march composition (units from your stacks)");
-      pushToast("March blocked: no units selected", "err");
+      setError("No troops selected — choose the companies for this march.");
+      pushToast("March blocked: no troops selected", "err");
       return;
     }
     for (const [uid, n] of Object.entries(composition)) {
       const have = city.stacks[uid] ?? 0;
       if (have < n) {
-        const msg = `Not enough ${uid} (need ${n}, have ${have})`;
+        const msg = `You only have ${have} ${unitName(uid)} — you tried to send ${n}.`;
         setError(msg);
         pushToast(msg, "err");
         return;
       }
     }
     await run(
-      `${opts.intent} → ${opts.target.x},${opts.target.y}`,
+      `${intentLabel(opts.intent)} march dispatched`,
       async () => {
         const body: Record<string, unknown> = {
           fromCityId: city.id,
@@ -238,70 +259,11 @@ export function useGameActions(deps: UseGameActionsDeps) {
         await refreshMe(token);
         await refreshMarches(token);
         pushToast(
-          `March sent: ${opts.intent} @ ${opts.target.x},${opts.target.y}`,
+          `March sent toward ${opts.target.x}, ${opts.target.y}`,
           "ok",
         );
       },
     );
-  }
-
-  async function attackSelectedCamp() {
-    if (!mapData || !selectedTile) {
-      setError("Select a camp tile on the map");
-      return;
-    }
-    const camp = mapData.camps.find(
-      (c) => c.x === selectedTile.x && c.y === selectedTile.y,
-    );
-    if (!camp) {
-      setError("Selected tile is not a camp");
-      return;
-    }
-    await sendMarch({
-      intent: "attack",
-      target: { type: "camp", id: camp.id, x: camp.x, y: camp.y },
-    });
-  }
-
-  async function occupySelectedWild() {
-    if (!mapData || !selectedTile) {
-      setError("Select a wilderness tile on the map");
-      return;
-    }
-    const wild = mapData.wilderness.find(
-      (w) => w.x === selectedTile.x && w.y === selectedTile.y,
-    );
-    if (!wild) {
-      setError("Selected tile is not wilderness");
-      return;
-    }
-    if (wild.ownerPlayerId) {
-      setError("Wilderness already claimed");
-      return;
-    }
-    await sendMarch({
-      intent: "occupy",
-      target: { type: "wilderness", id: wild.id, x: wild.x, y: wild.y },
-    });
-  }
-
-  async function attackPvp() {
-    if (!mapData) {
-      setError("Load the map first");
-      return;
-    }
-    const targetCity = mapData.cities.find(
-      (c) => c.x === pvpX && c.y === pvpY,
-    );
-    await sendMarch({
-      intent: pvpIntent,
-      target: {
-        type: targetCity ? "city" : "coords",
-        id: targetCity?.id,
-        x: pvpX,
-        y: pvpY,
-      },
-    });
   }
 
   async function recruitCommander() {
@@ -355,9 +317,33 @@ export function useGameActions(deps: UseGameActionsDeps) {
     });
   }
 
+  async function startDragonExpedition() {
+    if (!token) return;
+    await run("The dragon expedition sets out", async () => {
+      await api("/api/v1/dragon/expedition/start", token, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      await refreshMe(token);
+      await refreshKnowledge();
+    });
+  }
+
+  async function completeDragonStage(stageNumber: number) {
+    if (!token) return;
+    await run("Stage of the expedition accomplished", async () => {
+      await api("/api/v1/dragon/expedition/complete-stage", token, {
+        method: "POST",
+        body: JSON.stringify({ stageNumber }),
+      });
+      await refreshMe(token);
+      await refreshKnowledge();
+    });
+  }
+
   async function claimQuest(questId: string) {
     if (!token) return;
-    await run(`Claimed ${questId}`, async () => {
+    await run("Daily deed claimed", async () => {
       await api(`/api/v1/quests/daily/${questId}/claim`, token, {
         method: "POST",
       });
@@ -426,7 +412,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
 
   async function setPosture(posture: string) {
     if (!token || !city) return;
-    await run(`Posture → ${posture}`, async () => {
+    await run("Defense posture updated", async () => {
       await api(`/api/v1/cities/${city.id}/posture`, token, {
         method: "POST",
         body: JSON.stringify({ posture }),
@@ -435,18 +421,18 @@ export function useGameActions(deps: UseGameActionsDeps) {
     });
   }
 
-  async function assignPlot(slotIndex: number) {
+  async function assignPlot(slotIndex: number, plotType: string) {
     if (!token || !city) return;
     if (!canAfford(city.resources, PLOT_ASSIGN_COST)) {
       setError(
-        `Need ${PLOT_ASSIGN_COST.food} food + ${PLOT_ASSIGN_COST.timber} timber`,
+        `Not enough resources — staking ground costs ${PLOT_ASSIGN_COST.food} food and ${PLOT_ASSIGN_COST.timber} timber.`,
       );
       return;
     }
-    await run(`Assigned plot ${slotIndex}`, async () => {
+    await run("New plot staked", async () => {
       await api(`/api/v1/cities/${city.id}/plots`, token, {
         method: "POST",
-        body: JSON.stringify({ slotIndex, plotType: plotPick }),
+        body: JSON.stringify({ slotIndex, plotType }),
       });
       await refreshMe(token);
     });
@@ -459,7 +445,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
       setError(`Need ${cost.food} food + ${cost.timber} timber`);
       return;
     }
-    await run(`Upgraded plot ${slotIndex}`, async () => {
+    await run(`Plot improved to level ${level + 1}`, async () => {
       await api(`/api/v1/cities/${city.id}/plots/upgrade`, token, {
         method: "POST",
         body: JSON.stringify({ slotIndex }),
@@ -486,13 +472,12 @@ export function useGameActions(deps: UseGameActionsDeps) {
     doResearch,
     doTrain,
     sendMarch,
-    attackSelectedCamp,
-    occupySelectedWild,
-    attackPvp,
     recruitCommander,
     createAlly,
     joinAlly,
     advanceTutorial,
+    startDragonExpedition,
+    completeDragonStage,
     claimQuest,
     sendChat,
     grantDev,
@@ -507,3 +492,5 @@ export function useGameActions(deps: UseGameActionsDeps) {
 }
 
 export type GameActions = ReturnType<typeof useGameActions>;
+
+
