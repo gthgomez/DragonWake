@@ -5,8 +5,8 @@
     {
       "id": "bestiary_knowledge",
       "type": "bestiary_threshold",
-      "description": "Study at least 3 creatures in the Bestiary",
-      "threshold": 3,
+      "description": "Study at least 1 creature in the Bestiary",
+      "threshold": 1,
       "current": 0
     },
     {
@@ -19,15 +19,15 @@
     {
       "id": "dragon_material",
       "type": "item_count",
-      "description": "Hold 5 distinct dragon-related materials or clues",
+      "description": "Hold 3 distinct dragon-related materials or clues",
       "item_id": "dragon_material",
-      "threshold": 5
+      "threshold": 3
     },
     {
       "id": "camp_mastery",
       "type": "camps_defeated",
-      "description": "Defeat camps of at least 3 different types",
-      "threshold": 3
+      "description": "Defeat camps of at least 2 different levels",
+      "threshold": 2
     },
     {
       "id": "dragon_watch_facility",

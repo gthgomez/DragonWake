@@ -46,6 +46,8 @@ function effectLine(id: string, level: number): string {
       return level >= 3
         ? "Scouts report exact garrison counts"
         : "Scouts report camp defenders";
+    case "skyreost":
+      return `Records dragon signs · readiness ${Math.min(2, level)}/2`;
     case "saltvault":
       return `Shields about ${Math.min(90, 50 + 5 * level)}% of stores from raiders`;
     case "training_camp":
@@ -331,6 +333,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
         "rally_quay",
         "command_gallery",
         "lookout",
+        "skyreost",
         "training_camp",
         "saltvault",
       ]

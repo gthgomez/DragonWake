@@ -73,7 +73,9 @@
     "category": "knowledge",
     "max_level": 10,
     "buildable": true,
-    "purpose": "A tower attuned to the sky, watched for signs of wings."
+    "purpose": "A tower attuned to the sky, watched for signs of wings.",
+    "build_cost": { "food": 120, "timber": 100, "stone": 50, "coin": 50 },
+    "build_sec_L1": 30
   },
   {
     "id": "rivetworks",
