@@ -5,13 +5,16 @@ import {
   COMBAT_RULES_VERSION,
 } from "@tideforge/combat";
 import {
+  getBestiaryEntries,
   getBuildings,
+  getCitadelById,
   getCitadels,
   getDragonClues,
   getExpeditions,
   getFormulas,
   getMeta,
   getResearch,
+  getResearchUnlocks,
   getShop,
   getUnits,
 } from "@tideforge/content";
@@ -78,6 +81,13 @@ function publicCity(c: City, world: World) {
     research: c.research,
     productionPerHour: world.effectiveProduction(c),
     ownedWilderness: world.ownedWildernessCount(c.playerId),
+    population: c.population,
+    maxPopulation: c.maxPopulation,
+    usedManpower: c.usedManpower,
+    availableManpower: Math.max(
+      0,
+      c.maxPopulation - c.usedManpower - c.marchedManpower,
+    ),
   };
 }
 
@@ -197,6 +207,12 @@ export function createApp(world: World) {
   );
   api.get("/content/buildings", (c) => c.json({ buildings: getBuildings() }));
   api.get("/content/research", (c) => c.json({ research: getResearch() }));
+  api.get("/content/research-unlocks", (c) =>
+    c.json({ unlocks: getResearchUnlocks() }),
+  );
+  api.get("/content/bestiary", (c) =>
+    c.json({ entries: getBestiaryEntries() }),
+  );
 
   api.post("/auth/guest", async (c) => {
     const ip =
@@ -322,20 +338,6 @@ export function createApp(world: World) {
       dailyQuests: world.listDailyQuests(player.id),
       serverNow: Date.now(),
       devMode: devModeEnabled(),
-      sovereigns: [...world.sovereigns.values()]
-        .filter((s) => s.playerId === player.id)
-        .map((s) => ({
-          id: s.id,
-          sovereignType: s.sovereignType,
-          level: s.level,
-          harnessComplete: world.harnessComplete(s),
-          harness: {
-            crown: s.harnessCrown,
-            heart: s.harnessHeart,
-            grasp: s.harnessGrasp,
-            keel: s.harnessKeel,
-          },
-        })),
     });
   });
 
@@ -553,7 +555,6 @@ export function createApp(world: World) {
         targetY: body.target.y,
         composition: body.composition ?? {},
         cargo: body.cargo,
-        sovereignId: body.sovereignId ?? null,
         commanderId: body.commanderId ?? null,
       });
       return c.json({ march });
@@ -592,18 +593,6 @@ export function createApp(world: World) {
       return err(c, "NO_REPORT", "not found", 404);
     }
     return c.json({ report });
-  });
-
-  api.get("/sovereigns", (c) => {
-    const player = c.get("player");
-    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const list = [...world.sovereigns.values()]
-      .filter((s) => s.playerId === player.id)
-      .map((s) => ({
-        ...s,
-        harnessComplete: world.harnessComplete(s),
-      }));
-    return c.json({ sovereigns: list });
   });
 
   api.get("/commanders", (c) => {
@@ -699,23 +688,33 @@ export function createApp(world: World) {
     }
     try {
       if (body.unlock !== false) {
-        // Dev/demo unlock for this citadel (and brinehold prereq if needed)
-        if (kind === "stonekeel" || kind === "brinehold") {
-          world.adminGrant(player.id, {
-            brineholdUnlock: true,
-            stonekeelUnlock: kind === "stonekeel",
-            citadelUnlock: kind,
-          });
-        } else {
-          world.adminGrant(player.id, { citadelUnlock: kind });
+        // Dev/demo unlock: walk the ladder's prerequisites so `kind` is
+        // reachable in one call (found chain brinehold → stonekeel →
+        // cinderreach → galeari).
+        const prereqs: string[] = [];
+        let cur = getCitadelById(kind);
+        while (cur && cur.requires && cur.requires.length > 0) {
+          const pid = cur.requires[0]!;
+          prereqs.unshift(pid);
+          cur = getCitadelById(pid);
         }
-        // Ensure prereq cities exist when demo-unlocking ladder rungs
-        if (kind === "stonekeel") {
-          if (!world.citiesForPlayer(player.id).some((x) => x.kind === "brinehold")) {
-            world.adminGrant(player.id, { brineholdUnlock: true });
-            world.foundBrinehold(player.id);
+        for (const id of prereqs) {
+          const def = getCitadelById(id);
+          if (!def) continue;
+          world.adminGrant(player.id, {
+            brineholdUnlock: id === "brinehold",
+            stonekeelUnlock: id === "stonekeel",
+            citadelUnlock: id,
+          });
+          if (!world.citiesForPlayer(player.id).some((x) => x.kind === id)) {
+            world.foundCitadel(player.id, id);
           }
         }
+        world.adminGrant(player.id, {
+          brineholdUnlock: kind === "brinehold",
+          stonekeelUnlock: kind === "stonekeel",
+          citadelUnlock: kind,
+        });
       }
       const city = world.foundCitadel(player.id, kind, body.name);
       return c.json({ city: publicCity(city, world) });
@@ -846,9 +845,15 @@ export function createApp(world: World) {
       return err(c, "FORBIDDEN", "not an alliance member", 403);
     }
     const since = Number(c.req.query("since") ?? 0);
-    const messages = world.chat.filter(
-      (m) => m.allianceId === allianceId && m.createdAt >= since,
-    );
+    const messages = world.chat
+      .filter(
+        (m) => m.allianceId === allianceId && m.createdAt >= since,
+      )
+      .map((m) => ({
+        ...m,
+        fromPlayerName:
+          world.players.get(m.fromPlayerId)?.displayName ?? "Messenger",
+      }));
     return c.json({ messages });
   });
 

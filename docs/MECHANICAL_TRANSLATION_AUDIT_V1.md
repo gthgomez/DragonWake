@@ -5,9 +5,9 @@ Status: **AUDIT COMPLETE — NOT AN IMPLEMENTATION PLAN**
 > **HISTORICAL SNAPSHOT** (2026-08-19, base `0241e51`). Findings below were
 > verified against that SHA and are preserved as the migration rationale.
 > Current state supersedes sections B–D: medieval roster, research ids,
-> population/manpower, dragon foundation, and posture redesign have since
-> landed (see `VERTICAL_SLICE_1A_RESULTS.md` §12). The D-matrix remains the
-> contract for remaining M2/M4 migrations (resource columns, Sovereign).
+> population/manpower, dragon foundation, posture redesign, the M2 resource
+> rename, and the M4 Sovereign deletion have all since landed (see
+> `VERTICAL_SLICE_1A_RESULTS.md` §12 and freshness entries).
 > Canonical id mapping lives in `packages/content/data/domain_catalog.json`.
 
 Generated: 2026-08-19

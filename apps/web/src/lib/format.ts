@@ -1,4 +1,11 @@
 import type { BattleReport, QueueJob, Resources, UnitDef } from "./types";
+import {
+  unitName,
+  buildingName,
+  researchName,
+  wildInfo,
+  postureLabel,
+} from "./labels";
 
 export function fmtEta(ms: number): string {
   if (ms <= 0) return "ready";
@@ -40,10 +47,16 @@ export function unitTrainCost(u: UnitDef, count: number): Partial<Resources> {
 }
 
 export function jobLabel(job: QueueJob): string {
-  if (job.kind === "build") return `Build ${String(job.payload.buildingType)}`;
-  if (job.kind === "research") return `Research ${String(job.payload.techId)}`;
+  if (job.kind === "build") {
+    const to = Number(job.payload.upgradeTo ?? 0);
+    const name = buildingName(String(job.payload.buildingType));
+    return to > 1 ? `Raising ${name} to level ${to}` : `Building ${name}`;
+  }
+  if (job.kind === "research") {
+    return `Studying ${researchName(String(job.payload.techId))}`;
+  }
   if (job.kind === "train") {
-    return `Train ${job.payload.count}× ${String(job.payload.unitId)}`;
+    return `Training ${job.payload.count}× ${unitName(String(job.payload.unitId))}`;
   }
   return job.kind;
 }
@@ -52,7 +65,7 @@ export function lossList(map?: Record<string, number>): string {
   if (!map) return "—";
   const parts = Object.entries(map)
     .filter(([, n]) => n > 0)
-    .map(([k, v]) => `${v} ${k}`);
+    .map(([k, v]) => `${fmtNum(v)} ${unitName(k)}`);
   return parts.length ? parts.join(", ") : "none";
 }
 
@@ -60,37 +73,32 @@ export function lootList(loot?: Partial<Resources>): string {
   if (!loot) return "—";
   const parts = Object.entries(loot)
     .filter(([, n]) => (n ?? 0) > 0)
-    .map(([k, v]) => `+${v} ${k}`);
+    .map(([k, v]) => `+${fmtNum(v)} ${k}`);
   return parts.length ? parts.join(", ") : "none";
 }
 
-export function postureLabel(posture?: string, harborLoot?: boolean): string {
-  if (harborLoot) return "Withdraw (free loot — no wall fight)";
-  if (posture === "full") return "Full defense (stacks fought)";
-  if (posture === "garrison") return "Garrison (only garrisoned troops fight)";
-  if (posture === "withdraw") return "Withdraw";
-  return harborLoot === false ? "Fought (not withdraw loot)" : "—";
-}
+export { postureLabel } from "./labels";
 
 export function formatIntel(intel: BattleReport["result"]["intel"]): string {
   if (!intel) return "";
   if (typeof intel === "string") return intel;
   const kind = String(intel.kind ?? "intel");
   if (kind === "camp") {
-    return `Camp L${intel.level} · threat ${intel.threatBand}${
-      intel.exampleComp ? ` · ~${intel.exampleComp}` : ""
+    return `Level ${intel.level} camp · threat ${intel.threatBand}${
+      intel.exampleComp ? ` · mustering roughly ${intel.exampleComp}` : ""
     }`;
   }
   if (kind === "city") {
-    return `City ${intel.cityName ?? ""} · ${intel.ownerName ?? "?"} · posture ${
-      intel.defensePosture ?? "?"
-    } · troops ${intel.troopBand ?? "?"}${
-      intel.protected ? " · protected" : ""
+    return `${intel.cityName ?? "A settlement"} · held by ${intel.ownerName ?? "an unknown lord"} · ${postureLabel(
+      String(intel.defensePosture ?? ""),
+    )} · troops ${intel.troopCount ?? intel.troopBand ?? "unknown"}${
+      intel.protected ? " · under protection" : ""
     }`;
   }
   if (kind === "wilderness") {
-    return `Wild ${intel.resourceType} L${intel.level}${
-      intel.ownerName ? ` · owner ${intel.ownerName}` : " · unclaimed"
+    const info = wildInfo(String(intel.resourceType ?? ""));
+    return `${info.label} (level ${intel.level})${
+      intel.ownerName ? ` · held by ${intel.ownerName}` : " · unclaimed"
     }`;
   }
   return JSON.stringify(intel);

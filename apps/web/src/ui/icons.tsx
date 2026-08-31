@@ -16,7 +16,16 @@ export type IconName =
   | "dragon"
   | "hammer"
   | "flask"
-  | "crown";
+  | "crown"
+  | "keep"
+  | "homes"
+  | "barracks"
+  | "scriptorium"
+  | "yard"
+  | "gallery"
+  | "watchtower"
+  | "store"
+  | "camp";
 
 type IconProps = {
   /** Rendered width/height in px (square icons). Defaults to 16. */
@@ -112,6 +121,70 @@ const GLYPHS: Record<IconName, ReactNode> = {
       <path d="M4.6 16.5 3.5 8l4.9 3.4L12 5.2l3.6 6.2L20.5 8l-1.1 8.5z" />
       <path d="M5.2 19.5h13.6" />
       <circle cx="12" cy="12.6" r="0.8" fill="currentColor" stroke="none" />
+    </>
+  ),
+  keep: (
+    <>
+      <path d="M6 20.5V9l6-4 6 4v11.5" />
+      <path d="M4 20.5h16" />
+      <path d="M10 20.5v-5h4v5" />
+      <path d="M9 9.5h6" />
+    </>
+  ),
+  homes: (
+    <>
+      <path d="m4 11 8-6.5L20 11" />
+      <path d="M6 9.8V20h12V9.8" />
+      <path d="M10 20v-5.5h4V20" />
+    </>
+  ),
+  barracks: (
+    <>
+      <path d="m3.5 19 8.5-13 8.5 13z" />
+      <path d="M7 19v-3.5h10V19" />
+      <path d="M12 6V3.5" />
+    </>
+  ),
+  scriptorium: (
+    <>
+      <path d="M12 6.5c-1.8-1.6-4.4-2-7-1.5v13c2.6-.5 5.2-.1 7 1.5 1.8-1.6 4.4-2 7-1.5v-13c-2.6-.5-5.2-.1-7 1.5Z" />
+      <path d="M12 6.5v13" />
+      <path d="M8 9.5c1.2-.2 2.4 0 3 .4" />
+      <path d="M8 12.5c1.2-.2 2.4 0 3 .4" />
+    </>
+  ),
+  yard: (
+    <>
+      <path d="M6 21V4" />
+      <path d="M6 5h11l-2.5 3.5L17 12H6" />
+    </>
+  ),
+  gallery: (
+    <>
+      <path d="M12 4.5 14 9l4.8.4-3.6 3.2 1.1 4.7-4.3-2.6-4.3 2.6 1.1-4.7L5.2 9.4 10 9z" />
+      <path d="M5.5 19.5h13" />
+    </>
+  ),
+  watchtower: (
+    <>
+      <path d="M9 20.5 10 8h4l1 12.5" />
+      <path d="M8.5 8V4.5h7V8" />
+      <path d="M7 20.5h10" />
+      <path d="M12 4.5V3" />
+    </>
+  ),
+  store: (
+    <>
+      <path d="M5.5 8.5h13l-1 12h-11z" />
+      <path d="M4.5 8.5 6 4h12l1.5 4.5" />
+      <path d="M9.5 12.5v4M14.5 12.5v4" />
+    </>
+  ),
+  camp: (
+    <>
+      <path d="m4 19 8-12 8 12z" />
+      <path d="m9.5 19 2.5-4 2.5 4" />
+      <path d="M4 19h16" />
     </>
   ),
 };

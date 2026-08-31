@@ -3,9 +3,9 @@ import type { ReactElement, ReactNode } from "react";
 
 import "./city.css";
 
-import { BUILD_COST } from "../../../lib/gameConfig";
-import { canAfford, fmtNum } from "../../../lib/format";
-import type { City } from "../../../lib/types";
+import { canAfford, fmtEta, fmtNum } from "../../../lib/format";
+import { buildingDef, buildingName, type BuildingLite } from "../../../lib/labels";
+import type { City, QueueJob } from "../../../lib/types";
 import type { IconName } from "../../../ui/icons";
 import { Icon } from "../../../ui/icons";
 
@@ -14,43 +14,58 @@ type Tier = "stone" | "bronze" | "gold";
 
 type CityGridProps = {
   city: City;
+  jobs: QueueJob[];
+  now: number;
   doBuild: (buildingType: string, slotIndex?: number) => Promise<void>;
 };
 
 const GRID_COLUMNS = 4;
 const MIN_SLOTS = 12;
 
-/** Display names for known building types; unknown types fall back to title-casing. */
-const BUILDING_LABELS: Record<string, string> = {
-  barracks: "Barracks",
-  habitation: "Habitation",
-  saltvault: "Saltvault",
-  archive_spire: "Archive Spire",
-};
-
-const BUILDABLE_TYPES = Object.keys(BUILDING_LABELS);
-
-function buildingLabel(type: string): string {
-  return (
-    BUILDING_LABELS[type] ??
-    type
-      .split("_")
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" ")
-  );
+function costOf(def: BuildingLite, level: number): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(def.build_cost ?? { food: 100, timber: 100 })) {
+    out[k] = Math.floor((v ?? 0) * level);
+  }
+  return out;
+}
+/** Honest, mechanic-backed effect line per building (mirrors server rules). */
+function effectLine(id: string, level: number): string {
+  switch (id) {
+    case "habitation":
+      return `Houses ${100 * level} additional townsfolk`;
+    case "barracks":
+      return `Training speed +${5 * level}%`;
+    case "archive_spire":
+      return `Research speed +${5 * level}%`;
+    case "rally_quay":
+      return `March speed +${4 * level}%`;
+    case "command_gallery":
+      return `Roster of ${level} · ${Math.min(3, level)} command slot${Math.min(3, level) === 1 ? "" : "s"}`;
+    case "lookout":
+      return level >= 3
+        ? "Scouts report exact garrison counts"
+        : "Scouts report camp defenders";
+    case "saltvault":
+      return `Shields about ${Math.min(90, 50 + 5 * level)}% of stores from raiders`;
+    case "training_camp":
+      return `Allows ${5 + Math.min(3, level)} training queues`;
+    default:
+      return "";
+  }
 }
 
 /** Level bands visualized as roof/banner tiers: stone -> bronze -> gold. */
 function tierOf(level: number): Tier {
-  if (level >= 5) return "gold";
-  if (level >= 3) return "bronze";
+  if (level >= 7) return "gold";
+  if (level >= 4) return "bronze";
   return "stone";
 }
 
 /** Stacked plinth steps under each building grow with level. */
 function plinthSteps(level: number): 1 | 2 | 3 {
-  if (level >= 5) return 3;
-  if (level >= 3) return 2;
+  if (level >= 7) return 3;
+  if (level >= 4) return 2;
   return 1;
 }
 
@@ -139,7 +154,7 @@ function HabitationGlyph({ level }: { level: number }) {
   );
 }
 
-/** Saltvault — strongbox with vault dial and coin accent. */
+/** Saltvault (Storehouse) — strongbox with vault dial and coin accent. */
 function SaltvaultGlyph({ level }: { level: number }) {
   return (
     <GlyphFrame level={level}>
@@ -154,7 +169,7 @@ function SaltvaultGlyph({ level }: { level: number }) {
   );
 }
 
-/** Archive Spire — banded tower with orb finial. */
+/** Archive Spire (Scriptorium) — banded tower with orb finial. */
 function ArchiveSpireGlyph({ level }: { level: number }) {
   return (
     <GlyphFrame level={level}>
@@ -164,6 +179,57 @@ function ArchiveSpireGlyph({ level }: { level: number }) {
       <path d="M9.85 14.4h4.3" stroke="var(--tier-b)" />
       <path d="M10.15 17.3h3.7" stroke="var(--tier-a)" />
       <path d="M11.05 22v-1.8a.95.95 0 0 1 1.9 0V22" />
+    </GlyphFrame>
+  );
+}
+
+/** Command Gallery (Commanders' Hall) — banner over a hall front. */
+function CommandGalleryGlyph({ level }: { level: number }) {
+  return (
+    <GlyphFrame level={level}>
+      <path d="M6.5 21.5v-9h11v9" />
+      <path d="M5 12.5 12 5l7 7.5" />
+      <path d="M12 5V2.6" />
+      <path d="M12 2.6h4.4l-1.2 1.7 1.2 1.7H12" stroke="var(--tier-b)" />
+      <path d="M9.7 21.5v-3.4h4.6v3.4" />
+    </GlyphFrame>
+  );
+}
+
+/** Lookout (Watchtower) — tall tower with balcony. */
+function LookoutGlyph({ level }: { level: number }) {
+  return (
+    <GlyphFrame level={level}>
+      <path d="M9.6 21.5 10.4 9h3.2l.8 12.5" />
+      <path d="M9.2 9V5h5.6v4" />
+      <path d="M8.2 5h7.6" stroke="var(--tier-b)" />
+      <path d="M12 5V2.8" />
+      <circle cx="12" cy="3.4" r=".9" stroke="var(--tier-a)" />
+    </GlyphFrame>
+  );
+}
+
+/** Rally Quay (Muster Yard) — yard with war banner. */
+function RallyQuayGlyph({ level }: { level: number }) {
+  return (
+    <GlyphFrame level={level}>
+      <path d="M4.5 21.5h15" />
+      <path d="M7 21.5V12" />
+      <path d="M7 12c1.8-1.5 3.4-1.5 5 0 1.6-1.5 3.2-1.5 5 0" />
+      <path d="M17 21.5V6" />
+      <path d="M17 6h4l-1.2 1.8L21 9.6h-4" stroke="var(--tier-b)" />
+    </GlyphFrame>
+  );
+}
+
+/** Training Camp — drill tent with pennant. */
+function TrainingCampGlyph({ level }: { level: number }) {
+  return (
+    <GlyphFrame level={level}>
+      <path d="m4.5 21 7.5-12 7.5 12z" />
+      <path d="M9 21l3-4.8L15 21" />
+      <path d="M12 9V3.6" />
+      <path d="M12 3.6h3.4l-1 1.4 1 1.4H12" stroke="var(--tier-b)" />
     </GlyphFrame>
   );
 }
@@ -184,6 +250,10 @@ const GLYPHS: Record<string, (props: { level: number }) => ReactElement> = {
   habitation: HabitationGlyph,
   saltvault: SaltvaultGlyph,
   archive_spire: ArchiveSpireGlyph,
+  command_gallery: CommandGalleryGlyph,
+  lookout: LookoutGlyph,
+  rally_quay: RallyQuayGlyph,
+  training_camp: TrainingCampGlyph,
 };
 
 function BuildingGlyph({ type, level }: { type: string; level: number }) {
@@ -196,11 +266,38 @@ function CostIcon({ name }: { name: IconName }) {
   return <Icon name={name} size={14} />;
 }
 
+function CostRow({
+  cost,
+  have,
+}: {
+  cost: Record<string, number>;
+  have: Record<string, number>;
+}) {
+  return (
+    <div className="city-cost-row">
+      {Object.entries(cost)
+        .filter(([, v]) => (v ?? 0) > 0)
+        .map(([k, v]) => {
+          const short = (have[k] ?? 0) < (v ?? 0);
+          return (
+            <span
+              key={k}
+              className={`city-cost ${short ? "city-cost-short" : ""}`}
+            >
+              <CostIcon name={k as IconName} /> {fmtNum(v)}
+              <span className="city-visually-hidden"> {k}</span>
+            </span>
+          );
+        })}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* City grid                                                           */
 /* ------------------------------------------------------------------ */
 
-export function CityGrid({ city, doBuild }: CityGridProps) {
+export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 
   // Switching cities resets the selection so the card never describes
@@ -215,6 +312,33 @@ export function CityGrid({ city, doBuild }: CityGridProps) {
     return m;
   }, [city.buildings]);
 
+  /** Running build jobs keyed by their target slot. */
+  const jobsBySlot = useMemo(() => {
+    const m = new Map<number, QueueJob>();
+    for (const j of jobs) {
+      if (j.kind !== "build") continue;
+      m.set(Number(j.payload.slotIndex), j);
+    }
+    return m;
+  }, [jobs]);
+
+  const buildableDefs = useMemo(
+    () =>
+      [
+        "habitation",
+        "barracks",
+        "archive_spire",
+        "rally_quay",
+        "command_gallery",
+        "lookout",
+        "training_camp",
+        "saltvault",
+      ]
+        .map((id) => buildingDef(id))
+        .filter((d): d is BuildingLite => Boolean(d?.buildable)),
+    [],
+  );
+
   const slots = useMemo(() => {
     let max = -1;
     for (const b of city.buildings) max = Math.max(max, b.slotIndex);
@@ -225,7 +349,9 @@ export function CityGrid({ city, doBuild }: CityGridProps) {
 
   const selected: Building | null =
     selectedSlot === null ? null : (bySlot.get(selectedSlot) ?? null);
-  const canPayAny = canAfford(city.resources, BUILD_COST);
+  const selectedJob =
+    selectedSlot !== null ? (jobsBySlot.get(selectedSlot) ?? null) : null;
+  const selectedDef = selected ? buildingDef(selected.buildingType) : null;
 
   return (
     <div className="city-layout">
@@ -239,6 +365,14 @@ export function CityGrid({ city, doBuild }: CityGridProps) {
             {slots.map((slot) => {
               const b = bySlot.get(slot);
               const isSel = slot === selectedSlot;
+              const job = jobsBySlot.get(slot);
+              const total = job ? Math.max(1, job.finishesAt - job.startedAt) : 1;
+              const pct = job
+                ? Math.min(
+                    100,
+                    Math.round(((total - Math.max(0, job.finishesAt - now)) / total) * 100),
+                  )
+                : 0;
               return (
                 <button
                   key={slot}
@@ -247,13 +381,16 @@ export function CityGrid({ city, doBuild }: CityGridProps) {
                     "city-tile",
                     b ? "city-tile-built" : "city-tile-empty",
                     isSel ? "city-selected" : "",
+                    job ? "city-tile-building" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
                   aria-label={
-                    b
-                      ? `${buildingLabel(b.buildingType)}, level ${b.level}`
-                      : `Empty plot ${slot}`
+                    job
+                      ? `${buildingName(String(job.payload.buildingType))} under construction, ${fmtEta(Math.max(0, job.finishesAt - now))} remaining`
+                      : b
+                        ? `${buildingName(b.buildingType)}, level ${b.level}`
+                        : `Empty plot ${slot}`
                   }
                   aria-pressed={isSel}
                   onClick={() => setSelectedSlot(isSel ? null : slot)}
@@ -272,14 +409,37 @@ export function CityGrid({ city, doBuild }: CityGridProps) {
                       </span>
                     </span>
                   )}
-                  {b && <span className="city-lvl">{`L${b.level}`}</span>}
+                  {job && (
+                    <span
+                      className="city-scaffold"
+                      aria-hidden="true"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+                        <path d="M5 20V9M19 20V9M5 12h14M5 16h14M9 9v11M15 9v11" />
+                      </svg>
+                    </span>
+                  )}
+                  {job && (
+                    <span className="city-build-progress">
+                      <span
+                        className="city-build-progress-fill"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </span>
+                  )}
+                  {b && !job && <span className="city-lvl">{`L${b.level}`}</span>}
+                  {job && (
+                    <span className="city-lvl city-lvl-building">
+                      {fmtEta(Math.max(0, job.finishesAt - now))}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
         </div>
         <p className="city-scene-hint muted tiny">
-          Select a plot to inspect or build
+          Select a plot to inspect it, raise a structure, or improve it
         </p>
       </div>
 
@@ -294,39 +454,117 @@ export function CityGrid({ city, doBuild }: CityGridProps) {
                 <BuildingGlyph type={selected.buildingType} level={selected.level} />
               </span>
               <div>
-                <h4>{buildingLabel(selected.buildingType)}</h4>
+                <h4>{buildingName(selected.buildingType)}</h4>
                 <p className="muted tiny">
-                  Level {selected.level} · {tierOf(selected.level)} tier · plot{" "}
-                  {selected.slotIndex}
+                  Level {selected.level} · {tierOf(selected.level)} tier
                 </p>
               </div>
             </header>
-            <div className="city-cost-row">
-              <span className="city-cost">
-                <CostIcon name="food" /> {fmtNum(BUILD_COST.food)}
-                <span className="city-visually-hidden"> food</span>
+            {selectedDef?.purpose ? (
+              <p className="tiny">{selectedDef.purpose}</p>
+            ) : null}
+            <p className="city-effect">
+              <strong>Now:</strong> {effectLine(selected.buildingType, selected.level) || "—"}
+            </p>
+            {selectedJob ? (
+              <>
+                <p className="city-effect">
+                  <strong>
+                    {Number(selectedJob.payload.upgradeTo ?? 0) > 1
+                      ? `Improving to level ${String(selectedJob.payload.upgradeTo)}`
+                      : "Under construction"}
+                  </strong>{" "}
+                  — {fmtEta(Math.max(0, selectedJob.finishesAt - now))} remaining
+                </p>
+                <div className="bar">
+                  <div
+                    className="bar-fill"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round(
+                          ((Math.max(1, selectedJob.finishesAt - selectedJob.startedAt) -
+                            Math.max(0, selectedJob.finishesAt - now)) /
+                            Math.max(1, selectedJob.finishesAt - selectedJob.startedAt)) *
+                            100,
+                        ),
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </>
+            ) : Number(selectedDef?.max_level ?? 10) > selected.level ? (
+              <>
+                <p className="city-effect">
+                  <strong>Next:</strong> level {selected.level + 1} —{" "}
+                  {effectLine(selected.buildingType, selected.level + 1) || "—"}
+                </p>
+                <CostRow
+                  cost={costOf(selectedDef!, selected.level + 1)}
+                  have={city.resources as unknown as Record<string, number>}
+                />
+                <button
+                  type="button"
+                  className="city-build-btn"
+                  disabled={
+                    !canAfford(
+                      city.resources,
+                      costOf(selectedDef!, selected.level + 1),
+                    )
+                  }
+                  onClick={() =>
+                    void doBuild(selected.buildingType, selected.slotIndex)
+                  }
+                >
+                  Improve to level {selected.level + 1}
+                  {selectedDef?.build_sec_L1
+                    ? ` · about ${fmtEta(selectedDef.build_sec_L1 * 1000)}`
+                    : ""}
+                </button>
+              </>
+            ) : (
+              <p className="city-effect city-afford-ok">
+                This structure stands at its highest level.
+              </p>
+            )}
+          </div>
+        ) : selectedSlot !== null && selectedJob ? (
+          // Under construction on a still-empty plot — show progress, not
+          // the picker (the slot cannot take a second project).
+          <div className="city-detail-body">
+            <header className="city-detail-head">
+              <span className="city-detail-glyph city-empty-glyph" aria-hidden="true">
+                <Icon name="hammer" size={26} />
               </span>
-              <span className="city-cost">
-                <CostIcon name="timber" /> {fmtNum(BUILD_COST.timber)}
-                <span className="city-visually-hidden"> timber</span>
-              </span>
+              <div>
+                <h4>{buildingName(String(selectedJob.payload.buildingType))}</h4>
+                <p className="muted tiny">
+                  {Number(selectedJob.payload.upgradeTo ?? 0) > 1
+                    ? `Improving to level ${String(selectedJob.payload.upgradeTo)}`
+                    : "Under construction"}
+                </p>
+              </div>
+            </header>
+            <p className="city-effect">
+              <strong>Time remaining:</strong>{" "}
+              {fmtEta(Math.max(0, selectedJob.finishesAt - now))}
+            </p>
+            <div className="bar">
+              <div
+                className="bar-fill"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.round(
+                      ((Math.max(1, selectedJob.finishesAt - selectedJob.startedAt) -
+                        Math.max(0, selectedJob.finishesAt - now)) /
+                        Math.max(1, selectedJob.finishesAt - selectedJob.startedAt)) *
+                        100,
+                    ),
+                  )}%`,
+                }}
+              />
             </div>
-            <p
-              className={`city-afford ${canPayAny ? "city-afford-ok" : "city-afford-err"}`}
-            >
-              {canPayAny ? "Resources available" : "Insufficient resources"}
-            </p>
-            <button
-              type="button"
-              className="city-build-btn"
-              disabled={!canPayAny}
-              onClick={() => void doBuild(selected.buildingType)}
-            >
-              Build {buildingLabel(selected.buildingType)}
-            </button>
-            <p className="muted tiny">
-              Raises another {buildingLabel(selected.buildingType)} in this city.
-            </p>
           </div>
         ) : selectedSlot !== null ? (
           <div className="city-detail-body">
@@ -335,38 +573,38 @@ export function CityGrid({ city, doBuild }: CityGridProps) {
                 <Icon name="hammer" size={26} />
               </span>
               <div>
-                <h4>Empty plot {selectedSlot}</h4>
+                <h4>Empty plot</h4>
                 <p className="muted tiny">A cleared foundation awaits.</p>
               </div>
             </header>
             <p className="tiny">Choose a structure to raise here:</p>
             <div className="city-pick-grid">
-              {BUILDABLE_TYPES.map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  disabled={!canAfford(city.resources, BUILD_COST)}
-                  onClick={() => void doBuild(id, selectedSlot)}
-                >
-                  {BUILDING_LABELS[id]}
-                </button>
-              ))}
+              {buildableDefs.map((def) => {
+                const cost = costOf(def, 1);
+                const affordable = canAfford(
+                  city.resources,
+                  cost,
+                );
+                return (
+                  <button
+                    key={def.id}
+                    type="button"
+                    className="city-pick"
+                    disabled={!affordable}
+                    onClick={() => void doBuild(def.id, selectedSlot)}
+                    title={def.purpose}
+                  >
+                    <span className="city-pick-name">{def.name}</span>
+                    <CostRow cost={cost} have={city.resources as unknown as Record<string, number>} />
+                    <span className="muted tiny">
+                      {def.build_sec_L1
+                        ? `about ${fmtEta(def.build_sec_L1 * 1000)}`
+                        : ""}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-            <div className="city-cost-row">
-              <span className="city-cost">
-                <CostIcon name="food" /> {fmtNum(BUILD_COST.food)}
-                <span className="city-visually-hidden"> food</span>
-              </span>
-              <span className="city-cost">
-                <CostIcon name="timber" /> {fmtNum(BUILD_COST.timber)}
-                <span className="city-visually-hidden"> timber</span>
-              </span>
-            </div>
-            <p
-              className={`city-afford ${canPayAny ? "city-afford-ok" : "city-afford-err"}`}
-            >
-              {canPayAny ? "Resources available" : "Insufficient resources"}
-            </p>
           </div>
         ) : (
           <div className="city-detail-body city-detail-idle">

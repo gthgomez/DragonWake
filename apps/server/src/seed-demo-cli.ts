@@ -12,8 +12,7 @@ const a = world.createGuest("DemoA", "northern_kingdom");
 const b = world.createGuest("DemoB", "mountain_realm");
 
 world.adminGrant(a.player.id, {
-  units: { levy: 200, reefbow: 150 },
-  harness: true,
+  units: { levy: 200, bowman: 150 },
   brineholdUnlock: true,
   chronite: 80,
   skipProtection: true,

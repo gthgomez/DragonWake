@@ -1,0 +1,219 @@
+/*
+   Tideforge Empires — Lands tab: visual plot tile grid.
+   Imported once by components/views/LandsView.tsx.
+   Every class is prefixed land-. Builds on base vars from styles.css and
+   extended tokens from styles/tokens.css (--stone-*, --border-ornate,
+   --glow-accent, --font-display). No hud-, rpt-, codex- or city- classes
+   are defined or overridden here.
+*/
+
+/* ============ Plot grid ============ */
+
+.land-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.6rem;
+}
+
+.land-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.55rem 0.65rem;
+  text-align: center;
+  border: 1px solid var(--border-ornate);
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--stone-1) 92%, transparent),
+    color-mix(in srgb, var(--stone-3) 94%, transparent)
+  );
+  box-shadow: var(--shadow-1), var(--shadow-inset);
+  transition: transform 140ms ease-out, box-shadow 140ms ease-out,
+    border-color 140ms ease-out;
+}
+
+.land-tile:hover:not(.land-tile-empty) {
+  transform: translateY(-2px);
+  border-color: var(--border-ornate-strong);
+  box-shadow: var(--glow-accent), var(--shadow-2), var(--shadow-inset);
+}
+
+.land-tile:focus-within {
+  border-color: var(--border-ornate-strong);
+  box-shadow: var(--glow-accent), var(--shadow-1), var(--shadow-inset);
+}
+
+/* ============ Tile header: plot number + type ============ */
+
+.land-tile-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.land-plot-no {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--parchment-2) 78%, var(--border-ornate-strong));
+}
+
+.land-type-name {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  line-height: 1.2;
+  color: color-mix(in srgb, var(--text) 88%, var(--border-ornate-strong));
+}
+
+.land-type-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ============ Glyph: resource icon or dashed foundation ============ */
+
+.land-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  width: 100%;
+  color: var(--border-ornate-strong);
+  filter: drop-shadow(
+    0 0 5px color-mix(in srgb, var(--border-ornate-strong) 35%, transparent)
+  );
+}
+
+.land-foundation {
+  position: relative;
+  width: 44px;
+  height: 32px;
+  border: 1.5px dashed
+    color-mix(in srgb, var(--border-ornate) 55%, transparent);
+  border-radius: var(--radius-xs);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 9px,
+      color-mix(in srgb, var(--border-ornate) 20%, transparent) 9px 10px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 7px,
+      color-mix(in srgb, var(--border-ornate) 16%, transparent) 7px 8px
+    );
+}
+
+/* faint corner stakes on the foundation plot */
+.land-foundation::before,
+.land-foundation::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  width: 3px;
+  height: 6px;
+  background: color-mix(in srgb, var(--border-ornate) 65%, transparent);
+  border-radius: var(--radius-xs);
+}
+
+.land-foundation::before {
+  left: 4px;
+}
+
+.land-foundation::after {
+  right: 4px;
+}
+
+/* ============ Level pips (max L5) ============ */
+
+.land-pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.land-pip {
+  width: 7px;
+  height: 7px;
+  transform: rotate(45deg);
+  border: 1px solid
+    color-mix(in srgb, var(--border-ornate) 55%, transparent);
+  border-radius: 1px;
+}
+
+.land-pip-on {
+  background: var(--border-ornate-strong);
+  border-color: var(--border-ornate-strong);
+  box-shadow: 0 0 4px
+    color-mix(in srgb, var(--border-ornate-strong) 50%, transparent);
+}
+
+/* ============ Tile action row ============ */
+
+.land-btn {
+  margin-top: auto;
+  width: 100%;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 0.34rem 0.45rem;
+  cursor: pointer;
+  color: #241a0c;
+  background: linear-gradient(180deg, var(--parchment-1), var(--parchment-2));
+  border: 1px solid
+    color-mix(in srgb, var(--border-ornate-strong) 60%, #000);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-1), var(--shadow-inset);
+  transition: filter 140ms ease-out, box-shadow 140ms ease-out,
+    transform 140ms ease-out;
+}
+
+.land-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: var(--glow-gold), var(--shadow-1);
+}
+
+.land-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.land-btn:focus-visible {
+  outline: none;
+  border-color: var(--border-ornate-strong);
+  box-shadow: var(--glow-accent), var(--shadow-1);
+}
+
+.land-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.land-max {
+  margin-top: auto;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ============ Reduced motion ============ */
+
+@media (prefers-reduced-motion: reduce) {
+  .land-tile,
+  .land-btn {
+    transition: none;
+  }
+
+  .land-tile:hover:not(.land-tile-empty),
+  .land-btn:active:not(:disabled) {
+    transform: none;
+  }
+}

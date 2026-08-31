@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import "./styles/factions.css";
 import { LoginView } from "./components/LoginView";
@@ -16,6 +16,13 @@ import type { Tab } from "./lib/gameConfig";
 export function App() {
   const [tab, setTab] = useState<Tab>("castle");
   const g = useGame();
+
+  // Charter/expedition state drives the Castle objective card; keep it fresh
+  // wherever the player is so the founding moment is never stale.
+  useEffect(() => {
+    if (g.token) void g.refreshKnowledge().catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [g.token, tab]);
 
   if (!g.token || !g.player) {
     return (
@@ -48,7 +55,6 @@ export function App() {
       marches={g.marches}
       now={g.now}
       tutorial={g.tutorial}
-      advanceTutorial={g.advanceTutorial}
       unreadReports={g.unreadReports}
       setUnreadReports={g.setUnreadReports}
       loadMap={g.loadMap}
@@ -65,14 +71,15 @@ export function App() {
           setCityId={g.setCityId}
           units={g.units}
           researchDefs={g.researchDefs}
-          sovereigns={g.sovereigns}
+          unlockDefs={g.unlockDefs}
           dailyQuests={g.dailyQuests}
+          jobs={g.jobs}
+          now={g.now}
+          expeditionStatus={g.expeditionStatus}
           doBuild={g.doBuild}
           doResearch={g.doResearch}
           doTrain={g.doTrain}
           foundMarcherKeep={g.foundMarcherKeep}
-          foundBrine={g.foundBrine}
-          foundStone={g.foundStone}
           claimQuest={g.claimQuest}
         />
       )}
@@ -80,10 +87,9 @@ export function App() {
       {tab === "lands" && city && (
         <LandsView
           city={city}
-          plotPick={g.plotPick}
-          setPlotPick={g.setPlotPick}
           assignPlot={g.assignPlot}
           upgradePlot={g.upgradePlot}
+          key={city.id}
         />
       )}
 
@@ -98,21 +104,16 @@ export function App() {
           setSelectedTile={g.setSelectedTile}
           comp={g.comp}
           setComp={g.setComp}
-          pvpX={g.pvpX}
-          setPvpX={g.setPvpX}
-          pvpY={g.pvpY}
-          setPvpY={g.setPvpY}
-          pvpIntent={g.pvpIntent}
-          setPvpIntent={g.setPvpIntent}
           commandersReady={g.commandersReady}
           commanders={g.commanders}
           marches={g.marches}
+          units={g.units}
+          marchLeaderId={g.marchLeaderId}
+          setMarchLeaderId={g.setMarchLeaderId}
           loadMap={g.loadMap}
           setError={g.setError}
           recruitCommander={g.recruitCommander}
-          attackSelectedCamp={g.attackSelectedCamp}
-          occupySelectedWild={g.occupySelectedWild}
-          attackPvp={g.attackPvp}
+          sendMarch={g.sendMarch}
         />
       )}
 
@@ -120,13 +121,24 @@ export function App() {
         <WarView
           player={g.player}
           reports={g.reports}
-          commandersReady={g.commandersReady}
-          commanders={g.commanders}
-          marchLeaderId={g.marchLeaderId}
-          setMarchLeaderId={g.setMarchLeaderId}
           setUnreadReports={g.setUnreadReports}
           loadReports={g.loadReports}
           setError={g.setError}
+          onLocateReport={(x, y) => {
+            const cols = g.mapFocus.x1 - g.mapFocus.x0 + 1;
+            const rows = g.mapFocus.y1 - g.mapFocus.y0 + 1;
+            const x0 = Math.max(0, Math.min(40 - cols, x - Math.floor(cols / 2)));
+            const y0 = Math.max(0, Math.min(40 - rows, y - Math.floor(rows / 2)));
+            const f = { x0, y0, x1: x0 + cols - 1, y1: y0 + rows - 1 };
+            g.setMapFocus(f);
+            void g
+              .loadMap(f)
+              .then(() => {
+                g.setSelectedTile({ x, y });
+                setTab("realm");
+              })
+              .catch((e) => g.setError(String(e.message ?? e)));
+          }}
         />
       )}
 
@@ -155,9 +167,12 @@ export function App() {
         <KnowledgeView
           readinessStatus={g.readinessStatus}
           bestiaryEntries={g.bestiaryEntries}
+          bestiaryDefs={g.bestiaryDefs}
           expeditionStatus={g.expeditionStatus}
           clueData={g.clueData}
           formulas={g.formulas}
+          startDragonExpedition={g.startDragonExpedition}
+          completeDragonStage={g.completeDragonStage}
           loadCodex={g.loadCodex}
         />
       )}
@@ -170,6 +185,8 @@ export function App() {
           devMode={g.devMode}
           setPosture={g.setPosture}
           grantDev={g.grantDev}
+          foundBrine={g.foundBrine}
+          foundStone={g.foundStone}
           logout={g.logout}
         />
       )}

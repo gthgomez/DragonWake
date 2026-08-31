@@ -48,7 +48,6 @@ export const marchBodySchema = z.object({
       coin: z.number().int().min(0).optional(),
     })
     .optional(),
-  sovereignId: z.string().uuid().optional(),
   commanderId: z.string().uuid().optional(),
 });
 
@@ -73,13 +72,20 @@ export const allianceJoinSchema = z
 export const adminGrantSchema = z.object({
   resources: z.record(z.string(), z.number().min(0)).optional(),
   units: z.record(z.string(), z.number().int().min(0)).optional(),
-  harness: z.boolean().optional(),
   chronite: z.number().int().min(0).optional(),
   skipProtection: z.boolean().optional(),
   brineholdUnlock: z.boolean().optional(),
   stonekeelUnlock: z.boolean().optional(),
-  citadelUnlock: z.string().min(1).max(32).optional(),
-  items: z.record(z.string(), z.number().int().min(0)).optional(),
+  citadelUnlock: z.string().max(64).optional(),
+  items: z.record(z.string(), z.number()).optional(),
+  dragonCounters: z
+    .object({
+      camps: z.number().optional(),
+      scouts: z.number().optional(),
+      campTypes: z.array(z.string().max(64)).optional(),
+    })
+    .optional(),
+  bestiaryEncounters: z.record(z.string(), z.number()).optional(),
 });
 
 export type ParseOk<T> = { ok: true; data: T };

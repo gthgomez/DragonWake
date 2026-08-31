@@ -60,7 +60,6 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
       token: tokenA,
       body: JSON.stringify({
         units: { bowman: 100, levy: 100 },
-        harness: true,
         brineholdUnlock: true,
         skipProtection: true,
         chronite: 100,
@@ -146,9 +145,10 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
     const wildAfter = world.wilderness.get(wild.id)!;
     expect(wildAfter.ownerPlayerId).toBe(a.body.player.id);
 
-    // M7 — harness (granted above)
-    const meHarness = await json(app, "/api/v1/me", { token: tokenA });
-    expect(meHarness.body.sovereigns[0].harnessComplete).toBe(true);
+// M7 — admin grant (Sovereign removed in M4): unlock flag reached the capital
+const meAfter = await json(app, "/api/v1/me", { token: tokenA });
+expect(meAfter.body.sovereigns).toBeUndefined();
+expect(world.getCity(cityA)!.research.brinehold_unlock).toBe(1);
 
     // M8 — Brinehold
     const brine = await json(app, "/api/v1/citadels/found-brinehold", {

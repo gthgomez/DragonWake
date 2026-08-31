@@ -7,20 +7,18 @@ import {
   postureLabel,
   reportHeadline,
 } from "../../lib/format";
-import type { BattleReport, Commander, Player } from "../../lib/types";
+import { targetPhrase } from "../../lib/labels";
+import type { BattleReport, Player } from "../../lib/types";
 import { Icon } from "../../ui/icons";
 import type { IconName } from "../../ui/icons";
 
 type WarViewProps = {
   player: Player;
   reports: BattleReport[];
-  commandersReady: boolean;
-  commanders: Commander[];
-  marchLeaderId: string;
-  setMarchLeaderId: (value: string) => void;
   setUnreadReports: (value: number) => void;
   loadReports: () => Promise<void>;
   setError: (message: string | null) => void;
+  onLocateReport: (x: number, y: number) => void;
 };
 
 const RESOURCE_ICONS: Partial<Record<string, IconName>> = {
@@ -42,45 +40,18 @@ function headlineIcon(type?: string): IconName {
 export function WarView({
   player,
   reports,
-  commandersReady,
-  commanders,
-  marchLeaderId,
-  setMarchLeaderId,
   setUnreadReports,
   loadReports,
   setError,
+  onLocateReport,
 }: WarViewProps) {
   return (
     <section className="card">
-      <h2>War / Reports</h2>
+      <h2>War — Dispatches</h2>
       <p className="muted">
         Dispatches from the front — raids, sieges, and scouting missions
         across the realm.
       </p>
-      {commandersReady && (
-        <div className="row form-inline">
-          <label>
-            Leader
-            <select
-              value={marchLeaderId}
-              onChange={(e) => setMarchLeaderId(e.target.value)}
-            >
-              <option value="">None</option>
-              {commanders
-                .filter((c) => c.state === "available")
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} {"★".repeat(Math.max(0, c.stars))}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <span className="muted tiny">
-            Optional leader joins marches sent from Realm actions
-            (attack/occupy/scout/reinforce).
-          </span>
-        </div>
-      )}
       <button
         type="button"
         onClick={() => {
@@ -90,12 +61,14 @@ export function WarView({
           );
         }}
       >
-        Refresh reports
+        Refresh dispatches
       </button>
       {reports.length === 0 ? (
         <div className="rpt-empty">
           <Icon name="scroll" size={20} title="No reports" />
-          <p className="muted">No reports yet — attack a camp or player</p>
+          <p className="muted">
+            No dispatches yet — pick a target in the Realm and muster a march.
+          </p>
         </div>
       ) : (
         <ul className="report-cards">
@@ -132,8 +105,13 @@ export function WarView({
             const lootEntries = Object.entries(r.result?.loot ?? {}).filter(
               ([, n]) => (n ?? 0) > 0,
             );
+            const isScout = r.result?.type === "scout";
+            const target = r.result?.target;
             return (
-              <li key={r.id} className="report-card rpt-report">
+              <li
+                key={r.id}
+                className={`report-card rpt-report ${isScout ? "rpt-scout" : ""}`}
+              >
                 <header className="rpt-head">
                   <span className="rpt-headline">
                     <span className="rpt-headline-icon">
@@ -144,39 +122,44 @@ export function WarView({
                       />
                     </span>
                     <h4 className="rpt-title">
-                      {reportHeadline(r, player.id)}
+                      {isScout ? "Scouting dispatch" : reportHeadline(r, player.id)}
                     </h4>
                   </span>
                   <time className="rpt-time">{fmtTime(r.createdAt)}</time>
                 </header>
 
-                <div className={`rpt-banner ${bannerClass}`}>
-                  <Icon name={bannerIcon} size={16} />
-                  <span>{bannerText}</span>
-                </div>
+                {!isScout && (
+                  <div className={`rpt-banner ${bannerClass}`}>
+                    <Icon name={bannerIcon} size={16} />
+                    <span>{bannerText}</span>
+                  </div>
+                )}
 
-                {r.result?.target && (
+                {target && (
                   <p className="muted tiny rpt-meta">
-                    Target {r.result.target.type} @ {r.result.target.x},
-                    {r.result.target.y}
-                    {r.result.type === "pvp"
+                    Toward {targetPhrase(String(target.type ?? ""))} at{" "}
+                    {target.x}, {target.y}
+                    {r.result?.type === "pvp"
                       ? ` · ${defenseMode}`
-                      : r.result.harborLoot
-                        ? " · harbor loot"
+                      : r.result?.harborLoot
+                        ? ` · ${defenseMode}`
                         : ""}
-                    {youAtk ? " · you attacked" : " · you defended"}
+                    {youAtk ? " · your march" : " · against you"}
                   </p>
                 )}
 
                 {r.result?.reason && (
                   <p className="rpt-reason">
-                    <strong>Reason:</strong> {r.result.reason}
+                    <strong>Why:</strong>{" "}
+                    {r.result.reason === "new_player_protection"
+                      ? "The settlement is under new-lord protection."
+                      : r.result.reason}
                   </p>
                 )}
 
                 {r.result?.intel && (
                   <div className="rpt-intel">
-                    <span className="rpt-intel-label">Scout's intel</span>
+                    <span className="rpt-intel-label">Scout's intelligence</span>
                     <p className="rpt-intel-text">
                       {formatIntel(r.result.intel)}
                     </p>
@@ -187,10 +170,9 @@ export function WarView({
                   <div className="rpt-battle">
                     <p className="rpt-battle-meta">
                       Rounds: {b.rounds ?? "—"}
-                      {b.note ? ` · ${b.note}` : ""}
                       {r.result?.harborLoot
-                        ? " · no combat (harbor)"
-                        : " · combat resolved"}
+                        ? ` · ${defenseMode}`
+                        : " · fought in the field"}
                     </p>
                     <div className="rpt-loss-grid">
                       <div className="rpt-loss-col">
@@ -234,7 +216,7 @@ export function WarView({
                 <div className="rpt-loot">
                   <span className="rpt-loot-head">
                     <Icon name="coin" size={14} title="Loot" />
-                    Loot
+                    Spoils
                   </span>
                   {lootEntries.length > 0 ? (
                     <span className="rpt-chips">
@@ -263,6 +245,16 @@ export function WarView({
                     </span>
                   )}
                 </div>
+
+                {target && target.x !== undefined && target.y !== undefined && (
+                  <button
+                    type="button"
+                    className="rpt-locate"
+                    onClick={() => onLocateReport(target.x!, target.y!)}
+                  >
+                    View the location on the map
+                  </button>
+                )}
               </li>
             );
           })}

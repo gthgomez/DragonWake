@@ -83,12 +83,23 @@ describe("World daily quests + tutorial", () => {
     );
   });
 
-  it("advances tutorial to complete", () => {
+  it("objective ladder auto-advances only from verified state", () => {
     const world = new World({ devFastTime: true, skipTutorial: false });
-    const { player } = world.createGuest("TutA", "forest_people");
+    const { player, city } = world.createGuest("TutA", "forest_people");
     expect(world.tutorialView(player.id).completed).toBe(false);
-    for (let i = 0; i < 10; i++) world.advanceTutorial(player.id);
-    expect(world.tutorialView(player.id).completed).toBe(true);
+    // Step 0 (welcome) is unconditional and auto-advances on the next tick.
+    world.tick();
+    expect(world.tutorialView(player.id).step).toBe(1);
+    // Step 1 requires Homes levels >= 2 — blind advance must NOT progress.
+    world.advanceTutorial(player.id);
+    expect(world.tutorialView(player.id).step).toBe(1);
+    // Satisfy the objective authoritatively: complete another Homes level.
+    world.adminGrant(player.id, { resources: { food: 5000, timber: 5000 } });
+    const job = world.startBuild(city.id, player.id, 3, "habitation");
+    job.finishesAt = world.now() - 1;
+    world.processQueues(world.now());
+    world.tick();
+    expect(world.tutorialView(player.id).step).toBe(2);
   });
 });
 
@@ -247,14 +258,16 @@ describe("World queues + marches (shipped paths)", () => {
     expect(members).toHaveLength(2);
   });
 
-  it("harness grant enables complete harness; brinehold found", () => {
+  it("admin grant unlock enables brinehold found (sovereign removed in M4)", () => {
     const world = new World({ devFastTime: true });
     const { player } = world.createGuest("SovLord", "forest_people");
-    world.adminGrant(player.id, { harness: true, brineholdUnlock: true });
-    const sov = [...world.sovereigns.values()].find(
-      (s) => s.playerId === player.id,
-    )!;
-    expect(world.harnessComplete(sov)).toBe(true);
+    world.adminGrant(player.id, { brineholdUnlock: true });
+    // The unlock flag reaches the capital research (harness path deleted)
+    expect(
+      world
+        .citiesForPlayer(player.id)[0]!
+        .research.brinehold_unlock,
+    ).toBe(1);
     const brine = world.foundBrinehold(player.id, "Deep Brine");
     expect(brine.kind).toBe("brinehold");
     expect(brine.stacks.shieldman).toBeGreaterThan(0);
@@ -388,7 +401,7 @@ describe("World queues + marches (shipped paths)", () => {
     const world = new World({ devFastTime: true });
     const { player, city } = world.createGuest("Hauler", "coastal_lords");
     world.adminGrant(player.id, {
-      units: { levy: 30 },
+      units: { porter: 30 },
       brineholdUnlock: true,
       resources: { food: 500 },
     });
@@ -403,7 +416,8 @@ describe("World queues + marches (shipped paths)", () => {
       targetId: brine.id,
       targetX: brine.mapX,
       targetY: brine.mapY,
-      composition: { levy: 10 },
+      // 10 porters × 20 carry = 200 — fits the 200-food cargo exactly
+      composition: { porter: 10 },
       cargo: { food: 200 },
     });
     expect(world.getCity(city.id)!.resources.food).toBe(kelpBeforeOrigin - 200);
@@ -419,7 +433,7 @@ describe("World queues + marches (shipped paths)", () => {
     const a = world.createGuest("HaulFailA", "northern_kingdom");
     const b = world.createGuest("HaulFailB", "mountain_realm");
     world.adminGrant(a.player.id, {
-      units: { levy: 20 },
+      units: { porter: 20 },
       resources: { timber: 300 },
     });
     const originKelp = world.getCity(a.city.id)!.resources.timber;
@@ -430,7 +444,7 @@ describe("World queues + marches (shipped paths)", () => {
       targetId: b.city.id,
       targetX: b.city.mapX,
       targetY: b.city.mapY,
-      composition: { levy: 10 },
+      composition: { porter: 10 },
       cargo: { timber: 100 },
     });
     expect(world.getCity(a.city.id)!.resources.timber).toBe(

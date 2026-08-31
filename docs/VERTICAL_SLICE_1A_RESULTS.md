@@ -318,9 +318,72 @@ record; this section is authoritative for current state.
 ### Still open (unchanged)
 
 - Sovereign/harness retained as legacy-compat; deletion deferred to M4 per
-  Phase 2.1 Amendment A1.
-- Content-only buildings awaiting design-phase mechanics (`skyreost`,
-  `rivetworks`, `command_gallery`, `lookout`, `training_camp`).
+  Phase 2.1 Amendment A1. → **CLOSED** by the M4 batch below (2026-08-27).
+
+### Building mechanics batch (2026-08-27)
+
+Closed the remaining content-only buildings by giving each a live mechanic
+(all `INITIAL_TEST_FIXTURE`, all test-covered in `progression.test.ts`
+"Building Mechanics" + "Dragon Readiness"):
+
+| Building (legacy → medieval) | Mechanic |
+|------------------------------|----------|
+| `lookout` → Watchtower | Scout-intel depth: L1 reveals a camp's actual seeded composition (`actualComp`); L3 reveals a city's exact `troopCount` alongside the band |
+| `rivetworks` → Roads | Haul carry ceiling = total `carry` of the marching composition × (1 + 0.25 × level); cargo above it rejected with `HAUL_CAP` (makes the previously-dead `carry` stat live) |
+| `skyreost` → Dragon Watch | Dragon-readiness facility requirement: new `building_level` readiness requirement type; `dragon_watch_facility` (skyreost ≥ L2) added to `dragon_readiness.json` — the readiness gate is now 5 factors |
+| `training_camp` → Training Camp | Extra concurrent training-queue slots: `5 + min(level, 3)` |
+
+March-time acceleration remains prohibited (Direction Freeze §21): Roads boost haul
+*capacity*, never travel time.
+
+### S1.2/S1.3 citadel rungs (2026-08-27)
+
+Completed the next two ladder rungs with a medieval retheme (audit §M
+settlement classes), replacing the unshipped aquatic fiction units:
+
+| Citadel (legacy id) | Medieval role | Exclusive units | Starter stacks | Craft mat |
+|---------------------|---------------|-----------------|----------------|-----------|
+| `cinderreach` | **Forest Citadel** — archery/ambush, scouting doctrine | `forest_ranger` (T3 range), `warhound` (T3 speed) | 8 ranger / 6 hound | ancient_heartwood |
+| `galeari` | **Dragon Watch** — slayer training, Dragon Studies | `dragon_slayer` (T3 melee), `ballista` (T3 range siege-grade) | 5 slayer / 3 ballista | dragon_scale |
+
+- Research gates: scouting L3 → forest_ranger, scouting L4 → warhound,
+  dragon_studies L2 → dragon_slayer, dragon_studies L3 → ballista.
+- `POST /citadels/found` demo unlock now walks the whole prereq chain
+  (brinehold → stonekeel → cinderreach → galeari) so any rung is reachable
+  in one call; `CITADEL_PREREQ` still enforced for honest play.
+- Mnemolith remains deferred (audit DEFER; `domain_catalog` marks it `_DEFERRED_`).
+- Test counts: combat 15·20 · server 128 (incl. citadel-ladder + building-mechanics cases).
+
+### M4 — Sovereign deletion (2026-08-27)
+
+The frozen M4 domain-model replacement from Amendment A1 is **complete**.
+All prerequisites (Commander system §12, dragon readiness incl. the facility
+gate) were in place. Deleted surfaces:
+
+- **Combat**: `SideInput.sovereign` removed; `sovereign` role + `isSovereign`
+  threat bonus + targeting branch gone; `harbinger` parsing/stripping removed;
+  M11 matchup deleted, M12 rewritten as a medieval elite showcase;
+  `COMBAT_RULES_VERSION` 0.3.0; `sovereign` column dropped from `rps.json`.
+- **Content**: `sovereigns.json` deleted; `SovereignDef`/`getSovereigns`/
+  `getSovereignById` removed; `sovereign_cradle` removed from buildings;
+  `harness_drop` field + legacy loot notes removed from camps.
+- **Server**: `Sovereign` domain, `world.sovereigns`, `harnessComplete`,
+  march `sovereignId` + `NO_SOV`/`NO_HARNESS`, `/sovereigns` route,
+  `/me.sovereigns`, admin-grant `harness` — all removed.
+- **Persistence**: `sovereigns` table + `marches.sovereign_id` dropped from
+  `schema.sql`; idempotent drop added to `migrateExistingSchema()` (step 11);
+  pg-store load/upsert/dirty-tracking removed.
+- **Web**: `Sovereign` type/state/props and the CastleView harness card removed.
+- **Acceptance**: M7 now asserts the admin-grant unlock path (Brinehold
+  unlock flag on the capital) and `/me` carries no sovereign payload.
+
+Test counts as of this update: combat 20 · server 128.
+
+### Still open
+
+- None of the §8 debt table / §12 still-open list remains: buildings have
+  mechanics, sovereign is deleted. Next campaigns are S1.4+ (Mnemolith,
+  Arena, Tidebeast, Market) per the README board.
 
 Test counts as of this update: combat 15 · server 90 (incl. 2 PG restart tests,
 green under `REQUIRE_PG=1`).

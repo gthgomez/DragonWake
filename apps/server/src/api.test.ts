@@ -49,7 +49,6 @@ describe("HTTP API two-session demo path", () => {
       token: tokenA,
       body: JSON.stringify({
         units: { bowman: 300, levy: 200 },
-        harness: true,
         brineholdUnlock: true,
         skipProtection: true,
         chronite: 100,
@@ -194,9 +193,9 @@ describe("HTTP API two-session demo path", () => {
     const formulas = await json(app, "/api/v1/content/formulas");
     expect(formulas.body.formulas.rulesVersion).toBeTruthy();
 
-    // Harbinger harness
+    // Sovereign removed in M4 — /me carries no sovereign payload
     const me = await json(app, "/api/v1/me", { token: tokenA });
-    expect(me.body.sovereigns[0].harnessComplete).toBe(true);
+    expect(me.body.sovereigns).toBeUndefined();
   });
 });
 

@@ -266,6 +266,25 @@
   color: inherit;
 }
 
+/* Status banners (.ok) are ephemeral: hold ~6s, then fade out over 400ms and
+   stay hidden via animation fill (error banners .err persist untouched). */
+.banner.ok.hud-banner {
+  animation: hud-banner-fade 6.4s ease-in forwards;
+}
+
+@keyframes hud-banner-fade {
+  0%,
+  93.75% {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
 /* ============ Tutorial callout ============ */
 
 .card.tutorial-banner.hud-tutorial {

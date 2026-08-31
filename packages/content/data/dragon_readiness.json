@@ -12,14 +12,14 @@
     {
       "id": "dragon_studies_research",
       "type": "research_level",
-      "description": "Complete Dragon Studies research to level 2",
+      "description": "Advance any study to research level 2",
       "research_id": "dragon_studies",
       "threshold": 2
     },
     {
       "id": "dragon_material",
       "type": "item_count",
-      "description": "Collect 5 dragon-related materials from PvE",
+      "description": "Hold 5 distinct dragon-related materials or clues",
       "item_id": "dragon_material",
       "threshold": 5
     },
@@ -28,6 +28,13 @@
       "type": "camps_defeated",
       "description": "Defeat camps of at least 3 different types",
       "threshold": 3
+    },
+    {
+      "id": "dragon_watch_facility",
+      "type": "building_level",
+      "description": "Raise the Dragon Watch to level 2",
+      "building_id": "skyreost",
+      "threshold": 2
     }
   ],
   "reward": "dragon_expedition_charter"

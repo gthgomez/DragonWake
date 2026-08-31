@@ -66,14 +66,27 @@ export type CampDef = {
   comps?: string[];
   recommended_player_power: number;
   loot_notes: string;
-  harness_drop: string;
+  /** Bestiary entry recorded when this camp is defeated. */
+  bestiary_entry?: string;
 };
+
+export type BuildingCost = Partial<
+  Record<"food" | "timber" | "stone" | "iron" | "coin", number>
+>;
 
 export type BuildingDef = {
   id: string;
   name: string;
   category: string;
   max_level: number;
+  /** False = story/keep structure never offered for construction. */
+  buildable?: boolean;
+  /** One-line player-facing purpose (no implementation language). */
+  purpose?: string;
+  /** Base resource cost; totals scale with the next level number (L1 = base). */
+  build_cost?: BuildingCost;
+  /** Base construction duration in seconds (flat per level, like research). */
+  build_sec_L1?: number;
 };
 
 /** Resource cost bag for research (subset of the canonical resource set). */
@@ -89,22 +102,6 @@ export type ResearchDef = {
   group: string;
   /** Base resource cost; total scales with the next level number (L1 = base). */
   cost?: ResearchCost;
-};
-
-export type SovereignDef = {
-  id: string;
-  name: string;
-  life: number;
-  melee_atk: number;
-  ranged_atk: number;
-  range: number;
-  speed: number;
-  defense: number;
-  power: number;
-  aura_atk?: number;
-  aura_def?: number;
-  aura_life?: number;
-  ship?: string;
 };
 
 export type ShopItem = {
@@ -191,6 +188,7 @@ export type DragonReadinessConfig = {
     threshold: number;
     research_id?: string;
     item_id?: string;
+    building_id?: string;
   }>;
   reward: string;
 };
@@ -237,7 +235,6 @@ let cache: {
   camps?: CampDef[];
   buildings?: BuildingDef[];
   research?: ResearchDef[];
-  sovereigns?: SovereignDef[];
   shop?: ShopItem[];
   matchups?: MatchupDef[];
   citadels?: CitadelDef[];
@@ -298,16 +295,12 @@ export function getBuildings(): BuildingDef[] {
   return (cache.buildings ??= loadJson<BuildingDef[]>("buildings.json"));
 }
 
+export function getBuildingById(id: string): BuildingDef | undefined {
+  return getBuildings().find((b) => b.id === id);
+}
+
 export function getResearch(): ResearchDef[] {
   return (cache.research ??= loadJson<ResearchDef[]>("research.json"));
-}
-
-export function getSovereigns(): SovereignDef[] {
-  return (cache.sovereigns ??= loadJson<SovereignDef[]>("sovereigns.json"));
-}
-
-export function getSovereignById(id: string): SovereignDef | undefined {
-  return getSovereigns().find((s) => s.id === id);
 }
 
 export function getShop(): ShopItem[] {
@@ -428,7 +421,10 @@ export type ContentIssue = {
 export function contentIntegrityIssues(): ContentIssue[] {
   const issues: ContentIssue[] = [];
   const unitIds = new Set(getUnits().map((u) => u.id));
-  const unitNames = new Set(getUnits().map((u) => u.name.toLowerCase()));
+  const unitNames = new Set([
+    ...getUnits().map((u) => u.name.toLowerCase()),
+    ...getUnits().map((u) => u.id.toLowerCase()),
+  ]);
   // Research ids plus synthetic unlock flags minted by admin/dev grants
   // (e.g. brinehold_unlock, marcher_keep_charter) — citadels key off these.
   const researchIds = new Set([
