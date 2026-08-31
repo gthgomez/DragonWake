@@ -285,4 +285,10 @@ support was removed by the preserved M4 reconciliation work.
 
 ## License
 
-Private / unpublished — all rights reserved unless otherwise stated.
+License: Proprietary — source available for viewing; this project is not open source.
+
+Copyright is retained by the project owner. This notice does not grant
+permission to redistribute, modify, sublicense, sell, commercially exploit, or
+create derivative works from the game or its original code and content, except
+where required by applicable law. Third-party dependencies and fonts remain
+under their own licenses.
