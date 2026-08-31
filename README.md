@@ -57,9 +57,9 @@ Highlights:
 - **Language**: no API URLs, raw ids, UUID fragments, or server prose in the
   player flow; internal codes stay in console diagnostics.
 
-Out of scope / prototype remains: shop UI, alliances depth, haul UX, sovereign
-machinery (backend only — no player surface; deletion is a separate pending
-migration), Postgres runtime verification in CI.
+Out of scope / prototype remains: shop UI, alliances depth, haul UX, and
+Postgres runtime verification in CI. The former Sovereign machinery has been
+removed from live product paths; only migration/history references remain.
 
 Do not start content-heavy mobile UI against the current aquatic / elemental
 content model.
@@ -249,7 +249,7 @@ See [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md).
 | **0** | Authority freeze | **Done** (PR #1) |
 | — | **CLOSED_MOCKUP_V1 presentation closure** | **Done (2026-08-30)** |
 | **1** | Lore Bible v1 (one region) | Not started |
-| **2** | Mechanical translation design (incl. Sovereign decision) | Blocked on 1; Sovereign deletion is being reconciled from preserved local work |
+| **2** | Mechanical translation design (incl. Sovereign decision) | Blocked on 1; Sovereign deletion is complete and preserved compatibility paths are audited |
 | **3** | Decouple old canon from engine (migrations) | Blocked on 2 |
 | **4** | Content conversion | Blocked on 2–3 |
 | **5** | Web vertical slice (castle → Codex → lesser dragon) | Partially proven by CLOSED_MOCKUP_V1 |
@@ -281,7 +281,7 @@ Native mobile **architecture** may be planned in parallel. Native mobile
 Old S1 labels (Tidebeast, Mnemolith, elemental factions) are historical.
 Sovereign/harness references are retained only where required for legacy
 migrations, compatibility tests, or historical documentation; live product
-support is being removed by the preserved M4 reconciliation work.
+support was removed by the preserved M4 reconciliation work.
 
 ## License
 

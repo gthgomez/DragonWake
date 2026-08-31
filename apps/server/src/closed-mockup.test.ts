@@ -92,7 +92,7 @@ describe("authoritative building construction + upgrade", () => {
       world.startBuild(city.id, player.id, 2, "not_a_building"),
     ).toThrow();
     try {
-      world.startBuild(city.id, player.id, 2, "sovereign_cradle");
+      world.startBuild(city.id, player.id, 2, "forge_heart");
       throw new Error("should have thrown");
     } catch (e) {
       expect((e as { code?: string }).code).toBe("BUILDING_FIXED");
