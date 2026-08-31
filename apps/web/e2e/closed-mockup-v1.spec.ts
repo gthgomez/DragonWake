@@ -143,7 +143,7 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
   );
   await page.request.post(`${apiBase}/api/v1/admin/grant`, {
     headers: { authorization: `Bearer ${tokenPre}` },
-    data: { units: { levy: 200, bowman: 100 } },
+    data: { units: { levy: 3000, bowman: 300 } },
   });
   await page.waitForTimeout(2500);
   const sendAllLevy = () =>
@@ -248,9 +248,29 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
     page.getByText(/Research complete: Dragon Studies/).nth(1),
   ).toBeVisible({ timeout: 30_000 });
 
+  // The Dragon Watch is a progression facility rather than a normal city
+  // plot card. Exercise its real build endpoint so the five-part readiness
+  // gate is proven without turning the dev fixture into a hidden grant.
+  const meForFacility = await page.request.get(`${apiBase}/api/v1/me`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  const facilityCityId = ((await meForFacility.json()) as { cities: { id: string }[] })
+    .cities[0]!.id;
+  for (let level = 1; level <= 2; level++) {
+    const facilityBuild = await page.request.post(
+      `${apiBase}/api/v1/cities/${facilityCityId}/buildings`,
+      {
+        headers: { authorization: `Bearer ${token}` },
+        data: { slotIndex: 7, buildingType: "skyreost" },
+      },
+    );
+    expect(facilityBuild.ok()).toBeTruthy();
+    await page.waitForTimeout(2_000);
+  }
+
   // 12. the dragon expedition, staged
   await page.getByRole("button", { name: "Knowledge", exact: true }).click();
-  await expect(page.getByText(/4\/4 requirements met/)).toBeVisible();
+  await expect(page.getByText(/5\/5 requirements met/)).toBeVisible();
   await page
     .getByRole("button", { name: /Set out on the Dragon Expedition/ })
     .click({ force: true });
