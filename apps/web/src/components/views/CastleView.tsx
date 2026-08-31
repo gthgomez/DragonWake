@@ -87,6 +87,8 @@ export function CastleView({
 
   const charterEarned = Boolean(expeditionStatus?.charterEarned);
   const hasMarcherKeep = cities.some((c) => c.kind === "marcher_keep");
+  const dragonWatchLevel =
+    city.buildings.find((b) => b.buildingType === "skyreost")?.level ?? 0;
 
   const trainable = useMemo(
     () =>
@@ -165,6 +167,19 @@ export function CastleView({
       </ul>
 
       <h3>The Settlement</h3>
+      <div className="dragon-watch-panel" data-testid="dragon-watch-panel">
+        <div className="dragon-watch-mark" aria-hidden="true">
+          <Icon name="dragon" size={28} />
+        </div>
+        <div>
+          <strong>Dragon Watch</strong>
+          <p className="muted tiny">
+            {dragonWatchLevel > 0
+              ? `Level ${dragonWatchLevel} · the watch records every sign brought home.`
+              : "Raise this tower from an empty plot to turn rumors into evidence."}
+          </p>
+        </div>
+      </div>
       <CityGrid city={city} jobs={jobs} now={now} doBuild={doBuild} />
 
       <div className="castle-columns">

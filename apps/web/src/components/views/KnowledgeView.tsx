@@ -91,6 +91,23 @@ export function KnowledgeView({
         </div>
       </header>
 
+      <section className="dragon-presence" aria-label="Dragon presence">
+        <div className="dragon-presence-art" aria-hidden="true">
+          <span className="dragon-presence-wing dragon-presence-wing-left" />
+          <span className="dragon-presence-wing dragon-presence-wing-right" />
+          <span className="dragon-presence-eye" />
+        </div>
+        <div>
+          <span className="eyebrow">Field notice · northern marches</span>
+          <h3>The sky is not empty</h3>
+          <p className="muted tiny">
+            The watch has found heat where there should be frost, and tracks too
+            large for any known beast. Every expedition begins with evidence,
+            not allegiance.
+          </p>
+        </div>
+      </section>
+
       <h3 className="codex-heading">Dragon Readiness</h3>
       {readinessStatus ? (
         <div>
@@ -187,6 +204,34 @@ export function KnowledgeView({
         <p className="muted tiny">
           {studiedCount} creature{studiedCount === 1 ? "" : "s"} under study.
         </p>
+      )}
+
+      {clueData && (
+        <section className="dragon-evidence" aria-label="Dragon evidence">
+          <div className="dragon-evidence-head">
+            <h3 className="codex-heading">Evidence in the keep</h3>
+            <span className="muted tiny">
+              {clueData.clues?.length ?? 0} clue types recorded
+            </span>
+          </div>
+          {clueData.clues?.length ? (
+            <div className="clue-plates">
+              {clueData.clues.map((clue: any) => (
+                <article className={`clue-plate clue-${clue.rarity}`} key={clue.id}>
+                  <span className="clue-plate-mark" aria-hidden="true">✦</span>
+                  <strong>{clue.name}</strong>
+                  <span className="muted tiny">{clue.count} recovered</span>
+                  <p className="muted tiny">{clue.description}</p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="muted tiny">
+              No physical evidence yet. Scout a camp and bring the first sign
+              back to the scribes.
+            </p>
+          )}
+        </section>
       )}
 
       <h3 className="codex-heading">Dragon Expedition</h3>

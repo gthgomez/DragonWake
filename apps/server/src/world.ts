@@ -391,6 +391,17 @@ const BASE_POPULATION = 200;
 const HOMES_CAPACITY_PER_LEVEL = 100;
 const POPULATION_GROWTH_RATE = 0.01; // per hour per occupied habitation slot
 
+/**
+ * The first three successful camp victories teach the player what evidence
+ * looks like. This is a server-side pity path, not a grant: after onboarding,
+ * the ordinary seeded rarity roll resumes.
+ */
+const ONBOARDING_CLUE_IDS = [
+  "shed_scale",
+  "burned_livestock",
+  "claw_marks",
+] as const;
+
 // ── Building mechanics (INITIAL_TEST_FIXTURE) ──────────────────────────────
 
 /** Haul carry multiplier per rivetworks level: total carry × (1 + 0.25 × level). */
@@ -920,6 +931,11 @@ export class World {
   }
 
   seedMap(): void {
+    // Place the first-session camp ring inside the default opening viewport.
+    // The map remains a 40×40 realm; this simply ensures a new lord can see
+    // an actionable PvE target before learning coordinate travel.
+    const campCenterX = 10;
+    const campCenterY = 10;
     // Place camps L1–10 in a ring pattern
     const campDefs = getCamps();
     let i = 0;
@@ -928,11 +944,11 @@ export class World {
       const r = 8 + (def.camp_level % 5);
       const x = Math.min(
         MAP_W - 2,
-        Math.max(1, Math.round(MAP_W / 2 + Math.cos(angle) * r)),
+        Math.max(1, Math.round(campCenterX + Math.cos(angle) * r)),
       );
       const y = Math.min(
         MAP_H - 2,
-        Math.max(1, Math.round(MAP_H / 2 + Math.sin(angle) * r)),
+        Math.max(1, Math.round(campCenterY + Math.sin(angle) * r)),
       );
       const id = randomUUID();
       this.camps.set(id, {
@@ -1047,7 +1063,9 @@ export class World {
       name: `${name} Capital`,
       mapX: x,
       mapY: y,
-      resources: emptyResources(1500),
+      // A fresh keep must be able to build, research, train a mixed company,
+      // and still have a meaningful first outing without admin assistance.
+      resources: emptyResources(4000),
       defensePosture: "withdraw",
       lastResourceTick: now,
       lastPostureChange: 0,
@@ -2476,20 +2494,35 @@ export class World {
           timber: 30 * camp.level,
           stone: 10 * camp.level,
         };
-        // Roll for dragon clue drop — capped per UTC day (silent skip at cap)
+        // Track camp defeat before evidence selection so the first successful
+        // camp victories can receive guaranteed, legible onboarding clues.
+        const progress = this.ensureDragonProgress(march.playerId);
+        const campType = `camp_l${camp.level}`;
+        progress.campTypesDefeated.add(campType);
+        progress.campsDefeated += 1;
+        this.putDragonProgress(march.playerId, progress);
+
+        // Guaranteed first-progression evidence is still subject to the
+        // daily clue cap. It only replaces RNG for the onboarding window.
         const clueUsage = this.ensureDailyClueUsage(march.playerId);
-        if (clueUsage.used < DAILY_CLUE_CAP) {
+        if (progress.campsDefeated <= ONBOARDING_CLUE_IDS.length) {
+          const inv = this.inventory.get(march.playerId) ?? {};
+          const guaranteedId = ONBOARDING_CLUE_IDS.find((id) => !(inv[id] ?? 0));
+          if (guaranteedId && clueUsage.used < DAILY_CLUE_CAP) {
+            clueDrop = this.grantDragonClue(march.playerId, guaranteedId);
+            clueUsage.used += 1;
+          }
+        }
+
+        // After the three guaranteed onboarding discoveries, resume the
+        // ordinary seeded rarity roll so the wider game retains variation.
+        if (!clueDrop && clueUsage.used < DAILY_CLUE_CAP) {
           clueDrop = this.rollCampClueDrop(camp.level, seed + 1);
           if (clueDrop) {
             clueUsage.used += 1;
             this.grantDragonClue(march.playerId, clueDrop.id);
           }
         }
-        // Track camp defeat: bestiary readiness type set + expedition counter
-        const progress = this.ensureDragonProgress(march.playerId);
-        progress.campTypesDefeated.add(`camp_l${camp.level}`);
-        progress.campsDefeated += 1;
-        this.putDragonProgress(march.playerId, progress);
         // Update bestiary from the camp's content-mapped entry (falls back
         // to subject matching for content without an explicit mapping).
         const campDef = getCamps().find((c) => c.camp_level === camp.level);
