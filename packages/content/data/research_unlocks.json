@@ -110,7 +110,7 @@
   {
     "research_id": "dragon_studies",
     "research_level": 1,
-    "unlocks": ["dragon_watch"],
+    "unlocks": ["skyreost"],
     "kind": "building"
   }
 ]

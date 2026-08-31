@@ -421,7 +421,10 @@ export type ContentIssue = {
 export function contentIntegrityIssues(): ContentIssue[] {
   const issues: ContentIssue[] = [];
   const unitIds = new Set(getUnits().map((u) => u.id));
-  const unitNames = new Set(getUnits().map((u) => u.name.toLowerCase()));
+  const unitNames = new Set([
+    ...getUnits().map((u) => u.name.toLowerCase()),
+    ...getUnits().map((u) => u.id.toLowerCase()),
+  ]);
   // Research ids plus synthetic unlock flags minted by admin/dev grants
   // (e.g. brinehold_unlock, marcher_keep_charter) — citadels key off these.
   const researchIds = new Set([

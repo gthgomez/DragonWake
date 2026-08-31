@@ -78,6 +78,12 @@ function buildUp(
 
 /** Stub the Dragon Watch at the readiness requirement level (real build path). */
 function raiseDragonWatch(world: World, playerId: string, cityId: string): void {
+  const city = world.getCity(cityId)!;
+  city.research["dragon_studies"] = Math.max(
+    city.research["dragon_studies"] ?? 0,
+    1,
+  );
+  world.cities.set(city.id, city);
   buildUp(world, playerId, cityId, 7, "skyreost", 2);
 }
 
@@ -476,6 +482,8 @@ describe("Dragon Readiness", () => {
       status.requirements.find((r) => r.id === "dragon_watch_facility")!;
     expect(facilityReq(world.checkDragonReadiness(player.id)).met).toBe(false);
     // L1 is not enough
+    city.research["dragon_studies"] = 1;
+    world.cities.set(city.id, city);
     buildUp(world, player.id, city.id, 7, "skyreost", 1);
     expect(facilityReq(world.checkDragonReadiness(player.id)).met).toBe(false);
     // L2 meets the threshold
