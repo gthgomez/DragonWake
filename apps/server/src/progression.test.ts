@@ -770,7 +770,7 @@ describe("Expedition Stage Gameplay Gates", () => {
     return (err as { code?: string }).code ?? "";
   }
 
-  it("stage 1 start blocked with EXPEDITION_REQ until required scouts land", () => {
+  it("stage 1 start blocked with EXPEDITION_REQ until the required scout lands", () => {
     const world = freshWorld();
     const { player, city } = readyButInactivePlayer(world);
     try {
@@ -779,12 +779,8 @@ describe("Expedition Stage Gameplay Gates", () => {
     } catch (e) {
       expect(errorCode(e)).toBe("EXPEDITION_REQ");
     }
-    sendScoutMarch(world, player.id, city.id); // scoutsSent = 1 < 2 — still blocked
-    expect(() =>
-      world.startExpedition(player.id, "first_dragon_expedition"),
-    ).toThrowError(/requirements not met/);
-    sendScoutMarch(world, player.id, city.id); // scoutsSent = 2 — gate passes
-    expect(world.dragonProgress.get(player.id)!.scoutsSent).toBe(2);
+    sendScoutMarch(world, player.id, city.id); // scoutsSent = 1 — gate passes
+    expect(world.dragonProgress.get(player.id)!.scoutsSent).toBe(1);
     const result = world.startExpedition(player.id, "first_dragon_expedition");
     expect(result).not.toBeNull();
     expect(result!.stage).toBe(1);
@@ -1162,6 +1158,42 @@ describe("Camp Variation", () => {
     const key = `${player.id}:${clues[0]!.bestiary_unlock}`;
     expect(world.bestiary.get(key)!.encounterCount).toBe(3);
     expect(world.bestiary.get(key)!.observationLevel).toBe(1);
+  });
+
+  it("guarantees the first three camp clues through the real victory path", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("AlphaEvidence", "northern_kingdom");
+    const camps = [...world.camps.values()]
+      .filter((camp) => camp.level <= 3)
+      .sort((a, b) => a.level - b.level)
+      .slice(0, 3);
+
+    for (const camp of camps) {
+      world.adminGrant(player.id, { units: { bowman: 200 }, skipProtection: true });
+      const march = world.createMarch(player.id, {
+        fromCityId: city.id,
+        intent: "attack",
+        targetType: "camp",
+        targetId: camp.id,
+        targetX: camp.x,
+        targetY: camp.y,
+        composition: { bowman: 150 },
+      });
+      march.arriveAt = 0;
+      world.landMarch(march, world.now());
+    }
+
+    const inventory = world.inventory.get(player.id) ?? {};
+    expect(inventory.shed_scale).toBe(1);
+    expect(inventory.burned_livestock).toBe(1);
+    expect(inventory.claw_marks).toBe(1);
+    expect(world.dragonProgress.get(player.id)?.campsDefeated).toBe(3);
+    expect(world.dragonProgress.get(player.id)?.materialsCollected).toBe(3);
+    expect(
+      world
+        .checkDragonReadiness(player.id)
+        .requirements.find((r) => r.id === "dragon_material")?.met,
+    ).toBe(true);
   });
 });
 
