@@ -230,6 +230,10 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
         dragon_material_4: 1,
         dragon_material_5: 1,
       },
+      resources: {
+        food: 1_000,
+        timber: 1_000,
+      },
     },
   });
   expect(grant.ok()).toBeTruthy();
