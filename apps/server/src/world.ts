@@ -465,9 +465,6 @@ function availableManpower(city: City): number {
 
 /** Max concurrent train jobs per city base (spam guard; Training Camp adds more). */
 const MAX_TRAIN_JOBS = 5;
-/** Extra concurrent train queues per Training Camp level (capped). */
-const TRAIN_SLOTS_PER_CAMP_LEVEL = 1;
-const TRAIN_SLOT_CAMP_BONUS_CAP = 3;
 
 /** Best level of a building type across all of a player's cities. */
 export function bestBuildingLevel(world: World, playerId: string, buildingType: string): number {
