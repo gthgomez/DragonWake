@@ -11,7 +11,7 @@ import {
   getUnitById,
   type StackBand,
   type UnitDef,
-} from "@tideforge/content";
+} from "@dragonwake/content";
 
 export type BattleGroup = {
   unitId: string;

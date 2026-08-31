@@ -8,11 +8,11 @@ full species list.
 
 ## One-sentence direction (already frozen)
 
-> TideForge is a persistent medieval strategy world where historically grounded kingdoms have spent centuries adapting their armies, castles, cultures and beliefs to the reality of rare, terrifying and sometimes intelligent dragons.
+> Dragon Wake is a persistent medieval strategy world where historically grounded kingdoms have spent centuries adapting their armies, castles, cultures and beliefs to the reality of rare, terrifying and sometimes intelligent dragons.
 
 ## Product test (already frozen)
 
-> Does this feature make TideForge feel more like a believable medieval civilization shaped by dragons?
+> Does this feature make Dragon Wake feel more like a believable medieval civilization shaped by dragons?
 
 ## Global rules already frozen — do not reopen here
 
@@ -26,7 +26,8 @@ Copy these into the Bible as given. Do not expand them into a cosmology.
 - Dragon rarity (an army may have one dragon, never thousands)
 - Origins remain **UNKNOWN**
 - Dragons predate all currently surviving human kingdoms
-- Name "TideForge" does not require an ocean world
+- The name "Dragon Wake" signals a dragon resurgence or its lasting trail;
+  it does not require an ocean world
 
 ## Required sections
 

@@ -40,7 +40,7 @@ export function LoginView({
         ))}
       </div>
       <header className="hero hud-hero">
-        <p className="eyebrow">Tideforge Empires · MVP Beta</p>
+        <p className="eyebrow">Dragon Wake · MVP Beta</p>
         <h1>Claim a keep in a dangerous age</h1>
         <p className="tag">{factionMeta.blurb}</p>
       </header>

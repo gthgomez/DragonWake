@@ -4,7 +4,7 @@ Status: **FROZEN** — Phase 0 of the domain-preserving migration.
 
 This file exists so future agents cannot treat the old Dragons of Atlantis
 research folder, the current aquatic/elemental implementation, or a historical
-mechanic as TideForge canon merely because it already exists.
+mechanic as Dragon Wake canon merely because it already exists.
 
 ## Authority is domain-specific
 
@@ -15,12 +15,12 @@ different questions.
 | Authority | Authoritative about | Not authoritative about |
 | --- | --- | --- |
 | [`DIRECTION_FREEZE_V1.md`](./DIRECTION_FREEZE_V1.md) | Product fantasy, tone, dragon rarity, medieval grounding, rejected genres, macro loop, PvP philosophy | Exact balance numbers, unresolved lore names, historical DoA facts |
-| `PRODUCT_BIBLE_V1.md` once approved | Current approved TideForge progression/system model | Reopening frozen Direction rules without an explicit decision |
+| `PRODUCT_BIBLE_V1.md` once approved | Current approved Dragon Wake progression/system model | Reopening frozen Direction rules without an explicit decision |
 | `LORE_BIBLE_V1.md` once approved | Starting-region canon, cultures, ecology, institutions, narrative | Reopening frozen Direction rules; historical DoA behavior |
 | Approved system specs + decision records | Exact bounded mechanics and why they were chosen | Unrelated product/lore domains |
 | Current implementation | What the software currently does where higher authority is silent | Desired design when contradicted by an approved authority |
-| [`DOA_REFERENCE_MODEL.md`](./DOA_REFERENCE_MODEL.md) | Evidence-backed answer to **what historical DoA did** | TideForge lore, names, exact future mechanics |
-| [`DOA_PARITY_MATRIX.md`](./DOA_PARITY_MATRIX.md) | Translation workspace from DoA mechanism purpose to TideForge disposition | Canon unless a row is separately frozen by higher authority |
+| [`DOA_REFERENCE_MODEL.md`](./DOA_REFERENCE_MODEL.md) | Evidence-backed answer to **what historical DoA did** | Dragon Wake lore, names, exact future mechanics |
+| [`DOA_PARITY_MATRIX.md`](./DOA_PARITY_MATRIX.md) | Translation workspace from DoA mechanism purpose to Dragon Wake disposition | Canon unless a row is separately frozen by higher authority |
 | [`PROGRESSION_GRAPH_V1.md`](./PROGRESSION_GRAPH_V1.md) | Research-backed dependency topology/invariants for the current design investigation | Numeric balance or permission to copy DoA fiction |
 
 If two documents conflict **inside the same authority domain**, the higher
@@ -35,7 +35,7 @@ dismissible. The repository now distinguishes two questions:
 1. **What did DoA actually do?**
    [`DOA_REFERENCE_MODEL.md`](./DOA_REFERENCE_MODEL.md) is the historical
    authority to the extent its claims are supported and labeled.
-2. **What should TideForge do?**
+2. **What should Dragon Wake do?**
    Direction Freeze, approved Product/Lore Bibles, system specs and decision
    records decide that.
 
@@ -54,7 +54,7 @@ This prevents both failure modes:
 | Lore Bible v1 | Starting region, cultures, creatures, institutions, ecology, narrative | Frozen direction rules |
 | System specs / decisions | Bounded mechanics, equations, schemas, acceptance criteria | Unrelated authorities |
 | Implementation | Schema, APIs, queues, persistence and current behavior | Reintroducing rejected fantasy or silently severing approved progression invariants |
-| DoA Reference Model | Historical mechanisms, source confidence, era/contamination notes | TideForge faction identities, aquatic aesthetic, elemental taxonomy, True Dragon treatment |
+| DoA Reference Model | Historical mechanisms, source confidence, era/contamination notes | Dragon Wake faction identities, aquatic aesthetic, elemental taxonomy, True Dragon treatment |
 | DoA Parity Matrix | Preserve/modernize/expand/reinterpret/reject recommendations | Automatic canonization |
 
 ## Historical research path
@@ -66,7 +66,7 @@ C:\Workspace\research\dragons-of-atlantis\pre-implementation\
 ```
 
 That external folder remains **historical reference material**, but it is not a
-current TideForge design authority. Claims imported from it must be normalized
+current Dragon Wake design authority. Claims imported from it must be normalized
 into the repository evidence model before an agent treats them as established
 history.
 
@@ -92,10 +92,10 @@ Treat future lore decisions according to four authority levels (Freeze §29):
 
 From Direction Freeze §30:
 
-> Does this feature make TideForge feel more like a believable medieval civilization shaped by dragons?
+> Does this feature make Dragon Wake feel more like a believable medieval civilization shaped by dragons?
 
 If yes, investigate it.
-If it mainly makes TideForge feel like a generic fantasy game, reject it.
+If it mainly makes Dragon Wake feel like a generic fantasy game, reject it.
 
 ## Do not build unless the direction is reopened
 

@@ -1,4 +1,4 @@
-/** Shared DTOs and constants for Tideforge Empires MVP. */
+/** Shared DTOs and constants for Dragon Wake MVP. */
 
 export const API_VERSION = "v1" as const;
 
@@ -13,7 +13,7 @@ export type Faction = (typeof FACTIONS)[number];
 
 export type HealthResponse = {
   ok: true;
-  service: "tideforge-server";
+  service: "dragonwake-server";
   version: string;
   time: string;
   db?: string;

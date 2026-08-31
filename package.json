@@ -1,18 +1,18 @@
 {
-  "name": "tideforge-empires",
+  "name": "dragon-wake",
   "private": true,
   "version": "0.1.0",
-  "description": "Tideforge Empires — multiplayer MMORTS MVP beta",
+  "description": "Dragon Wake — multiplayer MMORTS MVP beta",
   "scripts": {
-    "dev": "pnpm -r --parallel --filter @tideforge/server --filter @tideforge/web dev",
-    "dev:server": "pnpm --filter @tideforge/server dev",
-    "dev:web": "pnpm --filter @tideforge/web dev",
+    "dev": "pnpm -r --parallel --filter @dragonwake/server --filter @dragonwake/web dev",
+    "dev:server": "pnpm --filter @dragonwake/server dev",
+    "dev:web": "pnpm --filter @dragonwake/web dev",
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "typecheck": "pnpm -r run typecheck",
     "lint": "pnpm -r run lint --if-present",
-    "accept": "pnpm --filter @tideforge/server accept",
-    "seed:demo": "pnpm --filter @tideforge/server seed:demo"
+    "accept": "pnpm --filter @dragonwake/server accept",
+    "seed:demo": "pnpm --filter @dragonwake/server seed:demo"
   },
   "engines": {
     "node": ">=20"

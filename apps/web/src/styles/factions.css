@@ -1,5 +1,5 @@
 /*
-   Tideforge Empires — faction accent theming (brine / ash / sky / moss).
+   Dragon Wake — faction accent theming (brine / ash / sky / moss).
    Every rule is scoped under .shell.faction-<name>, applied by Shell.tsx.
 
    Coordination with styles/hud.css: hud.css already faction-themes the

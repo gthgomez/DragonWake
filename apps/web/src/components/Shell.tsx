@@ -91,7 +91,7 @@ export function Shell({
       <header className="topbar hud-topbar">
         <div>
           <p className="eyebrow">{factionMeta.label}</p>
-          <h1>Tideforge Empires</h1>
+          <h1>Dragon Wake</h1>
           <p className="tag">
             {player.displayName} · Chronite {player.chronite}
             {player.protectionUntil

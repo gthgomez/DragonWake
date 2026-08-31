@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import {
   COMBAT_RULES_VERSION,
-} from "@tideforge/combat";
+} from "@dragonwake/combat";
 import {
   getBestiaryEntries,
   getBuildings,
@@ -17,9 +17,9 @@ import {
   getResearchUnlocks,
   getShop,
   getUnits,
-} from "@tideforge/content";
-import type { Faction, HealthResponse } from "@tideforge/shared";
-import { FACTIONS } from "@tideforge/shared";
+} from "@dragonwake/content";
+import type { Faction, HealthResponse } from "@dragonwake/shared";
+import { FACTIONS } from "@dragonwake/shared";
 import {
   World,
   type City,
@@ -158,7 +158,7 @@ export function createApp(world: World) {
     // Tick sim lightly on each request (also interval in index)
     world.tick();
     const token =
-      getCookie(c, "tideforge_session") ??
+      getCookie(c, "dragonwake_session") ??
       c.req.header("Authorization")?.replace(/^Bearer\s+/i, "");
     c.set("player", world.sessionPlayer(token ?? null));
     await next();
@@ -172,7 +172,7 @@ export function createApp(world: World) {
   app.get("/health", (c) => {
     const body: HealthResponse = {
       ok: true,
-      service: "tideforge-server",
+      service: "dragonwake-server",
       version: VERSION,
       time: new Date().toISOString(),
       // Reflect live attach mode, not mere env presence
@@ -183,7 +183,7 @@ export function createApp(world: World) {
 
   app.get("/", (c) =>
     c.json({
-      name: "Tideforge Empires API",
+      name: "Dragon Wake API",
       version: VERSION,
       slice: "A1-A10 MVP beta",
       health: "/health",
@@ -236,7 +236,7 @@ export function createApp(world: World) {
         parsed.data.displayName ?? `Guest${world.players.size + 1}`,
         faction,
       );
-      setCookie(c, "tideforge_session", token, {
+      setCookie(c, "dragonwake_session", token, {
         path: "/",
         httpOnly: true,
         sameSite: "Lax",
@@ -255,7 +255,7 @@ export function createApp(world: World) {
   });
 
   api.post("/auth/logout", (c) => {
-    deleteCookie(c, "tideforge_session", { path: "/" });
+    deleteCookie(c, "dragonwake_session", { path: "/" });
     return c.body(null, 204);
   });
 

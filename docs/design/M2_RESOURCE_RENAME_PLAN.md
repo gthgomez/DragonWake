@@ -70,7 +70,7 @@ commit once web + tests are swept.
   fix-forward through phases B–D before running suites.
 
 ### B. `feat(server): sim + validation on medieval ids`
-- `canonResourceId()` in `@tideforge/content` (reads `domain_catalog.resources.legacy_to_target`).
+- `canonResourceId()` in `@dragonwake/content` (reads `domain_catalog.resources.legacy_to_target`).
 - `world.ts`: rates object, tick loop, plunder, cost tables, admin grant — all keys → canonical. Plot-type switches → `farm/lumber_yard/quarry/mine`.
 - `app.ts` plot assign/upgrade costs → canonical keys.
 - `validate.ts:44` schema → canonical keys; admin-grant/resources schemas accept legacy keys and canonize (transition window).

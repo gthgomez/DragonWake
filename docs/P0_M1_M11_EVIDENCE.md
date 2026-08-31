@@ -11,9 +11,9 @@
 Command:
 
 ```powershell
-pnpm --filter @tideforge/server accept
+pnpm --filter @dragonwake/server accept
 # or full suite:
-pnpm --filter @tideforge/server test
+pnpm --filter @dragonwake/server test
 ```
 
 Coverage maps to ACCEPTANCE_MVP M1–M11 in `apps/server/src/acceptance.test.ts`:

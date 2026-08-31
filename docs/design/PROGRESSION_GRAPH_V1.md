@@ -1,9 +1,9 @@
-# TideForge Progression Graph v1 — DoA-derived topology
+# Dragon Wake Progression Graph v1 — DoA-derived topology
 
 Status: **MECHANISM CONTRACT v0.1 — RESEARCH-BACKED, NOT A NUMERIC BALANCE SPEC**
 
 This graph exists because the most valuable DoA inheritance is the dependency
-network between systems. It protects TideForge from a subtle failure mode:
+network between systems. It protects Dragon Wake from a subtle failure mode:
 keeping every screen while deleting the reasons those screens depend on one
 another.
 
@@ -92,7 +92,7 @@ The exact `Great Dragon must be present in egg-hunt march` requirement changed
 in later DoA. The graph therefore freezes **readiness -> targeted hunt ->
 settlement prerequisite**, not that obsolete input rule.
 
-## 3. TideForge invariant edges
+## 3. Dragon Wake invariant edges
 
 These are the edges future implementations must not casually sever.
 

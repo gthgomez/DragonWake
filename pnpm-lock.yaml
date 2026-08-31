@@ -10,18 +10,18 @@ importers:
 
   apps/server:
     dependencies:
+      '@dragonwake/combat':
+        specifier: workspace:*
+        version: link:../../packages/combat
+      '@dragonwake/content':
+        specifier: workspace:*
+        version: link:../../packages/content
+      '@dragonwake/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@hono/node-server':
         specifier: ^1.14.1
         version: 1.19.15(hono@4.12.31)
-      '@tideforge/combat':
-        specifier: workspace:*
-        version: link:../../packages/combat
-      '@tideforge/content':
-        specifier: workspace:*
-        version: link:../../packages/content
-      '@tideforge/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       hono:
         specifier: ^4.7.5
         version: 4.12.31
@@ -84,7 +84,7 @@ importers:
 
   packages/combat:
     dependencies:
-      '@tideforge/content':
+      '@dragonwake/content':
         specifier: workspace:*
         version: link:../content
     devDependencies:

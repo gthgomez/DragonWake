@@ -2,7 +2,7 @@
  * In-process demo seed: two guests, troops, alliance ready for B to join.
  * Prints tokens/ids as JSON (no secrets beyond ephemeral demo tokens).
  *
- *   pnpm --filter @tideforge/server seed:demo
+ *   pnpm --filter @dragonwake/server seed:demo
  */
 import { World } from "./world.js";
 

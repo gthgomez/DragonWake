@@ -9,7 +9,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { PgStore } from "./pg-store.js";
 import { World } from "./world.js";
-import { getBestiaryEntries, getShop } from "@tideforge/content";
+import { getBestiaryEntries, getShop } from "@dragonwake/content";
 
 const DATABASE_URL =
   process.env.DATABASE_URL ??

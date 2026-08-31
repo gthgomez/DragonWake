@@ -38,10 +38,10 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
       - name: Combat tests (T3–T4)
-        run: pnpm --filter @tideforge/combat test
+        run: pnpm --filter @dragonwake/combat test
       - name: Server tests (Postgres required)
-        run: pnpm --filter @tideforge/server test
+        run: pnpm --filter @dragonwake/server test
       - name: Web build + typecheck
-        run: pnpm --filter @tideforge/web build
+        run: pnpm --filter @dragonwake/web build
       - name: Server typecheck
-        run: pnpm --filter @tideforge/server typecheck
+        run: pnpm --filter @dragonwake/server typecheck

@@ -126,7 +126,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
         method: "POST",
         body: JSON.stringify({ displayName, faction }),
       });
-      localStorage.setItem("tideforge_token", data.token);
+      localStorage.setItem("dragonwake_token", data.token);
       setToken(data.token);
       setPlayer(data.player);
       setCities([data.city]);
@@ -455,7 +455,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
   }
 
   function logout() {
-    localStorage.removeItem("tideforge_token");
+    localStorage.removeItem("dragonwake_token");
     setToken(null);
     setPlayer(null);
     setCities([]);

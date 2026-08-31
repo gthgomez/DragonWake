@@ -1,5 +1,5 @@
 /*
-   Tideforge Empires — war report + codex presentation layer.
+   Dragon Wake — war report + codex presentation layer.
    Imported once by components/views/WarView.tsx.
    Every class is prefixed rpt- (war reports) or codex- (knowledge).
    Builds on base vars from styles.css (--ok, --err, --muted, ...) and

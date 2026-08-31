@@ -207,7 +207,7 @@ export function translateError(e: unknown): string {
     e instanceof Error
       ? ((e as { code?: string }).code ?? inferCode(raw))
       : inferCode(raw);
-  console.warn(`[tideforge] action failed (${code ?? "unknown"}): ${raw}`);
+  console.warn(`[dragonwake] action failed (${code ?? "unknown"}): ${raw}`);
   if (code && ERROR_COPY[code]) return ERROR_COPY[code];
   if (code === "EXPEDITION_REQ") {
     // The raw message carries useful per-counter progress; keep the numbers.
