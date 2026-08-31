@@ -1,5 +1,5 @@
 {
-  "name": "@tideforge/server",
+  "name": "@dragonwake/server",
   "version": "0.2.0",
   "private": true,
   "type": "module",
@@ -15,9 +15,9 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.14.1",
-    "@tideforge/combat": "workspace:*",
-    "@tideforge/content": "workspace:*",
-    "@tideforge/shared": "workspace:*",
+    "@dragonwake/combat": "workspace:*",
+    "@dragonwake/content": "workspace:*",
+    "@dragonwake/shared": "workspace:*",
     "hono": "^4.7.5",
     "pg": "^8.16.3",
     "zod": "^4.4.3"

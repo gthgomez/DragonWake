@@ -9,7 +9,7 @@ import {
   COMBAT_RULES_VERSION,
   resolveBattle,
   type BattleGroup,
-} from "@tideforge/combat";
+} from "@dragonwake/combat";
 import {
   getCamps,
   getCitadelById,
@@ -27,7 +27,7 @@ import {
   getExpeditions,
   getDragonClues,
   type DragonClue,
-} from "@tideforge/content";
+} from "@dragonwake/content";
 import {
   DEV_FAST_MULTIPLIER,
   MAP_H,
@@ -39,7 +39,7 @@ import {
   type Faction,
   type MarchIntent,
   type ResourceBag,
-} from "@tideforge/shared";
+} from "@dragonwake/shared";
 
 export type Building = {
   slotIndex: number;

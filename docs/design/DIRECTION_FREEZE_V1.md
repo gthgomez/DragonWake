@@ -1,8 +1,8 @@
-# TideForge — Direction Freeze v1.0
+# Dragon Wake — Direction Freeze v1.0
 
 Status: **FROZEN**
 
-TideForge is a persistent medieval fantasy strategy game centered on a world
+Dragon Wake is a persistent medieval fantasy strategy game centered on a world
 shaped by the real existence of dragons.
 
 Its primary inspiration is not modern RPG fantasy. It draws from old dragon
@@ -19,7 +19,7 @@ The guiding question is:
 That becomes the foundation of the entire game.
 
 This document is product + lore direction, not yet detailed canon. It exists
-so future agents cannot gradually turn TideForge back into generic elemental
+so future agents cannot gradually turn Dragon Wake back into generic elemental
 fantasy.
 
 ---
@@ -33,7 +33,7 @@ The player fantasy is:
 > kingdoms, hunt dragons, study them, protect them or eventually earn the
 > allegiance of one.
 
-TideForge is therefore simultaneously:
+Dragon Wake is therefore simultaneously:
 
 Kingdom builder + MMORTS + medieval warfare game + dragon fantasy.
 
@@ -63,7 +63,7 @@ A dragon appearing over that battlefield should therefore feel extraordinary.
 
 ### Explicitly rejected
 
-TideForge is not:
+Dragon Wake is not:
 
 - Warcraft-like high fantasy
 - everyone-can-use-magic fantasy
@@ -77,7 +77,7 @@ TideForge is not:
 
 ## 3. Historical grounding — FROZEN
 
-TideForge uses a broad late-medieval military foundation, approximately
+Dragon Wake uses a broad late-medieval military foundation, approximately
 inspired by warfare from the 12th through 15th centuries rather than
 reproducing a specific historical country or year.
 
@@ -140,7 +140,7 @@ That gives future lore room to breathe.
 
 "Dragon" is a broad human classification rather than one biological species.
 
-TideForge can contain different body plans.
+Dragon Wake can contain different body plans.
 
 | Class | Notes |
 | --- | --- |
@@ -273,7 +273,7 @@ magical sci-fi weapons.
 
 Dragons must not invalidate normal armies.
 
-TideForge remains a kingdom warfare game.
+Dragon Wake remains a kingdom warfare game.
 
 The primary military roster should eventually include something similar to:
 
@@ -307,14 +307,14 @@ Select troops → Track dragon → Engage → React to behavior →
 Kill / drive away / capture / communicate / bond →
 Recover consequences and discoveries.
 
-This gives TideForge a gameplay loop that Dragons of Atlantis never fully
+This gives Dragon Wake a gameplay loop that Dragons of Atlantis never fully
 exploited.
 
 ---
 
 ## 15. Codex → Bestiary — FROZEN
 
-Keep the Codex. Expand it into one of TideForge's signature systems.
+Keep the Codex. Expand it into one of Dragon Wake's signature systems.
 
 The player gradually records: dragon species; anatomy; habitats; behavior;
 diet; migration; vulnerabilities; breath capabilities; known individuals;
@@ -439,7 +439,7 @@ This remains compatible with the existing underlying city simulation.
 
 ## 21. Persistent world — FROZEN
 
-TideForge remains a persistent multiplayer world.
+Dragon Wake remains a persistent multiplayer world.
 
 Players occupy real positions. Distance matters. Resources matter. March
 time matters. Territory matters. Neighbors matter. Alliances matter.
@@ -525,26 +525,21 @@ That makes the moment matter.
 
 ---
 
-## 26. TideForge name — KEEP
+## 26. Dragon Wake name — KEEP
 
-Keep TideForge.
+Keep Dragon Wake as the working product name.
 
-Give the name actual lore significance rather than requiring an ocean world.
+The name directly signals the central premise: dragons are rare, dangerous,
+and becoming active again. "Wake" is intentionally flexible while the Lore
+Bible remains unfinished. It can mean an awakening, the scar or trail left
+by a passing dragon, or the social alarm that spreads after a sighting.
 
 Possible future interpretation (not yet canon):
 
-- The Tide is an ancient cyclical force or historical age associated with
-  the return / movement of dragons.
-- The Forge represents humanity adapting through steel, knowledge and
-  civilization.
+> When the dragons woke, every kingdom learned to build for the sky.
 
-So "TideForge" can eventually refer to the era:
-
-> When the dragons returned like a tide, mankind survived at the forge.
-
-We don't need to canonize that exact explanation yet.
-
-The name does not require keeping the current aquatic aesthetic.
+The exact in-world meaning should be chosen in the Lore Bible. The name does
+not require an ocean world or a return to the retired aquatic aesthetic.
 
 ---
 
@@ -570,7 +565,7 @@ reintroducing generic genre conventions.
 
 ---
 
-## 28. What remains from current TideForge
+## 28. What remains from current Dragon Wake
 
 Preserve the systems architecture conceptually.
 
@@ -612,15 +607,15 @@ Authority order across documents lives in
 
 This is the sentence that keeps every future design decision aligned:
 
-> TideForge is a persistent medieval strategy world where historically grounded kingdoms have spent centuries adapting their armies, castles, cultures and beliefs to the reality of rare, terrifying and sometimes intelligent dragons.
+> Dragon Wake is a persistent medieval strategy world where historically grounded kingdoms have spent centuries adapting their armies, castles, cultures and beliefs to the reality of rare, terrifying and sometimes intelligent dragons.
 
 And the product test becomes:
 
-> Does this feature make TideForge feel more like a believable medieval civilization shaped by dragons?
+> Does this feature make Dragon Wake feel more like a believable medieval civilization shaped by dragons?
 
 If yes, investigate it.
 
-If it mainly makes TideForge feel like a generic fantasy game, reject it.
+If it mainly makes Dragon Wake feel like a generic fantasy game, reject it.
 
 ---
 

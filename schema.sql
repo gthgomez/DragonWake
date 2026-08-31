@@ -1,4 +1,4 @@
--- Tideforge Empires MVP schema (PostgreSQL 16)
+-- Dragon Wake MVP schema (PostgreSQL 16)
 -- Apply once per empty database.
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -277,5 +277,5 @@ CREATE TABLE IF NOT EXISTS daily_state (
 );
 
 -- Seed realm 1
-INSERT INTO realms (id, name) VALUES (1, 'Tideforge Beta')
+INSERT INTO realms (id, name) VALUES (1, 'Dragon Wake Beta')
 ON CONFLICT DO NOTHING;

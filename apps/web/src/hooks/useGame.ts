@@ -28,7 +28,7 @@ import { useGameActions } from "./useGameActions";
 
 export function useGame() {
   const [token, setToken] = useState<string | null>(
-    () => localStorage.getItem("tideforge_token"),
+    () => localStorage.getItem("dragonwake_token"),
   );
   const [player, setPlayer] = useState<Player | null>(null);
   /** Server-advertised dev mode — hides grant tooling in real deployments. */

@@ -1,5 +1,5 @@
 {
-  "name": "@tideforge/combat",
+  "name": "@dragonwake/combat",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@tideforge/content": "workspace:*"
+    "@dragonwake/content": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

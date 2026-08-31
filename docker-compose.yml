@@ -21,7 +21,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-    command: bash -lc "corepack enable && pnpm install && pnpm --filter @tideforge/server start"
+    command: bash -lc "corepack enable && pnpm install && pnpm --filter @dragonwake/server start"
     environment:
       PORT: 3001
       HOST: 0.0.0.0
@@ -40,7 +40,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-    command: bash -lc "corepack enable && pnpm install && pnpm --filter @tideforge/web exec vite --host 0.0.0.0 --port 5173"
+    command: bash -lc "corepack enable && pnpm install && pnpm --filter @dragonwake/web exec vite --host 0.0.0.0 --port 5173"
     environment:
       VITE_API_URL: http://localhost:3001
     ports:

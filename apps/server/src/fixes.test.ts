@@ -7,8 +7,8 @@
  * - content integrity gate data contract (zero errors, matchups resolve)
  */
 import { describe, expect, it } from "vitest";
-import { validateBattleContent } from "@tideforge/combat";
-import { contentIntegrityIssues, getUnitById } from "@tideforge/content";
+import { validateBattleContent } from "@dragonwake/combat";
+import { contentIntegrityIssues, getUnitById } from "@dragonwake/content";
 import { createApp } from "./app.js";
 import { World, tickCityResources, productionPerHour } from "./world.js";
 

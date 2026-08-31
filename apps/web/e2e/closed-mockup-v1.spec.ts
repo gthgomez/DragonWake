@@ -76,7 +76,7 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
 
   // 7. realm: navigate by travel, scout a camp
   const token0 = await page.evaluate(() =>
-    localStorage.getItem("tideforge_token"),
+    localStorage.getItem("dragonwake_token"),
   );
   const mapResp = await page.request.get(
     `${apiBase}/api/v1/map/viewport?x0=0&y0=0&x1=39&y1=39`,
@@ -139,7 +139,7 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
   // Top up the muster via the dev fixture so three real battles are
   // sustainable within the journey's timeframe.
   const tokenPre = await page.evaluate(() =>
-    localStorage.getItem("tideforge_token"),
+    localStorage.getItem("dragonwake_token"),
   );
   await page.request.post(`${apiBase}/api/v1/admin/grant`, {
     headers: { authorization: `Bearer ${tokenPre}` },
@@ -208,7 +208,7 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
 
   // 11. fixture the RNG-gated readiness inputs (dev grant)
   const token = await page.evaluate(() =>
-    localStorage.getItem("tideforge_token"),
+    localStorage.getItem("dragonwake_token"),
   );
   const grant = await page.request.post(`${apiBase}/api/v1/admin/grant`, {
     headers: { authorization: `Bearer ${token}` },

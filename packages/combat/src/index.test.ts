@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getMatchups } from "@tideforge/content";
+import { getMatchups } from "@dragonwake/content";
 import {
   COMBAT_RULES_VERSION,
   parseForceString,

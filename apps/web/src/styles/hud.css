@@ -1,5 +1,5 @@
 /*
-   Tideforge Empires — ornate app-chrome HUD layer.
+   Dragon Wake — ornate app-chrome HUD layer.
    Imported once by components/Shell.tsx and once by components/LoginView.tsx.
    Every class is prefixed hud- (app chrome: topbar, tabs, banners, toasts,
    persistent ops card, login screen). Builds on base vars from styles.css and

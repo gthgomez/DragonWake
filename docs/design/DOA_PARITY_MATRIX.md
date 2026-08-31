@@ -1,9 +1,9 @@
-# DoA -> TideForge Parity Matrix — v0.1
+# DoA -> Dragon Wake Parity Matrix — v0.1
 
 Status: **WORKING DESIGN BRIDGE**
 
 This document translates the evidence in
-[`DOA_REFERENCE_MODEL.md`](./DOA_REFERENCE_MODEL.md) into TideForge design
+[`DOA_REFERENCE_MODEL.md`](./DOA_REFERENCE_MODEL.md) into Dragon Wake design
 calls. A row is not canon merely because it appears here. `FROZEN` rows are
 frozen only where an existing higher-authority document already freezes them.
 
@@ -16,7 +16,7 @@ Disposition vocabulary:
 - **EXPERIMENT** — candidate requiring causal playtest/simulation;
 - **REJECT** — deliberately do not inherit.
 
-| DoA mechanism | Historical purpose | TideForge disposition | Authority now | Key invariant / experiment |
+| DoA mechanism | Historical purpose | Dragon Wake disposition | Authority now | Key invariant / experiment |
 | --- | --- | --- | --- | --- |
 | City / Field / World Map | Separate domestic, economic and world layers | **PRESERVE** | FROZEN by Direction Freeze §§19,21,28 | Player can understand where production, settlement development and world action happen. |
 | Fortress progression | Gate development, fields and wilderness capacity | **PRESERVE / REINTERPRET** | P0 design | Central keep progression should gate expansion without becoming the only progression axis. |

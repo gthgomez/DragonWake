@@ -1,4 +1,4 @@
-# Tideforge Empires
+# Dragon Wake
 
 Multiplayer web MMORTS MVP beta (async city builder + map combat).
 
@@ -104,7 +104,7 @@ pnpm install
 ```powershell
 docker compose up -d db
 # schema applies from schema.sql on first boot
-# or: pnpm --filter @tideforge/server migrate
+# or: pnpm --filter @dragonwake/server migrate
 ```
 
 With `DATABASE_URL` reachable, the server **loads/saves the full realm to PostgreSQL** (players, cities, sessions, marches, reports, alliances, …). `/health` reports `db: "postgres"` only when the store is actually attached (not merely when the env var is set). If Postgres is unreachable, it falls back to an in-memory realm and `/health` reports `db: "memory"`.
@@ -176,26 +176,26 @@ Alliance M9 in UI: guest A creates Tideband → share **tag** → guest B **Join
 
 ```powershell
 pnpm install                                          # T1
-pnpm --filter @tideforge/combat test                  # T3–T4 (M1–M10)
-pnpm --filter @tideforge/server test                  # T5–T6 + M1–M11 + API demo
+pnpm --filter @dragonwake/combat test                  # T3–T4 (M1–M10)
+pnpm --filter @dragonwake/server test                  # T5–T6 + M1–M11 + API demo
 # T7 durability (honest): start Postgres, then REQUIRE_PG so missing DB fails hard:
 #   docker compose up -d db
 #   $env:DATABASE_URL="postgres://tideforge:tideforge@127.0.0.1:5432/tideforge"
 #   $env:REQUIRE_PG="1"
-#   pnpm --filter @tideforge/server test   # pg-persist must assert, not skip
+#   pnpm --filter @dragonwake/server test   # pg-persist must assert, not skip
 # Without REQUIRE_PG: pg-persist tests are skipped (not silent-pass) when DB is down
-pnpm --filter @tideforge/web build                    # web
-pnpm --filter @tideforge/combat typecheck
-pnpm --filter @tideforge/server typecheck
-pnpm --filter @tideforge/web typecheck                # T8
+pnpm --filter @dragonwake/web build                    # web
+pnpm --filter @dragonwake/combat typecheck
+pnpm --filter @dragonwake/server typecheck
+pnpm --filter @dragonwake/web typecheck                # T8
 ```
 
 ### Browser certification (CLOSED_MOCKUP_V1)
 
 ```powershell
-pnpm --filter @tideforge/web exec playwright install chromium   # once
+pnpm --filter @dragonwake/web exec playwright install chromium   # once
 pnpm dev                                                        # server + web
-pnpm --filter @tideforge/web exec playwright test               # baseline + journey
+pnpm --filter @dragonwake/web exec playwright test               # baseline + journey
 ```
 
 `e2e/closed-mockup-v1.spec.ts` drives the full player journey (build →

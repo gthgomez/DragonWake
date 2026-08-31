@@ -5,7 +5,7 @@
 import pg from "pg";
 import { createHash } from "node:crypto";
 import { applySchemaIfNeeded, findSchemaPath, tryConnectPg } from "./pg.js";
-import { getUnitById, canonTechId } from "@tideforge/content";
+import { getUnitById, canonTechId } from "@dragonwake/content";
 import type {
   Alliance,
   AllianceMember,
@@ -514,7 +514,7 @@ export class PgStore {
   ): Promise<void> {
     await client.query(
       `INSERT INTO realms (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`,
-      [world.realmId, "Tideforge Beta"],
+      [world.realmId, "Dragon Wake Beta"],
     );
   }
 

@@ -1,4 +1,4 @@
-# Tideforge Empires — Art Directory
+# Dragon Wake — Art Directory
 
 Original, in-repo art assets for the web client. **Everything here is
 placeholder-for-quality**: shapes are deliberately simple so gameplay work can

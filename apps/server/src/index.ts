@@ -4,8 +4,8 @@ import { resolve } from "node:path";
 import { createApp, VERSION } from "./app.js";
 import { World } from "./world.js";
 import { PgStore } from "./pg-store.js";
-import { COMBAT_RULES_VERSION, validateBattleContent } from "@tideforge/combat";
-import { contentIntegrityIssues, getFormulas } from "@tideforge/content";
+import { COMBAT_RULES_VERSION, validateBattleContent } from "@dragonwake/combat";
+import { contentIntegrityIssues, getFormulas } from "@dragonwake/content";
 
 // Load .env lightly (no dotenv dep)
 function loadEnvFile() {
@@ -72,16 +72,16 @@ if (pgUrl) {
     if (store) {
       await world.attachStore(store);
       console.log(
-        `[tideforge-server] postgres attached players=${world.players.size} cities=${world.cities.size}`,
+        `[dragonwake-server] postgres attached players=${world.players.size} cities=${world.cities.size}`,
       );
     } else {
       console.warn(
-        "[tideforge-server] DATABASE_URL set but unreachable — memory world",
+        "[dragonwake-server] DATABASE_URL set but unreachable — memory world",
       );
     }
   } catch (e) {
     console.warn(
-      "[tideforge-server] postgres init failed, memory fallback:",
+      "[dragonwake-server] postgres init failed, memory fallback:",
       e instanceof Error ? e.message : e,
     );
   }
@@ -100,7 +100,7 @@ const simInterval = setInterval(() => {
 }, 1000);
 
 console.log(
-  `[tideforge-server] ${VERSION} listening on http://${HOST}:${PORT} db=${world.dbMode} fast=${world.devFastTime}`,
+  `[dragonwake-server] ${VERSION} listening on http://${HOST}:${PORT} db=${world.dbMode} fast=${world.devFastTime}`,
 );
 const server = serve({ fetch: app.fetch, port: PORT, hostname: HOST });
 
@@ -109,7 +109,7 @@ let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.log(`[tideforge-server] ${signal} received — flushing…`);
+  console.log(`[dragonwake-server] ${signal} received — flushing…`);
   clearInterval(simInterval);
   try {
     await world.flush();

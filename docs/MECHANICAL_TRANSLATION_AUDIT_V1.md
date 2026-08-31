@@ -1,4 +1,4 @@
-# TideForge Mechanical Translation + Medieval/Dragon Retheme Audit — V1
+# Dragon Wake Mechanical Translation + Medieval/Dragon Retheme Audit — V1
 
 Status: **AUDIT COMPLETE — NOT AN IMPLEMENTATION PLAN**
 
@@ -18,7 +18,7 @@ PR #1: `docs/direction-freeze-v1` @ `f3bd8168f207ae9a7f3137206494e5bd4e16d560` (
 
 ## A. Executive Verdict
 
-**TideForge should become a persistent medieval kingdom strategy game where historically grounded civilizations have adapted to the reality of rare, terrifying dragons. The current prototype contains a proven MMORTS simulation engine that must survive. The aquatic/elemental fiction must not.**
+**Dragon Wake should become a persistent medieval kingdom strategy game where historically grounded civilizations have adapted to the reality of rare, terrifying dragons. The current prototype contains a proven MMORTS simulation engine that must survive. The aquatic/elemental fiction must not.**
 
 The strongest inherited mechanism is **not** any specific noun — it is the **DoA progression dependency network**: economy feeds military, military enables world activity, world activity earns dragon readiness, dragon readiness unlocks differentiated expansion. That topology is excellent and must be preserved.
 
@@ -37,9 +37,9 @@ The strongest inherited mechanism is **not** any specific noun — it is the **D
 
 ## B. Current-State Reconstruction
 
-### What TideForge actually is today
+### What Dragon Wake actually is today
 
-TideForge is a **functioning MMORTS prototype** with:
+Dragon Wake is a **functioning MMORTS prototype** with:
 
 - **Monorepo**: pnpm + TypeScript, Vite/React web, Hono/Node server, PostgreSQL optional
 - **Simulation**: 1-second tick loop, lazy on-request ticks, write-through persistence
@@ -1319,7 +1319,7 @@ This isolates the question: **Is the kingdom/dragon/outpost progression loop com
 
 **Answer**: The DoA **progression dependency network** is genuinely strong. The chain `economy → military → world activity → dragon readiness → differentiated expansion → alliance` creates meaningful decision points at every stage. Individual nouns (Water Outpost, Great Dragon armor) are not being preserved — the topology is.
 
-**Risk**: Nostalgia could lead to preserving DoA's specific pacing (1-2 weeks before dragon readiness). TideForge should compress this while preserving the multi-system gate structure.
+**Risk**: Nostalgia could lead to preserving DoA's specific pacing (1-2 weeks before dragon readiness). Dragon Wake should compress this while preserving the multi-system gate structure.
 
 ### 2. Which DoA mechanisms actually create strategic depth?
 
@@ -1427,7 +1427,7 @@ This isolates the question: **Is the kingdom/dragon/outpost progression loop com
 
 **Risk**: All settlements eventually become interchangeable. Mitigation: each settlement has exclusive units, exclusive research branches, and exclusive world-map interactions.
 
-### 17. What is TideForge's strongest unique gameplay claim after this migration?
+### 17. What is Dragon Wake's strongest unique gameplay claim after this migration?
 
 **A kingdom-war game where thousands of medieval soldiers, castles, logistics, dragon ecology, specialized settlements, Slayers, territorial warfare and rare True Dragons all belong to one coherent progression system.**
 
@@ -1516,4 +1516,4 @@ Ranked by: `expected player-value gain × dependency importance × evidence stre
 
 ---
 
-*End of audit. This document is the contract for Phases 2-4 of the TideForge domain-preserving migration.*
+*End of audit. This document is the contract for Phases 2-4 of the Dragon Wake domain-preserving migration.*

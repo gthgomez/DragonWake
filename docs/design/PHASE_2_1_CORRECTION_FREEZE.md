@@ -60,7 +60,7 @@ This mapping lives at a boundary in `packages/content/data/role_adapter.json` an
 Layers A/B/C separation enforced:
 
 - **Layer A**: Current mechanical inventory (16 units, exact stats/roles/unlocks)
-- **Layer B**: Target TideForge roster (designed from first principles)
+- **Layer B**: Target Dragon Wake roster (designed from first principles)
 - **Layer C**: Migration mapping (reuse/donor/split/merge/replace/delete)
 
 See `docs/design/UNIT_THREE_LAYER_MAP.md`.

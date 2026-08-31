@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { World, pickCampTemplate, resolveCampDefGroups, type City } from "./world.js";
-import { isUnitUnlocked, getBestiaryEntries, getDragonReadiness, getDragonClues, getUnitById, getUnits, getCamps } from "@tideforge/content";
+import { isUnitUnlocked, getBestiaryEntries, getDragonReadiness, getDragonClues, getUnitById, getUnits, getCamps } from "@dragonwake/content";
 
 function freshWorld(): World {
   return new World({ devFastTime: true, skipTutorial: true });

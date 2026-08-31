@@ -2,7 +2,7 @@ version: 1
 status: research-backed-mechanism-contract-v0.1
 authority:
   historical_truth: DOA_REFERENCE_MODEL.md
-  tideforge_direction: DIRECTION_FREEZE_V1.md
+  dragon_wake_direction: DIRECTION_FREEZE_V1.md
   translation: DOA_PARITY_MATRIX.md
   note: >-
     This file encodes dependency topology and invariant IDs. It is not a
@@ -244,7 +244,7 @@ historical_chain:
       - Wind Outpost
     preserve: chained_differentiated_expansion
     reject:
-      - elemental_taxonomy_as_tideforge_canon
+      - elemental_taxonomy_as_dragon_wake_canon
       - exact_egg_drop_rules_as_immutable
 
 invariants:

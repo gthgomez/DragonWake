@@ -1,4 +1,4 @@
-# TIDEFORGE_CLOSED_MOCKUP_V1 — FINAL REPORT
+# DRAGON_WAKE_CLOSED_MOCKUP_V1 — FINAL REPORT
 
 ## FINAL_VERDICT
 
@@ -72,8 +72,8 @@ Single execution model (opencode/GLM — MiMo-V2.5 / DeepSeek V4 Flash / Hy3 rou
 
 | Suite | Result |
 |---|---|
-| `@tideforge/combat` (vitest) | **20 passed / 0 failed** |
-| `@tideforge/server` (vitest) | **134 passed / 0 failed / 3 skipped** — skips are PG-persistence tests, honestly skipped when Postgres is unreachable; they fail hard with `REQUIRE_PG=1` (Postgres was not running locally at campaign time — not faked) |
+| `@dragonwake/combat` (vitest) | **20 passed / 0 failed** |
+| `@dragonwake/server` (vitest) | **134 passed / 0 failed / 3 skipped** — skips are PG-persistence tests, honestly skipped when Postgres is unreachable; they fail hard with `REQUIRE_PG=1` (Postgres was not running locally at campaign time — not faked) |
 | Typecheck (combat/server/shared/content/web) | Green |
 | Web build (tsc + vite) | Green |
 | Playwright `closed-mockup-v1.spec.ts` (certification journey) | **Passed** (~1.0–1.2 min under `DEV_FAST_TIME=1`) |
@@ -115,12 +115,12 @@ Accepted risks (documented): dev/admin grant surface is open in non-production (
 
 ## REIGN-CLASS COMPARISON (qualitative, no inflation)
 
-- Tideforge now presents a settlement you interact with directly rather than a dashboard that references one — build/upgrade/construction feedback happens on the world itself.
+- Dragon Wake now presents a settlement you interact with directly rather than a dashboard that references one — build/upgrade/construction feedback happens on the world itself.
 - Realm interactions (drag/travel, per-type target panels, composer with confirm) read as production-facing strategy UX rather than API controls.
 - Progression is legible: objectives state what to do, track it, and complete only from server truth; the charter → Marcher Keep arc pays off with a genuinely different settlement.
 - Dragons are present (signs, study cards, readiness ladder, expedition) without ownership or canon leakage.
-- What Reign of Atlantis still does better: richer produced art, density of the world map, long-horizon meta loops (heroes/multiple resource webs), and scale of content. Tideforge remains a closed slice with placeholder-quality glyphs.
-- What Tideforge now does distinctly better: honest server-authoritative state behind every visible action, a terminology/translation discipline that keeps internal machinery invisible, deterministic seeded combat with full provenance in reports, and a compact, readable medieval retheme with original assets.
+- What Reign of Atlantis still does better: richer produced art, density of the world map, long-horizon meta loops (heroes/multiple resource webs), and scale of content. Dragon Wake remains a closed slice with placeholder-quality glyphs.
+- What Dragon Wake now does distinctly better: honest server-authoritative state behind every visible action, a terminology/translation discipline that keeps internal machinery invisible, deterministic seeded combat with full provenance in reports, and a compact, readable medieval retheme with original assets.
 
 ## Deliverable contents
 

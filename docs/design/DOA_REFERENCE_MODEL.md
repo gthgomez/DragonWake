@@ -1,9 +1,9 @@
-# TideForge DoA Reference Model — v0.1
+# Dragon Wake DoA Reference Model — v0.1
 
-Status: **RESEARCH BASELINE — AUTHORITATIVE HISTORICAL REFERENCE, NOT TIDEFORGE CANON**
+Status: **RESEARCH BASELINE — AUTHORITATIVE HISTORICAL REFERENCE, NOT DRAGON WAKE CANON**
 
 Purpose: reconstruct the original browser *Dragons of Atlantis* (DoA) at the
-mechanism level so TideForge can preserve proven progression topology without
+mechanism level so Dragon Wake can preserve proven progression topology without
 copying obsolete fiction, later power creep, or accidental wiki contamination.
 
 This document answers **what DoA did and why the mechanism mattered**. It does
@@ -12,11 +12,11 @@ not override [`DIRECTION_FREEZE_V1.md`](./DIRECTION_FREEZE_V1.md).
 ## 1. Authority boundary
 
 The DoA reference model is authoritative only for supported historical claims.
-It cannot by itself make a TideForge feature canonical.
+It cannot by itself make a Dragon Wake feature canonical.
 
 Use this chain:
 
-`historical evidence -> reconstructed mechanism -> player value / failure mode -> TideForge disposition -> approved system spec`
+`historical evidence -> reconstructed mechanism -> player value / failure mode -> Dragon Wake disposition -> approved system spec`
 
 The translation step lives in [`DOA_PARITY_MATRIX.md`](./DOA_PARITY_MATRIX.md).
 The dependency graph lives in [`PROGRESSION_GRAPH_V1.md`](./PROGRESSION_GRAPH_V1.md)
@@ -31,7 +31,7 @@ and [`progression-graph.v1.yaml`](./progression-graph.v1.yaml).
 | **COMMUNITY-DOCUMENTED** | Mature player documentation or community research. |
 | **CURRENT-MOBILE** | Surviving mobile-game evidence; secondary only for original browser behavior. |
 | **INFERRED** | Design interpretation from multiple observed mechanics. |
-| **HYPOTHESIS** | TideForge proposal requiring testing. |
+| **HYPOTHESIS** | Dragon Wake proposal requiring testing. |
 
 Every historical claim should also carry:
 
@@ -169,7 +169,7 @@ Camps were leveled repeatable PvE targets used for:
 - rare items;
 - Great Dragon armor at level 5+ in the documented legacy progression.
 
-Later camp tables contain expansion-era drops. TideForge should inherit the
+Later camp tables contain expansion-era drops. Dragon Wake should inherit the
 **repeatable PvE progression role**, not the accumulated loot catalog.
 
 ### 3.7 Wildernesses were held economic objectives and progression sites
@@ -212,7 +212,7 @@ conditions in documented legacy behavior.
 
 The contemporary 2010 review is especially important because it records a
 failure mode: the dragon was visually compelling but too peripheral for too
-long. TideForge should preserve the multi-system preparation topology while
+long. Dragon Wake should preserve the multi-system preparation topology while
 making dragon presence meaningful earlier.
 
 ### 3.9 Great Dragon readiness -> first outpost
@@ -306,7 +306,7 @@ The evidence supports this mechanism-level chain:
 
 `-> deeper PvP/alliance warfare`.
 
-This topology is more important to TideForge than any original noun.
+This topology is more important to Dragon Wake than any original noun.
 
 ## 5. Known failure modes to preserve as warnings
 
@@ -374,7 +374,7 @@ legacy mechanics, not proof that every detail existed at launch.
 ## 8. Research verdict
 
 The strongest inherited DoA mechanism is a **progression dependency network**,
-not a feature list. TideForge should preserve that topology while changing
+not a feature list. Dragon Wake should preserve that topology while changing
 fiction, removing degenerate optimizations, keeping True Dragons rare, and
 making each dependency legible enough that new players are not punished for
 not reading veteran guides.

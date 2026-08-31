@@ -1,5 +1,5 @@
 // Client-side copies of server-owned constants — duplicates server truth,
-// pending dedup via @tideforge/shared.
+// pending dedup via @dragonwake/shared.
 
 export const BUILD_COST = { food: 100, timber: 100 } as const;
 

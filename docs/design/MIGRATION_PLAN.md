@@ -1,4 +1,4 @@
-# TideForge migration plan
+# Dragon Wake migration plan
 
 Status: **PLAN** — revised after Direction Freeze v1.0 review.
 Not a rewrite. Not a skin swap.
@@ -10,7 +10,7 @@ Not a rewrite. Not a skin swap.
 
 ## Central conclusion
 
-Preserve TideForge's MMORTS machinery. Retire the old aquatic / elemental
+Preserve Dragon Wake's MMORTS machinery. Retire the old aquatic / elemental
 fiction. Establish Lore Bible v1 before content-heavy client work. Then
 migrate the existing game toward the new canon.
 
@@ -75,7 +75,7 @@ ammunition, terrain, fortifications, siege engines, commanders, morale,
 scouting, anti-dragon weapons, and dragon anatomy.
 
 v1 does not implement all of those. It must not pretend the current RPS
-buckets *are* TideForge warfare.
+buckets *are* Dragon Wake warfare.
 
 ### Power
 
@@ -104,7 +104,7 @@ Split the finding:
 | Problem | Response |
 | --- | --- |
 | Lore | Rename / recontextualize convenience items as mundane wartime stores. Everyday time magic contradicts rare, mysterious magic. |
-| Product | Separately freeze what TideForge monetization is allowed to become. Do this before Phase 4. Monetization can distort MMORTS design. |
+| Product | Separately freeze what Dragon Wake monetization is allowed to become. Do this before Phase 4. Monetization can distort MMORTS design. |
 
 ## What not to do
 

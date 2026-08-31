@@ -1,4 +1,4 @@
-# TideForge Phase 2.1 — Final Report
+# Dragon Wake Phase 2.1 — Final Report
 
 ## 1. Starting SHA / Ending SHA
 
@@ -131,11 +131,11 @@ test: add 52 progression and system tests
 
 ### Commands Run
 ```bash
-npx pnpm --filter @tideforge/combat test      # 15 passed
-npx pnpm --filter @tideforge/server test      # 78 passed, 2 skipped (PG)
-npx pnpm --filter @tideforge/web build        # built in 856ms
-npx pnpm --filter @tideforge/server typecheck # clean
-npx pnpm --filter @tideforge/combat typecheck # clean
+npx pnpm --filter @dragonwake/combat test      # 15 passed
+npx pnpm --filter @dragonwake/server test      # 78 passed, 2 skipped (PG)
+npx pnpm --filter @dragonwake/web build        # built in 856ms
+npx pnpm --filter @dragonwake/server typecheck # clean
+npx pnpm --filter @dragonwake/combat typecheck # clean
 ```
 
 ### Test Coverage

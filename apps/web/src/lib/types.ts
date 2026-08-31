@@ -1,6 +1,6 @@
 /*
  * DTO/entity shapes. Several duplicate types already defined in
- * @tideforge/shared — pending dedup (re-export from shared once the web app
+ * @dragonwake/shared — pending dedup (re-export from shared once the web app
  * gains a dependency on that package).
  */
 
