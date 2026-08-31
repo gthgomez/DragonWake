@@ -9,6 +9,23 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tideforge
+          POSTGRES_PASSWORD: tideforge
+          POSTGRES_DB: tideforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tideforge -d tideforge"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgres://tideforge:tideforge@127.0.0.1:5432/tideforge
+      REQUIRE_PG: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -22,7 +39,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Combat tests (T3–T4)
         run: pnpm --filter @tideforge/combat test
-      - name: Server tests (memory path; PG skipped honestly)
+      - name: Server tests (Postgres required)
         run: pnpm --filter @tideforge/server test
       - name: Web build + typecheck
         run: pnpm --filter @tideforge/web build
