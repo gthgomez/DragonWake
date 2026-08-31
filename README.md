@@ -267,8 +267,8 @@ P0 notes: `docs/P0_M1_M11_EVIDENCE.md` · events poll `GET /api/v1/events?since=
 
 ## Citadel development routes
 
-Found Stonekeel: `POST /api/v1/citadels/found` `{ "kind": "stonekeel", "unlock": true }`  
-Found Forest Citadel / Dragon Watch: same route with `"kind": "cinderreach" | "galeari"` — the demo unlock auto-founds missing ladder rungs  
+Found Stonekeel: `POST /api/v1/citadels/found` `{ "kind": "stonekeel", "unlock": true }`
+Found Forest Citadel / Dragon Watch: same route with `"kind": "cinderreach" | "galeari"` — the demo unlock auto-founds missing ladder rungs
 Found Marcher Keep (requires expedition charter): `POST /api/v1/citadels/found` via charter path
 
 Arena, world boss, citadels past the second-settlement system, Mnemolith/Echo,

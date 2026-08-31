@@ -29,7 +29,6 @@ function costOf(def: BuildingLite, level: number): Record<string, number> {
   }
   return out;
 }
-
 /** Honest, mechanic-backed effect line per building (mirrors server rules). */
 function effectLine(id: string, level: number): string {
   switch (id) {
@@ -617,4 +616,3 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
     </div>
   );
 }
-

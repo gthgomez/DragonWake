@@ -490,7 +490,4 @@ export function useGameActions(deps: UseGameActionsDeps) {
     logout,
   };
 }
-
 export type GameActions = ReturnType<typeof useGameActions>;
-
-
