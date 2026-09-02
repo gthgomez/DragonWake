@@ -281,6 +281,15 @@ export function useGameActions(deps: UseGameActionsDeps) {
     );
   }
 
+  async function recallReinforcement(marchId: string) {
+    if (!token) return;
+    await run("Reinforcement recalled", async () => {
+      await api(`/api/v1/marches/${marchId}/recall`, token, { method: "POST" });
+      await refreshMe(token);
+      await refreshMarches(token);
+    });
+  }
+
   async function recruitCommander() {
     if (!token) return;
     await run("Commander recruited", async () => {
@@ -508,6 +517,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
     upgradeKeep,
     doTrain,
     sendMarch,
+    recallReinforcement,
     recruitCommander,
     createAlly,
     joinAlly,

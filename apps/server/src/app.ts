@@ -582,6 +582,16 @@ export function createApp(world: World) {
     }
   });
 
+  api.post("/marches/:id/recall", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      return c.json({ march: world.recallReinforcement(player.id, c.req.param("id")) });
+    } catch (e) {
+      return err(c, (e as { code?: string }).code ?? "RECALL_FAIL", e instanceof Error ? e.message : String(e));
+    }
+  });
+
   api.post("/wilderness/:id/abandon", (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
@@ -815,6 +825,37 @@ export function createApp(world: World) {
         (e as { code?: string }).code ?? "JOIN_FAIL",
         e instanceof Error ? e.message : String(e),
       );
+    }
+  });
+
+  api.post("/alliances/:id/leave", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      world.leaveAlliance(player.id, c.req.param("id"));
+      return c.json({ ok: true });
+    } catch (e) {
+      return err(c, (e as { code?: string }).code ?? "LEAVE_FAIL", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  api.post("/alliances/:id/members/:playerId/rank", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = (await c.req.json().catch(() => ({}))) as { rank?: string };
+    if (body.rank !== "leader" && body.rank !== "officer" && body.rank !== "member") {
+      return err(c, "BAD_RANK", "rank must be leader, officer, or member");
+    }
+    try {
+      const member = world.setAllianceRank(
+        player.id,
+        c.req.param("id"),
+        c.req.param("playerId"),
+        body.rank,
+      );
+      return c.json({ member });
+    } catch (e) {
+      return err(c, (e as { code?: string }).code ?? "RANK_FAIL", e instanceof Error ? e.message : String(e));
     }
   });
 

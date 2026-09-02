@@ -19,17 +19,18 @@ presence alone is not sufficient.
 | PvE mastery bands | Repeatable farming with preparation | Four named bands, levels 1-10, seeded compositions | `camp-bands.test.ts`, camp resolver code | PARTIAL | Add anti-solved composition proof |
 | Wilderness capacity | Strategic ownership choices | Keep-scaled claims and abandon | `wilderness-capacity.test.ts`, API route | PARTIAL | Certify restart and conflict semantics |
 | Wilderness value | Economy/logistics/intel tradeoffs | Resource nodes, Crossroads, Watch Hill | Balance evidence | PARTIAL | Add conflict/report semantics |
-| Dragon readiness | Multi-system preparation | Presence, evidence, expedition, lifecycle, War Council | `dragon-war-council.test.ts`, readiness API | PARTIAL | Consume plan in a complete dragon operation |
-| Differentiated holdings | Specialized expansion | Marcher Keep, Stonekeel, Cinderreach, Galeari | Citadel ladder tests | PARTIAL | Complete ordinary-player gates/capabilities |
+| Dragon readiness | Multi-system preparation | Presence, evidence, expedition, lifecycle, War Council, Wyrm-Scarred hunt | `dragon-war-council.test.ts`, readiness API | PARTIAL | Certify persistence and alliance-scale follow-through |
+| Differentiated holdings | Specialized expansion | Marcher Keep, Stonekeel, Cinderreach, Galeari | Citadel ladder tests, `holding-capabilities.test.ts` | PARTIAL | Complete ordinary-player positive path and persistence |
 | Alliance membership | Coordination and diplomacy | Alliance membership/chat | API security tests | PARTIAL | Add ranks and shared intelligence |
-| Reinforcement | Shared military defense | Same-alliance reinforce march | Reinforcement regression tests | PARTIAL | Prove ownership/conservation across restart |
+| Reinforcement | Shared military defense | Same-alliance reinforce delivery | `fixes.test.ts`, `R3_REINFORCEMENT_SEMANTICS.md` | PARTIAL | Persist temporary stationed ownership/recall lifecycle |
 | Persistence | Long-horizon continuity | PostgreSQL world store | PG tests/CI handoff evidence | PARTIAL | Certify every new state transition |
-| Recovery/no softlock | Mistakes remain recoverable | Protection, production, starter resources | Economy regression tests | PARTIAL | Add pacing and recovery simulation |
+| Recovery/no softlock | Mistakes remain recoverable | Protection, production, starter resources | `pacing-simulation.test.ts`, `R3_PACING_SIMULATION.md` | PARTIAL | Reconcile with persistent-world restart evidence |
 
 ## R2 closure evidence
 
 - Playwright ownership is now intended to start one server and one web app;
-  `apps/web/playwright.config.ts` uses `pnpm dev:web` for the web process.
+  `apps/web/playwright.config.ts` uses the explicit filtered web command for
+  the web process.
 - Watch Hill is scouting-only. Occupation does not mint dragon material;
   atmospheric dragon-sign language must not be treated as evidence.
 - Active commander cost naming uses Crownmark terminology. Legacy names remain

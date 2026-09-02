@@ -112,6 +112,14 @@
     "cost": { "crownmark": 150 }
   },
   {
+    "id": "brinehold_unlock",
+    "name": "Brinehold Charter",
+    "per_level": 0,
+    "max_level": 1,
+    "group": "expansion",
+    "cost": { "food": 900, "wood": 900, "crownmark": 250 }
+  },
+  {
     "id": "stonekeel_unlock",
     "name": "Stonekeel Charter",
     "per_level": 0,

@@ -186,7 +186,7 @@ CREATE TABLE marches (
   arrive_at       TIMESTAMPTZ NOT NULL,
   return_at       TIMESTAMPTZ,
   status          TEXT NOT NULL DEFAULT 'en_route'
-                  CHECK (status IN ('en_route','resolving','returning','completed','cancelled')),
+                  CHECK (status IN ('en_route','resolving','returning','stationed','completed','cancelled')),
   battle_report_id UUID,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

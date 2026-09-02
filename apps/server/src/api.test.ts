@@ -199,6 +199,64 @@ describe("HTTP API two-session demo path", () => {
   });
 });
 
+describe("HTTP API reinforcement controls", () => {
+  it("allows only the sender to recall a stationed allied march", async () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const app = createApp(world);
+    const a = await json(app, "/api/v1/auth/guest", {
+      method: "POST",
+      body: JSON.stringify({ displayName: "RecallApiA", faction: "northern_kingdom" }),
+    });
+    const b = await json(app, "/api/v1/auth/guest", {
+      method: "POST",
+      body: JSON.stringify({ displayName: "RecallApiB", faction: "mountain_realm" }),
+    });
+    const tokenA = a.body.token as string;
+    const tokenB = b.body.token as string;
+    const alliance = await json(app, "/api/v1/alliances", {
+      method: "POST",
+      token: tokenA,
+      body: JSON.stringify({ name: "Recall Line", tag: "RCL" }),
+    });
+    const allianceId = alliance.body.alliance.id as string;
+    await json(app, `/api/v1/alliances/${allianceId}/join`, {
+      method: "POST",
+      token: tokenB,
+    });
+    await json(app, "/api/v1/admin/grant", {
+      method: "POST",
+      token: tokenA,
+      body: JSON.stringify({ units: { levy: 10 } }),
+    });
+    const sent = await json(app, "/api/v1/marches", {
+      method: "POST",
+      token: tokenA,
+      body: JSON.stringify({
+        fromCityId: a.body.city.id,
+        intent: "reinforce",
+        target: { type: "city", id: b.body.city.id, x: b.body.city.mapX, y: b.body.city.mapY },
+        composition: { levy: 10 },
+      }),
+    });
+    const march = world.marches.get(sent.body.march.id)!;
+    march.arriveAt = 0;
+    world.tick();
+    expect(march.status).toBe("stationed");
+    const forbidden = await json(app, `/api/v1/marches/${march.id}/recall`, {
+      method: "POST",
+      token: tokenB,
+    });
+    expect(forbidden.res.status).toBe(400);
+    expect(forbidden.body.error.code).toBe("NO_REINFORCEMENT");
+    const recalled = await json(app, `/api/v1/marches/${march.id}/recall`, {
+      method: "POST",
+      token: tokenA,
+    });
+    expect(recalled.res.status).toBe(200);
+    expect(recalled.body.march.status).toBe("returning");
+  });
+});
+
 describe("Commanders API (locked shape)", () => {
   const LOCKED_KEYS = [
     "attack",

@@ -220,6 +220,16 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     ALTER TABLE marches DROP COLUMN IF EXISTS sovereign_id;
     DROP TABLE IF EXISTS sovereigns;
   `);
+
+  // 12. Reinforcements may remain stationed and attributable to their sender
+  // until an explicit recall. The composition metadata lives in the existing
+  // JSONB march payload, while this status constraint permits restart-safe
+  // stationed records.
+  await client.query(`
+    ALTER TABLE marches DROP CONSTRAINT IF EXISTS marches_status_check;
+    ALTER TABLE marches ADD CONSTRAINT marches_status_check
+      CHECK (status IN ('en_route','resolving','returning','stationed','completed','cancelled'));
+  `);
 }
 
 export function findSchemaPath(): string | null {

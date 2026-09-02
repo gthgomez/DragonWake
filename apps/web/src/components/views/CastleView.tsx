@@ -6,6 +6,7 @@ import { Icon, type IconName } from "../../ui/icons";
 import type {
   City,
   DailyQuest,
+  March,
   QueueJob,
   ResearchDef,
   ResearchUnlock,
@@ -23,6 +24,7 @@ type CastleViewProps = {
   unlockDefs: ResearchUnlock[];
   dailyQuests: DailyQuest[];
   jobs: QueueJob[];
+  marches: March[];
   now: number;
   dragonPresence: {
     state?: string;
@@ -41,6 +43,7 @@ type CastleViewProps = {
   upgradeKeep: () => Promise<void>;
   foundMarcherKeep: () => Promise<void>;
   claimQuest: (questId: string) => Promise<void>;
+  recallReinforcement: (marchId: string) => Promise<void>;
 };
 
 const RES_LABELS: Record<string, string> = {
@@ -81,6 +84,7 @@ export function CastleView({
   unlockDefs,
   dailyQuests,
   jobs,
+  marches,
   now,
   dragonPresence,
   expeditionStatus,
@@ -90,6 +94,7 @@ export function CastleView({
   upgradeKeep,
   foundMarcherKeep,
   claimQuest,
+  recallReinforcement,
 }: CastleViewProps) {
   const rates = city.productionPerHour;
   const [confirmFound, setConfirmFound] = useState(false);
@@ -98,6 +103,9 @@ export function CastleView({
   const hasMarcherKeep = cities.some((c) => c.kind === "marcher_keep");
   const dragonWatchLevel =
     city.buildings.find((b) => b.buildingType === "skyreost")?.level ?? 0;
+  const stationed = marches.filter(
+    (m) => m.status === "stationed" && m.reinforcement,
+  );
 
   const trainable = useMemo(
     () =>
@@ -362,6 +370,31 @@ export function CastleView({
         </div>
       </div>
 
+      {stationed.length > 0 && (
+        <section className="keep-progression" aria-label="Stationed reinforcements">
+          <div>
+            <strong>Stationed reinforcements</strong>
+            <p className="muted tiny">
+              These troops remain owned by their sending settlement until recalled.
+            </p>
+          </div>
+          <ul className="muster-list">
+            {stationed.map((m) => (
+              <li key={m.id} className="muster-row">
+                <span className="muted tiny">
+                  {Object.entries(m.reinforcement?.composition ?? {})
+                    .map(([id, count]) => `${fmtNum(count)}× ${unitName(id)}`)
+                    .join(", ")}
+                </span>
+                <button type="button" onClick={() => void recallReinforcement(m.id)}>
+                  Recall
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <h3>The Wider March</h3>
       {hasMarcherKeep ? (
         <p className="ok">
@@ -429,7 +462,7 @@ export function CastleView({
       )}
       {typeof city.ownedWilderness === "number" && (
         <p className="muted tiny">
-          Held wildlands: {city.ownedWilderness} / {city.wildernessCapacity ?? 2} —
+          Wilderness holdings: {city.ownedWilderness} / {city.wildernessCapacity ?? 2} —
           each adds a strategic production, logistics, or scouting benefit. Release
           a lower-value holding in the Realm before claiming another.
           (see Lands).

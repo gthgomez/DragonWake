@@ -3,6 +3,7 @@ import type {
   AllianceInfo,
   AllianceSummary,
   ChatMessage,
+  WorldEventDto,
 } from "../../lib/types";
 
 type AllianceViewProps = {
@@ -22,6 +23,7 @@ type AllianceViewProps = {
   loadAlliances: () => Promise<void>;
   setError: (message: string | null) => void;
   allianceList: AllianceSummary[];
+  sharedIntel: WorldEventDto[];
 };
 
 export function AllianceView({
@@ -41,6 +43,7 @@ export function AllianceView({
   loadAlliances,
   setError,
   allianceList,
+  sharedIntel,
 }: AllianceViewProps) {
   return (
     <section className="card">
@@ -53,6 +56,17 @@ export function AllianceView({
           <p className="muted tiny">
             Share tag <code>{alliance.tag}</code> so others can join.
           </p>
+          <section aria-label="Alliance members">
+            <h3>Members</h3>
+            <ul className="plot-list">
+              {(alliance.members ?? []).map((member) => (
+                <li key={member.playerId} className="plot-row">
+                  <span>{member.displayName ?? "Unnamed lord"}</span>
+                  <span className="muted tiny">{member.rank}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
           <div className="row form-inline">
             <input
               value={chatBody}
@@ -75,6 +89,25 @@ export function AllianceView({
               </li>
             ))}
           </ul>
+          <section aria-label="Shared intelligence">
+            <h3>Shared intelligence</h3>
+            {sharedIntel.length === 0 ? (
+              <p className="muted tiny">Allied scouts have not shared a report yet.</p>
+            ) : (
+              <ul className="plot-list">
+                {sharedIntel.map((event) => (
+                  <li key={event.seq} className="plot-row">
+                    <div>
+                      <strong>{event.message}</strong>
+                      <span className="muted tiny">
+                        {event.data?.intel ? ` · ${JSON.stringify(event.data.intel)}` : ""}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </>
       ) : (
         <>

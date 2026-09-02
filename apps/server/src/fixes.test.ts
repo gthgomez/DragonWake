@@ -139,7 +139,8 @@ describe("marches: reinforce failure must not destroy troops", () => {
     world.landMarch(march, world.now());
     expect(cityB.stacks.levy).toBe(60);
     expect(march.composition["levy"]).toBeUndefined();
-    expect(march.status).toBe("returning");
+    expect(march.status).toBe("stationed");
+    expect(march.reinforcement?.targetCityId).toBe(cityB.id);
   });
 });
 

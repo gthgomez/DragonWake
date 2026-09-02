@@ -74,6 +74,7 @@ export function App() {
           unlockDefs={g.unlockDefs}
           dailyQuests={g.dailyQuests}
           jobs={g.jobs}
+          marches={g.marches}
           now={g.now}
           dragonPresence={g.readinessStatus?.presence ?? null}
           expeditionStatus={g.expeditionStatus}
@@ -83,6 +84,7 @@ export function App() {
           upgradeKeep={g.upgradeKeep}
           foundMarcherKeep={g.foundMarcherKeep}
           claimQuest={g.claimQuest}
+          recallReinforcement={g.recallReinforcement}
         />
       )}
 
@@ -162,6 +164,7 @@ export function App() {
           loadAlliances={g.loadAlliances}
           setError={g.setError}
           allianceList={g.allianceList}
+          sharedIntel={g.sharedIntel}
         />
       )}
 

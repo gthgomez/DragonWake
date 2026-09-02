@@ -69,6 +69,11 @@ export type March = {
   returnAt: number | null;
   status: string;
   battleReportId: string | null;
+  reinforcement?: {
+    targetCityId: string;
+    stationedAt: number;
+    composition: Record<string, number>;
+  } | null;
 };
 
 export type BattleReport = {
@@ -106,6 +111,7 @@ export type WorldEventDto = {
   type: string;
   message: string;
   at: number;
+  data?: Record<string, unknown>;
 };
 
 export type UnitDef = {
@@ -209,7 +215,12 @@ export type BestiaryEntryDef = {
   lore_notes?: string;
 };
 
-export type AllianceInfo = { id: string; name: string; tag: string };
+export type AllianceInfo = {
+  id: string;
+  name: string;
+  tag: string;
+  members?: Array<{ playerId: string; rank: "leader" | "officer" | "member"; displayName?: string }>;
+};
 
 export type ChatMessage = {
   id?: string;

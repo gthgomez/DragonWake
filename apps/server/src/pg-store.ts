@@ -319,9 +319,13 @@ export class PgStore {
           raw.__cargo && typeof raw.__cargo === "object"
             ? (canonResourceBag(raw.__cargo as Record<string, unknown>) as March["cargo"])
             : {};
+        const reinforcement =
+          raw.__reinforcement && typeof raw.__reinforcement === "object"
+            ? (raw.__reinforcement as March["reinforcement"])
+            : null;
         const composition: Record<string, number> = {};
         for (const [k, v] of Object.entries(raw)) {
-          if (k === "__cargo") continue;
+          if (k === "__cargo" || k === "__reinforcement") continue;
           if (typeof v === "number") composition[k] = v;
         }
         const m: March = {
@@ -343,6 +347,7 @@ export class PgStore {
           status: row.status,
           battleReportId: row.battle_report_id,
           landCount: row.status === "en_route" ? 0 : 1,
+          reinforcement,
         };
         world.marches.set(m.id, m);
       }
@@ -758,6 +763,7 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
         JSON.stringify({
           ...m.composition,
           __cargo: canonResourceBag(m.cargo ?? {}),
+          ...(m.reinforcement ? { __reinforcement: m.reinforcement } : {}),
         }),
         m.departAt,
         m.arriveAt,

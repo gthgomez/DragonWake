@@ -123,9 +123,15 @@ export type March = {
   departAt: number;
   arriveAt: number;
   returnAt: number | null;
-  status: "en_route" | "resolving" | "returning" | "completed" | "cancelled";
+  status: "en_route" | "resolving" | "returning" | "stationed" | "completed" | "cancelled";
   battleReportId: string | null;
   landCount: number;
+  /** A delivered reinforcement remains attributable to its sender until recalled. */
+  reinforcement: {
+    targetCityId: string;
+    stationedAt: number;
+    composition: Record<string, number>;
+  } | null;
 };
 export type BattleReport = {
   id: string;
@@ -455,6 +461,19 @@ const BASE_OPERATION_CAPACITY = 4;
 const MAX_OPERATION_CAPACITY = 10;
 const BASE_TROOPS_PER_MARCH = 500;
 const TROOPS_PER_MUSTER_LEVEL = 100;
+
+const UNIT_HOLDING_REQUIREMENTS: Record<string, CityKind> = {
+  light_cavalry: "marcher_keep",
+  mounted_scout: "marcher_keep",
+  shieldman: "brinehold",
+  crossbowman: "brinehold",
+  sapper: "stonekeel",
+  halberdier: "stonekeel",
+  forest_ranger: "cinderreach",
+  warhound: "cinderreach",
+  dragon_slayer: "galeari",
+  ballista: "galeari",
+};
 
 /**
  * The first three successful camp victories teach the player what evidence
@@ -1439,6 +1458,7 @@ export class World {
     const canonId = canonTechId(techId);
     const def = getResearch().find((t) => t.id === canonId)!;
     const nextLevel = (city.research[canonId] ?? 0) + 1;
+    this.requireExpansionResearchPrerequisites(city, canonId, nextLevel);
     if (def.cost) {
       const missing: string[] = [];
       for (const [res, base] of Object.entries(def.cost)) {
@@ -1483,6 +1503,48 @@ export class World {
     return job;
   }
 
+  /**
+   * Expansion charters are earned through the realm, not Crownmarks alone.
+   * Admin grants intentionally bypass this helper for deterministic fixtures.
+   */
+  private requireExpansionResearchPrerequisites(
+    city: City,
+    techId: string,
+    nextLevel: number,
+  ): void {
+    if (nextLevel !== 1 || !techId.endsWith("_unlock")) return;
+    if (city.kind !== "capital") {
+      throw Object.assign(new Error("charter research must be completed at the Capital"), {
+        code: "CHARTER_CAPITAL_REQUIRED",
+      });
+    }
+    const progress = this.ensureDragonProgress(city.playerId);
+    const has = (kind: CityKind) =>
+      this.citiesForPlayer(city.playerId).some((candidate) => candidate.kind === kind);
+    const ownedWilds = this.ownedWildernessCount(city.playerId);
+    const gates: Record<string, boolean> = {
+      brinehold_unlock:
+        has("marcher_keep") && progress.campsDefeated >= 3 && ownedWilds >= 1,
+      stonekeel_unlock:
+        has("brinehold") && progress.campTypesDefeated.size >= 2 && ownedWilds >= 1,
+      cinderreach_unlock:
+        has("stonekeel") && progress.scoutsSent >= 3 && ownedWilds >= 1,
+      galeari_unlock:
+        has("cinderreach") && this.dragonPresence(city.playerId).state === "BATTLE_READY",
+    };
+    if (gates[techId] !== false) return;
+    const messages: Record<string, string> = {
+      brinehold_unlock: "Brinehold Charter requires a Marcher Keep, three camp victories, and one wilderness holding",
+      stonekeel_unlock: "Stonekeel Charter requires Brinehold, two mastered camp types, and one wilderness holding",
+      cinderreach_unlock: "Forest Frontier Charter requires Stonekeel, three scouting operations, and one wilderness holding",
+      galeari_unlock: "Dragon Site Charter requires Cinderreach and a battle-ready dragon presence",
+    };
+    throw Object.assign(new Error(messages[techId] ?? "world prerequisite not met"), {
+      code: "WORLD_PREREQ",
+      techId,
+    });
+  }
+
   startTrain(
     cityId: string,
     playerId: string,
@@ -1499,6 +1561,13 @@ export class World {
       throw Object.assign(new Error(`unit ${unitId} not unlocked by research`), {
         code: "UNIT_LOCKED",
       });
+    }
+    const requiredHolding = UNIT_HOLDING_REQUIREMENTS[unitId];
+    if (requiredHolding && city.kind !== requiredHolding) {
+      throw Object.assign(
+        new Error(`${unit.name} can only be trained at a ${requiredHolding}`),
+        { code: "HOLDING_REQUIRED", requiredHolding },
+      );
     }
     const n = Math.max(1, Math.floor(count));
     const runningTrains = [...this.jobs.values()].filter(
@@ -2365,6 +2434,19 @@ export class World {
       }
     }
 
+    if (opts.intent === "attack" && opts.targetType === "camp" && opts.targetId) {
+      const camp = this.camps.get(opts.targetId);
+      if (camp && camp.level >= 8 && this.dragonPresence(playerId).state === "BATTLE_READY") {
+        const planCount = this.inventory.get(playerId)?.dragon_war_plan ?? 0;
+        if (planCount < 1) {
+          throw Object.assign(
+            new Error("a Dragon War Council plan is required before a Wyrm-Scarred hunt"),
+            { code: "DRAGON_HUNT_LOCKED" },
+          );
+        }
+      }
+    }
+
     // Commander validations before any state mutation (spec §6).
     let commander: Commander | null = null;
     if (opts.commanderId) {
@@ -2490,6 +2572,7 @@ export class World {
       status: "en_route",
       battleReportId: null,
       landCount: 0,
+      reinforcement: null,
     };
     if (commander) {
       commander.busyMarchId = march.id;
@@ -2560,9 +2643,21 @@ export class World {
       report = this.resolveAttack(march, now);
     } else if (march.intent === "reinforce") {
       const delivered = this.applyReinforce(march);
-      // Failed reinforce (no city at coords / not same alliance) must march
-      // the troops home — an empty return set annihilated them.
-      this.startReturn(march, now, delivered ? {} : march.composition);
+      if (delivered) {
+        march.status = "stationed";
+        march.returnAt = null;
+        this.putMarch(march.id, march);
+        this.pushEvent(
+          march.playerId,
+          "info",
+          "Your reinforcements are stationed under the receiving city's banner until recalled.",
+          { kind: "reinforcement_stationed", marchId: march.id, targetCityId: march.reinforcement?.targetCityId ?? null },
+        );
+      } else {
+        // Failed reinforce (no city at coords / not same alliance) must march
+        // the troops home — an empty return set annihilated them.
+        this.startReturn(march, now, march.composition);
+      }
     } else if (march.intent === "haul") {
       report = this.applyHaul(march, now);
     } else {
@@ -2698,6 +2793,10 @@ export class World {
     let camp: Camp | null = null;
     let wild: Wilderness | null = null;
     let harborLoot = false;
+    let wildernessClaimApplied = false;
+    let wildernessClaimBlocked = false;
+    let dragonHuntRewarded = false;
+    let dragonHuntBlocked = false;
 
     if (march.targetType === "camp") {
       camp =
@@ -2823,6 +2922,7 @@ export class World {
         const n = Number(lost) || 0;
         defCity.stacks[uid] = Math.max(0, (defCity.stacks[uid] ?? 0) - n);
       }
+      this.reconcileStationedLosses(defCity.id, battle.losses.defender);
       defCity.usedManpower = recalculateManpower(defCity);
       this.putCity(defCity.id, defCity);
     }
@@ -2886,10 +2986,41 @@ export class World {
             }
           }
         }
+        if (camp.level >= 8 && this.dragonPresence(march.playerId).state === "BATTLE_READY") {
+          const inventory = this.inventory.get(march.playerId) ?? {};
+          if ((inventory.dragon_war_plan ?? 0) > 0) {
+            inventory.dragon_war_plan -= 1;
+            inventory.dragon_hunt_trophy = (inventory.dragon_hunt_trophy ?? 0) + 1;
+            this.putInventory(march.playerId, inventory);
+            dragonHuntRewarded = true;
+            this.pushEvent(
+              march.playerId,
+              "info",
+              "Wyrm-Scarred hunt complete — the Dragon War Council plan has been spent.",
+              { kind: "dragon_hunt_complete", campId: camp.id, itemId: "dragon_hunt_trophy" },
+            );
+          } else {
+            // Two marches may pass departure validation with one plan; only
+            // the first successful resolution can consume it.
+            dragonHuntBlocked = true;
+          }
+        }
       } else if (wild && march.intent === "occupy") {
-        wild.ownerPlayerId = march.playerId;
-        this.putWilderness(wild.id, wild);
-        loot = { food: 40 * wild.level, wood: 40 * wild.level };
+        // Re-check at resolution time. Two legal departures can arrive after
+        // another claim or after the owner fills their capacity; departure
+        // validation alone cannot protect this persistent ownership boundary.
+        if (
+          wild.ownerPlayerId !== march.playerId &&
+          this.ownedWildernessCount(march.playerId) >=
+            this.wildernessCapacity(march.playerId)
+        ) {
+          wildernessClaimBlocked = true;
+        } else if (wild.ownerPlayerId !== march.playerId) {
+          wild.ownerPlayerId = march.playerId;
+          this.putWilderness(wild.id, wild);
+          wildernessClaimApplied = true;
+          loot = { food: 40 * wild.level, wood: 40 * wild.level };
+        }
       } else if (defCity && (harborLoot || battle.winner === "attacker")) {
         loot = this.plunderCity(defCity, harborLoot ? 0.5 : 1);
       }
@@ -2936,6 +3067,10 @@ export class World {
           x: march.targetX,
           y: march.targetY,
         },
+        wildernessClaimApplied,
+        wildernessClaimBlocked,
+        dragonHuntRewarded,
+        dragonHuntBlocked,
       },
       defenderPlayerId,
     );
@@ -2987,8 +3122,71 @@ export class World {
     // Recalculate manpower after reinforcement (exploit fix)
     targetCity.usedManpower = recalculateManpower(targetCity);
     this.putCity(targetCity.id, targetCity);
+    march.reinforcement = {
+      targetCityId: targetCity.id,
+      stationedAt: this.now(),
+      composition: { ...march.composition },
+    };
     march.composition = {};
     return true;
+  }
+
+  /** Attribute defender losses to stationed records before a later recall. */
+  private reconcileStationedLosses(
+    targetCityId: string,
+    losses: Record<string, number>,
+  ): void {
+    const stationed = [...this.marches.values()].filter(
+      (march) =>
+        march.status === "stationed" &&
+        march.reinforcement?.targetCityId === targetCityId,
+    );
+    for (const [unitId, rawLoss] of Object.entries(losses)) {
+      let remaining = Math.max(0, Math.floor(Number(rawLoss) || 0));
+      for (const march of stationed) {
+        if (remaining <= 0 || !march.reinforcement) break;
+        const held = march.reinforcement.composition[unitId] ?? 0;
+        const consumed = Math.min(held, remaining);
+        if (consumed <= 0) continue;
+        march.reinforcement.composition[unitId] = held - consumed;
+        remaining -= consumed;
+        this.putMarch(march.id, march);
+      }
+    }
+  }
+
+  /** Recall a stationed force; exact available troops return home after travel. */
+  recallReinforcement(playerId: string, marchId: string): March {
+    const march = this.marches.get(marchId);
+    if (!march || march.playerId !== playerId) {
+      throw Object.assign(new Error("reinforcement not found"), { code: "NO_REINFORCEMENT" });
+    }
+    if (march.status !== "stationed" || !march.reinforcement) {
+      throw Object.assign(new Error("reinforcement is not stationed"), { code: "NOT_STATIONED" });
+    }
+    const targetCity = this.cities.get(march.reinforcement.targetCityId);
+    const returning: Record<string, number> = {};
+    if (targetCity) {
+      for (const [uid, count] of Object.entries(march.reinforcement.composition)) {
+        const available = Math.min(Math.max(0, Math.floor(count)), Math.max(0, targetCity.stacks[uid] ?? 0));
+        if (available > 0) {
+          targetCity.stacks[uid] -= available;
+          returning[uid] = available;
+        }
+      }
+      targetCity.usedManpower = recalculateManpower(targetCity);
+      this.putCity(targetCity.id, targetCity);
+    }
+    march.reinforcement = null;
+    this.startReturn(march, this.now(), returning);
+    this.putMarch(march.id, march);
+    this.pushEvent(
+      playerId,
+      "info",
+      "Your stationed reinforcements are marching home.",
+      { kind: "reinforcement_recalled", marchId: march.id, targetCityId: targetCity?.id ?? null },
+    );
+    return march;
   }
 
   /** Structured scout intel (server-side; client only displays). */
@@ -3454,6 +3652,80 @@ export class World {
     });
     this.joinAlliance(playerId, a.id);
     return a;
+  }
+
+  /** Leader-only alliance rank management; rank changes persist with membership. */
+  setAllianceRank(
+    actorPlayerId: string,
+    allianceId: string,
+    targetPlayerId: string,
+    rank: AllianceMember["rank"],
+  ): AllianceMember {
+    const alliance = this.alliances.get(allianceId);
+    const actor = this.allianceMembers.get(actorPlayerId);
+    const target = this.allianceMembers.get(targetPlayerId);
+    if (!alliance || !actor || actor.allianceId !== allianceId || actorPlayerId !== alliance.leaderId) {
+      throw Object.assign(new Error("only the alliance leader may change ranks"), { code: "ALLIANCE_RANK_FORBIDDEN" });
+    }
+    if (!target || target.allianceId !== allianceId) {
+      throw Object.assign(new Error("target is not an alliance member"), { code: "NO_MEMBER" });
+    }
+    if (targetPlayerId === alliance.leaderId && rank !== "leader") {
+      throw Object.assign(new Error("transfer leadership before changing the leader's rank"), { code: "LEADER_RANK" });
+    }
+    if (rank === "leader") {
+      const current = this.allianceMembers.get(alliance.leaderId);
+      if (current) current.rank = "member";
+      alliance.leaderId = targetPlayerId;
+      this.putAlliance(alliance.id, alliance);
+    }
+    target.rank = rank;
+    this.putAllianceMember(target.playerId, target);
+    if (rank === "leader") {
+      const promoted = this.allianceMembers.get(targetPlayerId)!;
+      promoted.rank = "leader";
+      this.putAllianceMember(targetPlayerId, promoted);
+    }
+    return target;
+  }
+
+  /** Leave an alliance without orphaning stationed or in-flight forces. */
+  leaveAlliance(playerId: string, allianceId: string): void {
+    const membership = this.allianceMembers.get(playerId);
+    if (!membership || membership.allianceId !== allianceId) {
+      throw Object.assign(new Error("not an alliance member"), { code: "FORBIDDEN" });
+    }
+    const ownedCityIds = new Set(
+      this.citiesForPlayer(playerId).map((city) => city.id),
+    );
+    for (const march of [...this.marches.values()]) {
+      if (
+        march.status === "stationed" &&
+        march.reinforcement &&
+        (march.playerId === playerId || ownedCityIds.has(march.reinforcement.targetCityId))
+      ) {
+        this.recallReinforcement(march.playerId, march.id);
+      }
+    }
+    this.allianceMembers.delete(playerId);
+    this.dirty.allianceMembers.add(allianceId);
+    const remaining = [...this.allianceMembers.values()].filter(
+      (member) => member.allianceId === allianceId,
+    );
+    const alliance = this.alliances.get(allianceId);
+    if (alliance?.leaderId === playerId) {
+      const successor = remaining[0];
+      if (successor) {
+        alliance.leaderId = successor.playerId;
+        successor.rank = "leader";
+        this.putAlliance(alliance.id, alliance);
+        this.dirty.allianceMembers.add(allianceId);
+      } else {
+        // Keep an empty shell so the existing delta writer can preserve the
+        // alliance row across restart; a later player may join it again.
+        this.putAlliance(alliance.id, alliance);
+      }
+    }
   }
 
   private dayKey(now = this.now()): string {

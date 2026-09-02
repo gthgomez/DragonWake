@@ -47,6 +47,7 @@ export function useGame() {
   const [reports, setReports] = useState<BattleReport[]>([]);
   const [alliance, setAlliance] = useState<AllianceInfo | null>(null);
   const [chat, setChat] = useState<ChatMessage[]>([]);
+  const [sharedIntel, setSharedIntel] = useState<WorldEventDto[]>([]);
   const [formulas, setFormulas] = useState<unknown>(null);
   const [researchDefs, setResearchDefs] = useState<ResearchDef[]>([]);
   const [readinessStatus, setReadinessStatus] = useState<any>(null);
@@ -129,7 +130,8 @@ export function useGame() {
         (m) =>
           m.status === "en_route" ||
           m.status === "returning" ||
-          m.status === "resolving",
+          m.status === "resolving" ||
+          m.status === "stationed",
       ),
     );
   }, []);
@@ -225,6 +227,13 @@ export function useGame() {
       token,
     );
     setAllianceList(data.alliances);
+    if (alliance) {
+      const detail = await api<{
+        alliance: AllianceInfo;
+        members: Array<{ playerId: string; rank: "leader" | "officer" | "member"; displayName?: string }>;
+      }>(`/api/v1/alliances/${alliance.id}`, token);
+      setAlliance({ ...detail.alliance, members: detail.members });
+    }
   }
 
   useEffect(() => {
@@ -323,6 +332,9 @@ export function useGame() {
                 ? "ok"
                 : "info";
           pushToast(e.message, kind);
+          if (e.data?.kind === "shared_scout_intel") {
+            setSharedIntel((items) => [...items.slice(-7), e]);
+          }
           if (e.type === "report" || e.type === "march_land") {
             setUnreadReports((n) => n + 1);
             void loadReports().catch(() => undefined);
@@ -409,6 +421,7 @@ export function useGame() {
     setSelectedTile,
     reports,
     alliance,
+    sharedIntel,
     chat,
     formulas,
     researchDefs,
