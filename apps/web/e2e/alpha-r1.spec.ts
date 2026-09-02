@@ -48,10 +48,13 @@ async function selectFirstCamp(page: Page, level?: number) {
   const selector = level
     ? `button[aria-label^="Bandit Camp, level ${level}"]`
     : "button[aria-label^=\"Bandit Camp\"]";
-  const camp = page.locator(selector).first();
-  await expect(camp).toBeVisible({ timeout: 20_000 });
-  await camp.click({ force: true });
-  await expect(page.getByLabel("Levy Spearman count to send")).toBeVisible({ timeout: 20_000 });
+  const troopInput = page.getByLabel("Levy Spearman count to send");
+  await expect(page.locator(selector).first()).toBeVisible({ timeout: 20_000 });
+  await expect.poll(async () => {
+    const camp = page.locator(selector).first();
+    await camp.click({ force: true });
+    return troopInput.isVisible();
+  }, { timeout: 20_000, intervals: [100, 250, 500] }).toBe(true);
 }
 
 async function setMixedCompany(page: Page, levy = 50, bowman = 25) {
