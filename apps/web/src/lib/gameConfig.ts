@@ -1,9 +1,9 @@
 // Client-side copies of server-owned constants — duplicates server truth,
 // pending dedup via @dragonwake/shared.
 
-export const BUILD_COST = { food: 100, timber: 100 } as const;
+export const BUILD_COST = { food: 100, wood: 100 } as const;
 
-export const PLOT_ASSIGN_COST = { food: 80, timber: 40 } as const;
+export const PLOT_ASSIGN_COST = { food: 80, wood: 40 } as const;
 
 export type FactionMeta = { label: string; blurb: string; accent: string };
 
@@ -15,7 +15,7 @@ export const FACTION_META: Record<string, FactionMeta> = {
   },
   mountain_realm: {
     label: "Mountain Realm",
-    blurb: "Miners and smiths — iron and stone shape their destiny.",
+    blurb: "Miners and smiths — ore and stone shape their destiny.",
     accent: "ash",
   },
   forest_people: {

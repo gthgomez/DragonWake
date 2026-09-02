@@ -27,10 +27,10 @@ export type UnitDef = {
   power: number;
   carry: number;
   cost_food?: number;
-  cost_timber?: number;
+  cost_wood?: number;
   cost_stone?: number;
-  cost_iron?: number;
-  cost_coin?: number;
+  cost_ore?: number;
+  cost_crownmark?: number;
   train_sec_L1?: number;
   unlock?: string;
   medieval_role?: string;
@@ -71,7 +71,7 @@ export type CampDef = {
 };
 
 export type BuildingCost = Partial<
-  Record<"food" | "timber" | "stone" | "iron" | "coin", number>
+  Record<"food" | "wood" | "stone" | "ore" | "crownmark", number>
 >;
 
 export type BuildingDef = {
@@ -91,7 +91,7 @@ export type BuildingDef = {
 
 /** Resource cost bag for research (subset of the canonical resource set). */
 export type ResearchCost = Partial<
-  Record<"food" | "timber" | "stone" | "iron" | "coin", number>
+  Record<"food" | "wood" | "stone" | "ore" | "crownmark", number>
 >;
 
 export type ResearchDef = {
@@ -264,15 +264,32 @@ export function getUnitByName(name: string): UnitDef | undefined {
   return getUnits().find((u) => u.name.toLowerCase() === n || u.id === n);
 }
 
-/** Return unit costs in the medieval resource set (M2 canonical ids). */
-export function getUnitCost(unit: UnitDef): { food: number; timber: number; stone: number; iron: number; coin: number } {
+/** Return unit costs in the final Dragon Wake resource set. */
+export function getUnitCost(unit: UnitDef): { food: number; wood: number; stone: number; ore: number; crownmark: number } {
   return {
     food: unit.cost_food ?? 0,
-    timber: unit.cost_timber ?? 0,
+    wood: unit.cost_wood ?? 0,
     stone: unit.cost_stone ?? 0,
-    iron: unit.cost_iron ?? 0,
-    coin: unit.cost_coin ?? 0,
+    ore: unit.cost_ore ?? 0,
+    crownmark: unit.cost_crownmark ?? 0,
   };
+}
+
+/** Canonicalize an inbound or persisted bag. Final keys win; aliases fill only
+ * destinations absent from the final bag, preventing duplicate alias input. */
+export function canonResourceBag(input: Record<string, unknown> | null | undefined): Record<string, number> {
+  const out: Record<string, number> = {};
+  const finalIds = ["food", "wood", "stone", "ore", "crownmark"] as const;
+  for (const id of finalIds) {
+    const value = input?.[id];
+    if (typeof value === "number" && Number.isFinite(value)) out[id] = value;
+  }
+  for (const [rawId, rawValue] of Object.entries(input ?? {})) {
+    const id = canonResourceId(rawId);
+    if (!id || id in out) continue;
+    if (typeof rawValue === "number" && Number.isFinite(rawValue)) out[id] = rawValue;
+  }
+  return out;
 }
 
 export function getRps(): Record<string, Record<string, number>> {
@@ -397,8 +414,15 @@ export function canonTechId(id: string): string {
  * pass through unchanged.
  */
 export function canonResourceId(id: string): string {
-  const legacy = getDomainCatalog().resources?.legacy_to_target;
-  return legacy?.[id] ?? id;
+  const map: Record<string, string> = {
+    kelp: "food", driftwood: "wood", timber: "wood", basalt: "stone",
+    slagiron: "ore", iron: "ore", tidegilt: "crownmark", coin: "crownmark",
+  };
+  return map[id] ?? id;
+}
+
+export function isKnownResourceId(id: string): boolean {
+  return ["food", "wood", "stone", "ore", "crownmark", "kelp", "driftwood", "timber", "basalt", "slagiron", "iron", "tidegilt", "coin"].includes(id);
 }
 
 // ── Content integrity (boot-time fail-fast) ─────────────────────────────────

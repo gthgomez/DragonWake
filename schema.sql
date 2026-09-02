@@ -48,10 +48,10 @@ CREATE TABLE cities (
   map_x           INT NOT NULL,
   map_y           INT NOT NULL,
   food            BIGINT NOT NULL DEFAULT 1000,
-  timber          BIGINT NOT NULL DEFAULT 1000,
+  wood            BIGINT NOT NULL DEFAULT 1000,
   stone           BIGINT NOT NULL DEFAULT 1000,
-  iron            BIGINT NOT NULL DEFAULT 500,
-  coin            BIGINT NOT NULL DEFAULT 500,
+  ore             BIGINT NOT NULL DEFAULT 500,
+  crownmark       BIGINT NOT NULL DEFAULT 500,
   tax_rate        NUMERIC(5,2) NOT NULL DEFAULT 10,
   happiness       NUMERIC(5,2) NOT NULL DEFAULT 100,
   defense_posture TEXT NOT NULL DEFAULT 'withdraw'

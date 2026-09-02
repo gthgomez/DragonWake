@@ -99,7 +99,7 @@ function WildGlyph({ resourceType }: { resourceType: string }) {
   if (resourceType === "iron_hills") {
     return (
       <span className="map-glyph">
-        <Icon name="iron" size={13} />
+        <Icon name="ore" size={13} />
       </span>
     );
   }

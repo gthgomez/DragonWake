@@ -274,43 +274,43 @@ describe("Research Resource Costs", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("CostA", "northern_kingdom");
     const before = { ...world.getCity(city.id)!.resources };
-    // archery L1 base cost: timber 600 + coin 50
+    // archery L1 base cost: wood 600 + crownmark 50
     const job = world.startResearch(city.id, player.id, "archery");
     expect(job.status).toBe("running");
     let after = world.getCity(city.id)!.resources;
-    expect(after.timber).toBe(before.timber - 600);
-    expect(after.coin).toBe(before.coin - 50);
+    expect(after.wood).toBe(before.wood - 600);
+    expect(after.crownmark).toBe(before.crownmark - 50);
     expect(after.food).toBe(before.food);
     expect(after.stone).toBe(before.stone);
-    expect(after.iron).toBe(before.iron);
+    expect(after.ore).toBe(before.ore);
 
     // Finish L1; L2 costs ×2
     job.finishesAt = world.now() - 1;
     world.processQueues(world.now());
-    world.adminGrant(player.id, { resources: { timber: 2000 } });
+    world.adminGrant(player.id, { resources: { wood: 2000 } });
     const before2 = { ...world.getCity(city.id)!.resources };
     const job2 = world.startResearch(city.id, player.id, "archery");
     job2.finishesAt = world.now() - 1;
     world.processQueues(world.now());
     after = world.getCity(city.id)!.resources;
-    expect(after.timber).toBe(before2.timber - 1200);
-    expect(after.coin).toBe(before2.coin - 100);
+    expect(after.wood).toBe(before2.wood - 1200);
+    expect(after.crownmark).toBe(before2.crownmark - 100);
     expect(world.getCity(city.id)!.research.archery).toBe(2);
   });
 
   it("unaffordable research throws RESEARCH_COST listing missing resources", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("CostB", "northern_kingdom");
-    city.resources.timber = 0;
-    city.resources.coin = 0;
+    city.resources.wood = 0;
+    city.resources.crownmark = 0;
     world.cities.set(city.id, city);
     try {
-      world.startResearch(city.id, player.id, "archery"); // timber 600 + coin 50
+      world.startResearch(city.id, player.id, "archery"); // wood 600 + crownmark 50
       throw new Error("expected startResearch to throw RESEARCH_COST");
     } catch (e) {
       expect(errorCode(e)).toBe("RESEARCH_COST");
-      expect((e as Error).message).toContain("timber");
-      expect((e as Error).message).toContain("coin");
+      expect((e as Error).message).toContain("wood");
+      expect((e as Error).message).toContain("crownmark");
     }
     // No job enqueued, no resources deducted
     expect(
@@ -818,7 +818,7 @@ describe("Expedition Stage Gameplay Gates", () => {
 // ── 6. Wilderness Specialization ──────────────────────────────────────────
 
 describe("Wilderness Specialization", () => {
-  it("forest wilderness adds timber production", () => {
+  it("forest wilderness adds wood production", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("WilA", "northern_kingdom");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
@@ -829,8 +829,8 @@ describe("Wilderness Specialization", () => {
     forest.ownerPlayerId = player.id;
     world.wilderness.set(forest.id, forest);
     const after = world.effectiveProduction(world.getCity(city.id)!);
-    // forest boosts timber by 30/hr
-    expect(after.timber).toBeGreaterThan(100);
+    // forest boosts wood by 30/hr
+    expect(after.wood).toBeGreaterThan(100);
   });
 
   it("fertile_land adds food production", () => {
@@ -861,18 +861,18 @@ describe("Wilderness Specialization", () => {
     expect(after.stone).toBeGreaterThan(80);
   });
 
-  it("iron_hills adds iron production", () => {
+  it("iron_hills adds ore production", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("WilD", "coastal_lords");
     world.adminGrant(player.id, { units: { levy: 200 }, skipProtection: true });
-    const iron = [...world.wilderness.values()].find(
+    const ore = [...world.wilderness.values()].find(
       (w) => w.resourceType === "iron_hills",
     )!;
-    iron.ownerPlayerId = player.id;
-    world.wilderness.set(iron.id, iron);
+    ore.ownerPlayerId = player.id;
+    world.wilderness.set(ore.id, ore);
     const after = world.effectiveProduction(world.getCity(city.id)!);
-    // iron_hills boosts iron by 15
-    expect(after.iron).toBeGreaterThan(40);
+    // iron_hills boosts ore by 15
+    expect(after.ore).toBeGreaterThan(40);
   });
 
   it("crossroads provides no direct resource bonus", () => {
@@ -890,9 +890,9 @@ describe("Wilderness Specialization", () => {
     const after = world.effectiveProduction(world.getCity(city.id)!);
     // crossroads has rate 0 — no resource bonus
     expect(after.food).toBe(before.food);
-    expect(after.timber).toBe(before.timber);
+    expect(after.wood).toBe(before.wood);
     expect(after.stone).toBe(before.stone);
-    expect(after.iron).toBe(before.iron);
+    expect(after.ore).toBe(before.ore);
   });
 
   it("multiple wilderness of same type stack", () => {
@@ -909,8 +909,8 @@ describe("Wilderness Specialization", () => {
       world.wilderness.set(forests[i]!.id, forests[i]!);
     }
     const after = world.effectiveProduction(world.getCity(city.id)!);
-    // Two forests: 30*2 = 60 extra timber
-    expect(after.timber).toBeGreaterThanOrEqual(100 + 60);
+    // Two forests: 30*2 = 60 extra wood
+    expect(after.wood).toBeGreaterThanOrEqual(100 + 60);
   });
 
   it("wrong resource type is not affected", () => {
@@ -925,10 +925,10 @@ describe("Wilderness Specialization", () => {
     forest.ownerPlayerId = player.id;
     world.wilderness.set(forest.id, forest);
     const after = world.effectiveProduction(world.getCity(city.id)!);
-    // forest boosts timber, not food/stone/iron
+    // forest boosts wood, not food/stone/ore
     expect(after.food).toBe(before.food);
     expect(after.stone).toBe(before.stone);
-    expect(after.iron).toBe(before.iron);
+    expect(after.ore).toBe(before.ore);
   });
 
   it("wilderness capture updates production correctly", () => {
@@ -1331,7 +1331,7 @@ describe("Slice 1A Progression Path", () => {
     expect(world.getCity(city.id)!.research.archery).toBe(1);
 
     // Step 4: Train troops (grant resources first since build + research costs consumed some)
-    world.adminGrant(player.id, { resources: { food: 1500, timber: 1500 } });
+    world.adminGrant(player.id, { resources: { food: 1500, wood: 1500 } });
     const trainJob = world.startTrain(city.id, player.id, "levy", 50);
     trainJob.finishesAt = world.now() - 1;
     world.processQueues(world.now());
@@ -1517,7 +1517,7 @@ function expectCode(fn: () => void, code: string): void {
  *  Grants resources first — build costs scale with the next level number. */
 function buildGallery(world: World, playerId: string, cityId: string): void {
   world.adminGrant(playerId, {
-    resources: { food: 20000, timber: 20000, stone: 20000 },
+    resources: { food: 20000, wood: 20000, stone: 20000 },
   });
   const city = world.getCity(cityId)!;
   const existing = city.buildings.find(
@@ -1574,7 +1574,7 @@ describe("Commanders", () => {
     const before = { ...world.getCity(city.id)!.resources };
     const cmd = world.recruitCommander(player.id);
     const after = world.getCity(city.id)!.resources;
-    expect(after.coin).toBe(before.coin);
+    expect(after.crownmark).toBe(before.crownmark);
     expect(after.food).toBe(before.food);
     // base stat = stars + 4 → leadership/attack/defense/life all 5 at star 1
     expect(cmd.leadership).toBe(5);
@@ -1594,31 +1594,31 @@ describe("Commanders", () => {
     expectCode(() => world.recruitCommander(player.id), "RECRUIT_SLOTS");
   });
 
-  it("second recruit costs 250 coin + 500 food × owned; RECRUIT_COST on shortfall", () => {
+  it("second recruit costs 250 crownmark + 500 food × owned; RECRUIT_COST on shortfall", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("CmdD", "coastal_lords");
     buildGallery(world, player.id, city.id); // L1
     buildGallery(world, player.id, city.id); // L2
-    world.adminGrant(player.id, { resources: { coin: 1000, food: 2000 } });
+    world.adminGrant(player.id, { resources: { crownmark: 1000, food: 2000 } });
     world.recruitCommander(player.id);
-    const midCoin = world.getCity(city.id)!.resources.coin;
+    const midCoin = world.getCity(city.id)!.resources.crownmark;
     const midFood = world.getCity(city.id)!.resources.food;
     const cmd2 = world.recruitCommander(player.id);
-    // ownedCount was 1 → cost 250 coin + 500 food
-    expect(world.getCity(city.id)!.resources.coin).toBe(midCoin - 250);
+    // ownedCount was 1 → cost 250 crownmark + 500 food
+    expect(world.getCity(city.id)!.resources.crownmark).toBe(midCoin - 250);
     expect(world.getCity(city.id)!.resources.food).toBe(midFood - 500);
     expect(cmd2.id).not.toBe(
       world.commandersForPlayer(player.id)[0]!.id,
     );
     // Shortfall path: L3 leaves a free roster slot but owned=2 → need 500
-    // coin + 1000 food, funds stripped → RECRUIT_COST with missing resources.
+    // crownmark + 1000 food, funds stripped → RECRUIT_COST with missing resources.
     buildGallery(world, player.id, city.id); // L3
     const broke = world.getCity(city.id)!;
-    broke.resources.coin = 100;
+    broke.resources.crownmark = 100;
     broke.resources.food = 100;
     world.cities.set(broke.id, broke);
     expect(() => world.recruitCommander(player.id)).toThrow(
-      /coin need 500 have 100; food need 1000 have 100/,
+      /crownmark need 500 have 100; food need 1000 have 100/,
     );
     expectCode(() => world.recruitCommander(player.id), "RECRUIT_COST");
   });
@@ -1697,7 +1697,7 @@ describe("Commanders", () => {
     // Gallery L4: roster up to 4, slot cap min(4,3)=3
     for (let i = 0; i < 4; i++) buildGallery(world, player.id, city.id);
     world.adminGrant(player.id, {
-      resources: { coin: 5000, food: 9000 },
+      resources: { crownmark: 5000, food: 9000 },
       units: { scout: 50 },
     });
     const c1 = world.recruitCommander(player.id);
@@ -1847,7 +1847,7 @@ describe("Building Mechanics", () => {
   it("training_camp adds extra training queue slots (cap +3)", () => {
     const world = freshWorld();
     const { player, city } = world.createGuest("BldCamp", "northern_kingdom");
-    world.adminGrant(player.id, { resources: { food: 5000, timber: 5000 } });
+    world.adminGrant(player.id, { resources: { food: 5000, wood: 5000 } });
     const trainOne = (): void => {
       const job = world.startTrain(city.id, player.id, "levy", 1);
       job.finishesAt = world.now() + 60_000; // stay running
@@ -1944,7 +1944,7 @@ describe("Citadel Ladder S1.2/S1.3", () => {
     );
     // scouting L3 unlocks it; resources + manpower suffice
     city.research.scouting = 3;
-    city.resources = { food: 9999, timber: 9999, stone: 9999, iron: 9999, coin: 9999 };
+    city.resources = { food: 9999, wood: 9999, stone: 9999, ore: 9999, crownmark: 9999 };
     world.cities.set(cinder.id, city);
     const job = world.startTrain(cinder.id, player.id, "forest_ranger", 2);
     expect(job.kind).toBe("train");

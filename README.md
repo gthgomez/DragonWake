@@ -4,7 +4,13 @@ Multiplayer web MMORTS MVP beta (async city builder + map combat).
 
 ## Alpha R2 status (2026-09-02)
 
-The Awakening closure work is active on PR #7. The current build includes a
+The Awakening closure work is active on PR #7. The final resource domain is
+Food, Wood, Stone, Ore, and Crownmarks; Chronite remains separate. Older
+aquatic and intermediate saves are canonicalized at the persistence/input
+boundary. See `docs/design/M2_FINAL_RESOURCE_CUTOVER.md` and
+`docs/design/PAST_WORK_PRESERVATION_LEDGER.md`.
+
+The current build includes a
 server-derived Dragon Presence lifecycle, Castle-first presentation, an
 authoritative Dragon campaign objective ladder, level-scaled wilderness
 benefits (production, logistics, scouting), and a player-accessible Forest

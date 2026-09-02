@@ -9,10 +9,14 @@ derived from world state.
 
 ## Balance sanity notes
 
+The final resource vocabulary is Food (`food`), Wood (`wood`), Stone (`stone`),
+Ore (`ore`), and Crownmarks (`crownmark`). This is a semantic cutover only;
+the economy rates and costs below are unchanged from the intermediate set.
+
 - Camps are seeded at levels 1–10 with increasing approximate defensive power
   from 50 to 40,000 and bounded composition variants.
-- Wilderness production scales by node level: forest 30, fertile land 40,
-  quarry 25, and iron hills 15 per level per hour.
+- Wilderness production scales by node level: forest 30 Wood, fertile land 40
+  Food, quarry 25 Stone, and ore hills 15 Ore per level per hour.
 - Crossroads reduce march duration by 3% per held level, capped at 30%.
 - Watch hills add one scouting-depth level per held node level, so they improve
   intelligence without directly increasing combat power.

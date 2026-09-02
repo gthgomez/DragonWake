@@ -5,7 +5,7 @@
 import pg from "pg";
 import { createHash } from "node:crypto";
 import { applySchemaIfNeeded, findSchemaPath, tryConnectPg } from "./pg.js";
-import { getUnitById, canonTechId } from "@dragonwake/content";
+import { getUnitById, canonTechId, canonResourceBag } from "@dragonwake/content";
 import type {
   Alliance,
   AllianceMember,
@@ -152,17 +152,17 @@ export class PgStore {
           mapY: row.map_y,
           resources: {
             food: Number(row.food),
-            timber: Number(row.timber),
+            wood: Number(row.wood),
             stone: Number(row.stone),
-            iron: Number(row.iron),
-            coin: Number(row.coin),
+            ore: Number(row.ore),
+            crownmark: Number(row.crownmark),
           },
           resFraction: {
-            food: Number(row.res_fraction?.food ?? 0),
-            timber: Number(row.res_fraction?.timber ?? 0),
-            stone: Number(row.res_fraction?.stone ?? 0),
-            iron: Number(row.res_fraction?.iron ?? 0),
-            coin: Number(row.res_fraction?.coin ?? 0),
+            food: Number(canonResourceBag(row.res_fraction)?.food ?? 0),
+            wood: Number(canonResourceBag(row.res_fraction)?.wood ?? 0),
+            stone: Number(canonResourceBag(row.res_fraction)?.stone ?? 0),
+            ore: Number(canonResourceBag(row.res_fraction)?.ore ?? 0),
+            crownmark: Number(canonResourceBag(row.res_fraction)?.crownmark ?? 0),
           },
           defensePosture: row.defense_posture === "harbor" ? "withdraw" : row.defense_posture === "partial" ? "garrison" : row.defense_posture,
           lastResourceTick: new Date(row.last_resource_tick).getTime(),
@@ -270,13 +270,17 @@ export class PgStore {
         [world.realmId],
       );
       for (const row of reports.rows) {
+        const result = (row.result ?? {}) as Record<string, unknown>;
+        if (result.loot && typeof result.loot === "object") {
+          result.loot = canonResourceBag(result.loot as Record<string, unknown>);
+        }
         const r: BattleReport = {
           id: row.id,
           realmId: row.realm_id,
           marchId: row.march_id,
           attackerPlayerId: row.attacker_player_id,
           defenderPlayerId: row.defender_player_id,
-          result: row.result,
+          result,
           createdAt: new Date(row.created_at).getTime(),
         };
         world.reports.set(r.id, r);
@@ -313,7 +317,7 @@ export class PgStore {
         const raw = (row.composition ?? {}) as Record<string, unknown>;
         const cargo =
           raw.__cargo && typeof raw.__cargo === "object"
-            ? (raw.__cargo as March["cargo"])
+            ? (canonResourceBag(raw.__cargo as Record<string, unknown>) as March["cargo"])
             : {};
         const composition: Record<string, number> = {};
         for (const [k, v] of Object.entries(raw)) {
@@ -577,7 +581,7 @@ export class PgStore {
     await client.query(
       `INSERT INTO cities (
            id, player_id, realm_id, kind, name, map_x, map_y,
-           food, timber, stone, iron, coin, res_fraction,
+           food, wood, stone, ore, crownmark, res_fraction,
            defense_posture, last_posture_change, last_resource_tick,
            population, pop_fraction, max_population, used_manpower
          ) VALUES (
@@ -588,10 +592,10 @@ export class PgStore {
            kind=EXCLUDED.kind,
            name=EXCLUDED.name,
            food=EXCLUDED.food,
-           timber=EXCLUDED.timber,
+           wood=EXCLUDED.wood,
            stone=EXCLUDED.stone,
-           iron=EXCLUDED.iron,
-           coin=EXCLUDED.coin,
+           ore=EXCLUDED.ore,
+           crownmark=EXCLUDED.crownmark,
            res_fraction=EXCLUDED.res_fraction,
            defense_posture=EXCLUDED.defense_posture,
            last_posture_change=EXCLUDED.last_posture_change,
@@ -609,11 +613,11 @@ export class PgStore {
         c.mapX,
         c.mapY,
         c.resources.food,
-        c.resources.timber,
+        c.resources.wood,
         c.resources.stone,
-        c.resources.iron,
-        c.resources.coin,
-        JSON.stringify(c.resFraction ?? {}),
+        c.resources.ore,
+        c.resources.crownmark,
+        JSON.stringify(canonResourceBag(c.resFraction ?? {})),
         c.defensePosture,
         c.lastPostureChange,
         c.lastResourceTick,
@@ -753,7 +757,7 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
         m.targetY,
         JSON.stringify({
           ...m.composition,
-          __cargo: m.cargo ?? {},
+          __cargo: canonResourceBag(m.cargo ?? {}),
         }),
         m.departAt,
         m.arriveAt,

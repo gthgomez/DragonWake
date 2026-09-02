@@ -130,7 +130,7 @@ describe("PG persistence (shipped PgStore + World)", () => {
     const galleryJob2 = world1.startBuild(city.id, player.id, 6, "command_gallery");
     galleryJob2.finishesAt = world1.now() - 1;
     world1.processQueues(world1.now());
-    world1.adminGrant(player.id, { resources: { coin: 5000, food: 9000 } });
+    world1.adminGrant(player.id, { resources: { crownmark: 5000, food: 9000 } });
     const c2 = world1.recruitCommander(player.id);
     const l10camp = [...world1.camps.values()].find((c) => c.level === 10)!;
     const lossMarch = world1.createMarch(player.id, {

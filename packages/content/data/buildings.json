@@ -14,7 +14,7 @@
     "max_level": 10,
     "buildable": true,
     "purpose": "Shelters families. Each level houses more townsfolk and raises manpower.",
-    "build_cost": { "food": 100, "timber": 100 },
+    "build_cost": { "food": 100, "wood": 100 },
     "build_sec_L1": 30
   },
   {
@@ -24,7 +24,7 @@
     "max_level": 10,
     "buildable": true,
     "purpose": "Drills your companies. Each level speeds training by 5%.",
-    "build_cost": { "food": 100, "timber": 100 },
+    "build_cost": { "food": 100, "wood": 100 },
     "build_sec_L1": 30
   },
   {
@@ -34,7 +34,7 @@
     "max_level": 10,
     "buildable": true,
     "purpose": "Houses scholars and preserves written knowledge. Each level speeds research by 5%.",
-    "build_cost": { "food": 120, "timber": 120, "stone": 40 },
+    "build_cost": { "food": 120, "wood": 120, "stone": 40 },
     "build_sec_L1": 40
   },
   {
@@ -44,7 +44,7 @@
     "max_level": 10,
     "buildable": true,
     "purpose": "Gathers and provisions armies for the march. Each level speeds all marches by 4%.",
-    "build_cost": { "food": 140, "timber": 140, "stone": 40 },
+    "build_cost": { "food": 140, "wood": 140, "stone": 40 },
     "build_sec_L1": 45
   },
   {
@@ -54,7 +54,7 @@
     "max_level": 10,
     "buildable": true,
     "purpose": "Recruit commanders. Each level widens the roster and grants another command slot.",
-    "build_cost": { "food": 200, "timber": 150, "stone": 50 },
+    "build_cost": { "food": 200, "wood": 150, "stone": 50 },
     "build_sec_L1": 60
   },
   {
@@ -64,7 +64,7 @@
     "max_level": 10,
     "buildable": true,
     "purpose": "Extends your scouts' sight. Higher levels return deeper intelligence.",
-    "build_cost": { "food": 120, "timber": 180, "stone": 80 },
+    "build_cost": { "food": 120, "wood": 180, "stone": 80 },
     "build_sec_L1": 50
   },
   {
@@ -74,7 +74,7 @@
     "max_level": 10,
     "buildable": true,
     "purpose": "A tower attuned to the sky, watched for signs of wings.",
-    "build_cost": { "food": 120, "timber": 100, "stone": 50, "coin": 50 },
+    "build_cost": { "food": 120, "wood": 100, "stone": 50, "crownmark": 50 },
     "build_sec_L1": 30
   },
   {
@@ -100,7 +100,7 @@
     "max_level": 10,
     "buildable": true,
     "purpose": "Salts, cellars, and shields your stores from raiders. Each level protects more.",
-    "build_cost": { "food": 150, "timber": 100, "stone": 60 },
+    "build_cost": { "food": 150, "wood": 100, "stone": 60 },
     "build_sec_L1": 45
   },
   {
@@ -109,7 +109,7 @@
     "category": "defense",
     "max_level": 10,
     "buildable": false,
-    "purpose": "Stone and timber thrown against siege and storm."
+    "purpose": "Stone and wood thrown against siege and storm."
   },
   {
     "id": "training_camp",
@@ -118,7 +118,7 @@
     "max_level": 10,
     "buildable": true,
     "purpose": "Yards for mustering levies. Each level allows another training queue.",
-    "build_cost": { "food": 180, "timber": 140, "stone": 60 },
+    "build_cost": { "food": 180, "wood": 140, "stone": 60 },
     "build_sec_L1": 55
   }
 ]

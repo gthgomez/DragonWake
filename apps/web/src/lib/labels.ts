@@ -83,10 +83,10 @@ export function campLabel(level: number): string {
 export type WildInfo = { label: string; bonusLine: string };
 
 const WILDS: Record<string, WildInfo> = {
-  forest: { label: "Deepwood", bonusLine: "+30 timber/h while held" },
+  forest: { label: "Deepwood", bonusLine: "+30 wood/h while held" },
   fertile_land: { label: "Rich Farmland", bonusLine: "+40 food/h while held" },
   quarry: { label: "Stone Quarry", bonusLine: "+25 stone/h while held" },
-  iron_hills: { label: "Iron Hills", bonusLine: "+15 iron/h while held" },
+  iron_hills: { label: "Iron Hills", bonusLine: "+15 ore/h while held" },
   crossroads: { label: "Crossroads", bonusLine: "a strategic junction" },
   watch_hill: { label: "Watch Hill", bonusLine: "high ground for scouts" },
 };

@@ -13,7 +13,7 @@
     "per_level": 0.08,
     "max_level": 10,
     "group": "production",
-    "cost": { "timber": 500 }
+    "cost": { "wood": 500 }
   },
   {
     "id": "masonry",
@@ -29,7 +29,7 @@
     "per_level": 0.08,
     "max_level": 10,
     "group": "production",
-    "cost": { "iron": 400, "coin": 100 }
+    "cost": { "ore": 400, "crownmark": 100 }
   },
   {
     "id": "infantry_doctrine",
@@ -37,7 +37,7 @@
     "per_level": 0.05,
     "max_level": 10,
     "group": "combat",
-    "cost": { "food": 600, "timber": 200 }
+    "cost": { "food": 600, "wood": 200 }
   },
   {
     "id": "archery",
@@ -45,7 +45,7 @@
     "per_level": 0.05,
     "max_level": 10,
     "group": "combat",
-    "cost": { "timber": 600, "coin": 50 }
+    "cost": { "wood": 600, "crownmark": 50 }
   },
   {
     "id": "fortification",
@@ -61,7 +61,7 @@
     "per_level": 0.05,
     "max_level": 10,
     "group": "combat",
-    "cost": { "food": 300, "coin": 50 }
+    "cost": { "food": 300, "crownmark": 50 }
   },
   {
     "id": "cavalry",
@@ -69,7 +69,7 @@
     "per_level": 0.05,
     "max_level": 10,
     "group": "combat",
-    "cost": { "food": 800, "coin": 100 }
+    "cost": { "food": 800, "crownmark": 100 }
   },
   {
     "id": "siegecraft",
@@ -77,7 +77,7 @@
     "per_level": 0.05,
     "max_level": 10,
     "group": "combat",
-    "cost": { "timber": 500, "iron": 300 }
+    "cost": { "wood": 500, "ore": 300 }
   },
   {
     "id": "logistics_res",
@@ -85,7 +85,7 @@
     "per_level": 0.08,
     "max_level": 10,
     "group": "utility",
-    "cost": { "timber": 400, "iron": 200 }
+    "cost": { "wood": 400, "ore": 200 }
   },
   {
     "id": "scouting",
@@ -109,7 +109,7 @@
     "per_level": 0,
     "max_level": 5,
     "group": "utility",
-    "cost": { "coin": 150 }
+    "cost": { "crownmark": 150 }
   },
   {
     "id": "stonekeel_unlock",
@@ -117,7 +117,7 @@
     "per_level": 0,
     "max_level": 1,
     "group": "expansion",
-    "cost": { "stone": 800, "coin": 300 }
+    "cost": { "stone": 800, "crownmark": 300 }
   },
   {
     "id": "cinderreach_unlock",
@@ -125,7 +125,7 @@
     "per_level": 0,
     "max_level": 1,
     "group": "expansion",
-    "cost": { "timber": 1200, "coin": 500 }
+    "cost": { "wood": 1200, "crownmark": 500 }
   },
   {
     "id": "galeari_unlock",
@@ -133,6 +133,6 @@
     "per_level": 0,
     "max_level": 1,
     "group": "expansion",
-    "cost": { "stone": 1600, "iron": 1000, "coin": 800 }
+    "cost": { "stone": 1600, "ore": 1000, "crownmark": 800 }
   }
 ]

@@ -17,10 +17,10 @@ function sampleCity(overrides: Partial<City> = {}): City {
     mapY: 1,
     resources: {
       food: 100,
-      timber: 100,
+      wood: 100,
       stone: 100,
-      iron: 50,
-      coin: 50,
+      ore: 50,
+      crownmark: 50,
     },
     defensePosture: "withdraw",
     lastResourceTick: 0,
@@ -41,7 +41,7 @@ describe("tickCityResources (shipped sim)", () => {
     const hour = 3_600_000;
     const next = tickCityResources(city, hour, []);
     expect(next.resources.food).toBeGreaterThan(city.resources.food);
-    expect(next.resources.timber).toBeGreaterThan(city.resources.timber);
+    expect(next.resources.wood).toBeGreaterThan(city.resources.wood);
     expect(next.lastResourceTick).toBe(hour);
   });
 
@@ -94,7 +94,7 @@ describe("World daily quests + tutorial", () => {
     world.advanceTutorial(player.id);
     expect(world.tutorialView(player.id).step).toBe(1);
     // Satisfy the objective authoritatively: complete another Homes level.
-    world.adminGrant(player.id, { resources: { food: 5000, timber: 5000 } });
+    world.adminGrant(player.id, { resources: { food: 5000, wood: 5000 } });
     const job = world.startBuild(city.id, player.id, 3, "habitation");
     job.finishesAt = world.now() - 1;
     world.processQueues(world.now());
@@ -434,9 +434,9 @@ describe("World queues + marches (shipped paths)", () => {
     const b = world.createGuest("HaulFailB", "mountain_realm");
     world.adminGrant(a.player.id, {
       units: { porter: 20 },
-      resources: { timber: 300 },
+      resources: { wood: 300 },
     });
-    const originKelp = world.getCity(a.city.id)!.resources.timber;
+    const originKelp = world.getCity(a.city.id)!.resources.wood;
     const march = world.createMarch(a.player.id, {
       fromCityId: a.city.id,
       intent: "haul",
@@ -445,9 +445,9 @@ describe("World queues + marches (shipped paths)", () => {
       targetX: b.city.mapX,
       targetY: b.city.mapY,
       composition: { porter: 10 },
-      cargo: { timber: 100 },
+      cargo: { wood: 100 },
     });
-    expect(world.getCity(a.city.id)!.resources.timber).toBe(
+    expect(world.getCity(a.city.id)!.resources.wood).toBe(
       originKelp - 100,
     );
     march.arriveAt = 0;
@@ -455,6 +455,6 @@ describe("World queues + marches (shipped paths)", () => {
     expect(report!.result.delivered).toBe(false);
     expect(report!.result.reason).toBe("not_own_or_alliance_city");
     // Cargo returned to origin on failed delivery
-    expect(world.getCity(a.city.id)!.resources.timber).toBe(originKelp);
+    expect(world.getCity(a.city.id)!.resources.wood).toBe(originKelp);
   });
 });

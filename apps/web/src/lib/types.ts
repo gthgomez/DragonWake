@@ -6,10 +6,10 @@
 
 export type Resources = {
   food: number;
-  timber: number;
+  wood: number;
   stone: number;
-  iron: number;
-  coin: number;
+  ore: number;
+  crownmark: number;
 };
 
 export type City = {
@@ -107,10 +107,10 @@ export type UnitDef = {
   id: string;
   name: string;
   cost_food?: number;
-  cost_timber?: number;
+  cost_wood?: number;
   cost_stone?: number;
-  cost_iron?: number;
-  cost_coin?: number;
+  cost_ore?: number;
+  cost_crownmark?: number;
   train_sec_L1?: number;
   unlock?: string;
   role?: string;

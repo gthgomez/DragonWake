@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 
 import "./city.css";
@@ -24,7 +24,7 @@ const MIN_SLOTS = 12;
 
 function costOf(def: BuildingLite, level: number): Record<string, number> {
   const out: Record<string, number> = {};
-  for (const [k, v] of Object.entries(def.build_cost ?? { food: 100, timber: 100 })) {
+  for (const [k, v] of Object.entries(def.build_cost ?? { food: 100, wood: 100 })) {
     out[k] = Math.floor((v ?? 0) * level);
   }
   return out;
@@ -156,7 +156,7 @@ function HabitationGlyph({ level }: { level: number }) {
   );
 }
 
-/** Saltvault (Storehouse) — strongbox with vault dial and coin accent. */
+/** Saltvault (Storehouse) — strongbox with vault dial and crownmark accent. */
 function SaltvaultGlyph({ level }: { level: number }) {
   return (
     <GlyphFrame level={level}>
@@ -302,12 +302,6 @@ function CostRow({
 export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 
-  // Switching cities resets the selection so the card never describes
-  // a plot from the previous city.
-  useEffect(() => {
-    setSelectedSlot(null);
-  }, [city.id]);
-
   const bySlot = useMemo(() => {
     const m = new Map<number, Building>();
     for (const b of city.buildings) m.set(b.slotIndex, b);
@@ -355,6 +349,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
   const selectedJob =
     selectedSlot !== null ? (jobsBySlot.get(selectedSlot) ?? null) : null;
   const selectedDef = selected ? buildingDef(selected.buildingType) : null;
+  const buildSlot = selectedSlot ?? slots.find((slot) => !bySlot.has(slot) && !jobsBySlot.has(slot)) ?? 0;
 
   return (
     <div className="city-layout">
@@ -569,7 +564,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
               />
             </div>
           </div>
-        ) : selectedSlot !== null ? (
+        ) : selectedSlot !== null || buildableDefs.length > 0 ? (
           <div className="city-detail-body">
             <header className="city-detail-head">
               <span className="city-detail-glyph city-empty-glyph" aria-hidden="true">
@@ -594,7 +589,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                     type="button"
                     className="city-pick"
                     disabled={!affordable}
-                    onClick={() => void doBuild(def.id, selectedSlot)}
+                    onClick={() => void doBuild(def.id, buildSlot)}
                     title={def.purpose}
                   >
                     <span className="city-pick-name">{def.name}</span>

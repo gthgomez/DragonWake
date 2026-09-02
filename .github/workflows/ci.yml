@@ -45,3 +45,7 @@ jobs:
         run: pnpm --filter @dragonwake/web build
       - name: Server typecheck
         run: pnpm --filter @dragonwake/server typecheck
+      - name: Install Chromium for Alpha certification
+        run: pnpm --filter @dragonwake/web exec playwright install --with-deps chromium
+      - name: Alpha browser certification (desktop/tablet/mobile)
+        run: pnpm --filter @dragonwake/web e2e

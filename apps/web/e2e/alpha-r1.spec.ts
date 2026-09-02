@@ -15,7 +15,9 @@ async function enterRealm(page: Page, suffix: string) {
 }
 
 async function buildOnPlot(page: Page, plot: number, building: string) {
-  await page.getByRole("button", { name: `Empty plot ${plot}` }).click();
+  const plotButton = page.getByRole("button", { name: `Empty plot ${plot}` });
+  await plotButton.click();
+  await expect(page.getByText("Choose a structure to raise here:")).toBeVisible();
   await page.locator(".city-pick", { hasText: building }).click();
   await expect(page.locator(".toast", { hasText: `Building ${building}` })).toBeVisible();
 }

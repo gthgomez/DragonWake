@@ -29,7 +29,9 @@
     radial-gradient(120% 90% at 50% 0%, rgba(122, 92, 51, 0.18), transparent 55%),
     linear-gradient(180deg, #191309 0%, #110c07 100%);
   box-shadow: var(--shadow-inset), var(--shadow-1);
-  overflow: hidden; /* safe: scene sits outside the preserve-3d chain */
+  /* The rotated plane extends beyond its untransformed box; clipping it makes
+     right-side plots unreachable at desktop widths. */
+  overflow: visible;
 }
 
 .city-scene-hint {

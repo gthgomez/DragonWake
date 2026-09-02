@@ -32,9 +32,9 @@ const PLOT_TYPES: {
   },
   {
     id: "lumber_yard",
-    name: "Timber Camp",
-    glyph: "timber",
-    resource: "timber",
+    name: "Woodland",
+    glyph: "wood",
+    resource: "wood",
     blurb: "Fellers and saw-pits feeding the builder's yards.",
   },
   {
@@ -46,9 +46,9 @@ const PLOT_TYPES: {
   },
   {
     id: "mine",
-    name: "Iron Mine",
-    glyph: "iron",
-    resource: "iron",
+    name: "Ore Mine",
+    glyph: "ore",
+    resource: "ore",
     blurb: "Shafts and adits yielding ore for the smiths.",
   },
 ];
@@ -66,9 +66,9 @@ function plotRate(type: keyof Resources, level: number): number {
 /** Wilderness bonus wording so claims and lands read as one economy. */
 const WILD_RELATION: Record<string, string> = {
   farm: "Held Rich Farmland adds +40 food/h to the whole realm.",
-  lumber_yard: "Held Deepwood adds +30 timber/h to the whole realm.",
+  lumber_yard: "Held Deepwood adds +30 wood/h to the whole realm.",
   quarry: "Held Stone Quarries add +25 stone/h to the whole realm.",
-  mine: "Held Iron Hills add +15 iron/h to the whole realm.",
+  mine: "Held Ore Hills add +15 ore/h to the whole realm.",
 };
 
 export function LandsView({ city, assignPlot, upgradePlot }: LandsViewProps) {
@@ -102,7 +102,7 @@ export function LandsView({ city, assignPlot, upgradePlot }: LandsViewProps) {
             <li key={k}>
               <strong className="res-head">
                 <Icon name={k as IconName} size={16} />
-                {k === "coin" ? "Coin" : k.charAt(0).toUpperCase() + k.slice(1)}
+                {k === "crownmark" ? "Crownmarks" : k.charAt(0).toUpperCase() + k.slice(1)}
               </strong>
               <span className="res-val">+{fmtNum(rates[k])}/h</span>
             </li>
@@ -167,8 +167,8 @@ export function LandsView({ city, assignPlot, upgradePlot }: LandsViewProps) {
               <h4>Unclaimed ground</h4>
               <p className="tiny">
                 Stake this plot to work it for the realm. Staking costs{" "}
-                {PLOT_ASSIGN_COST.food} food and {PLOT_ASSIGN_COST.timber}{" "}
-                timber.
+                {PLOT_ASSIGN_COST.food} food and {PLOT_ASSIGN_COST.wood}{" "}
+                wood.
               </p>
               <div className="city-pick-grid">
                 {PLOT_TYPES.map((t) => (
@@ -232,12 +232,12 @@ export function LandsView({ city, assignPlot, upgradePlot }: LandsViewProps) {
                     </span>
                     <span
                       className={`city-cost ${
-                        (city.resources.timber ?? 0) < 50 * selected.level
+                        (city.resources.wood ?? 0) < 50 * selected.level
                           ? "city-cost-short"
                           : ""
                       }`}
                     >
-                      <Icon name="timber" size={14} /> {50 * selected.level}
+                      <Icon name="wood" size={14} /> {50 * selected.level}
                     </span>
                   </div>
                   <button
@@ -246,7 +246,7 @@ export function LandsView({ city, assignPlot, upgradePlot }: LandsViewProps) {
                     disabled={
                       !canAfford(city.resources, {
                         food: 50 * selected.level,
-                        timber: 50 * selected.level,
+                        wood: 50 * selected.level,
                       })
                     }
                     onClick={() =>

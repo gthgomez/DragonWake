@@ -137,7 +137,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
   async function doBuild(buildingType: string, slotIndex?: number) {
     if (!token || !city) return;
     const def = buildingDef(buildingType);
-    const baseCost = def?.build_cost ?? { food: 100, timber: 100 };
+    const baseCost = def?.build_cost ?? { food: 100, wood: 100 };
     const slot =
       slotIndex ?? Math.max(0, ...city.buildings.map((b) => b.slotIndex), -1) + 1;
     const existing = city.buildings.find((b) => b.slotIndex === slot);
@@ -436,7 +436,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
     if (!token || !city) return;
     if (!canAfford(city.resources, PLOT_ASSIGN_COST)) {
       setError(
-        `Not enough resources — staking ground costs ${PLOT_ASSIGN_COST.food} food and ${PLOT_ASSIGN_COST.timber} timber.`,
+        `Not enough resources — staking ground costs ${PLOT_ASSIGN_COST.food} food and ${PLOT_ASSIGN_COST.wood} wood.`,
       );
       return;
     }
@@ -451,9 +451,9 @@ export function useGameActions(deps: UseGameActionsDeps) {
 
   async function upgradePlot(slotIndex: number, level: number) {
     if (!token || !city) return;
-    const cost = { food: 50 * level, timber: 50 * level };
+    const cost = { food: 50 * level, wood: 50 * level };
     if (!canAfford(city.resources, cost)) {
-      setError(`Need ${cost.food} food + ${cost.timber} timber`);
+      setError(`Need ${cost.food} food + ${cost.wood} wood`);
       return;
     }
     await run(`Plot improved to level ${level + 1}`, async () => {

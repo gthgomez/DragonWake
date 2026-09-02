@@ -44,10 +44,10 @@ type CastleViewProps = {
 
 const RES_LABELS: Record<string, string> = {
   food: "Food",
-  timber: "Timber",
+  wood: "Wood",
   stone: "Stone",
-  iron: "Iron",
-  coin: "Coin",
+  ore: "Ore",
+  crownmark: "Crownmarks",
 };
 
 /** Mirror of content isUnitUnlocked for client-side display only. */
@@ -197,7 +197,7 @@ export function CastleView({
           </p>
         </div>
       </div>
-      <CityGrid city={city} jobs={jobs} now={now} doBuild={doBuild} />
+      <CityGrid key={city.id} city={city} jobs={jobs} now={now} doBuild={doBuild} />
 
       <div className="castle-columns">
         <div>

@@ -175,13 +175,13 @@ export function wildernessBenefit(wilderness: Wilderness): WildernessBenefit {
   const amount = wilderness.level;
   switch (wilderness.resourceType) {
     case "forest":
-      return { kind: "production", label: `+${amount * 30} timber/hour`, description: "Managed woodland feeds your sawpits.", amount: amount * 30 };
+      return { kind: "production", label: `+${amount * 30} wood/hour`, description: "Managed woodland feeds your sawpits.", amount: amount * 30 };
     case "fertile_land":
       return { kind: "production", label: `+${amount * 40} food/hour`, description: "Rich soil supports the kingdom's growing population.", amount: amount * 40 };
     case "quarry":
       return { kind: "production", label: `+${amount * 25} stone/hour`, description: "Stone seams strengthen every wall and road.", amount: amount * 25 };
     case "iron_hills":
-      return { kind: "production", label: `+${amount * 15} iron/hour`, description: "Ore from the hills arms the frontier.", amount: amount * 15 };
+      return { kind: "production", label: `+${amount * 15} ore/hour`, description: "Ore from the hills arms the frontier.", amount: amount * 15 };
     case "crossroads":
       return { kind: "logistics", label: `${amount * 3}% faster marches`, description: "A held crossroads shortens every route through the realm.", amount: amount * 3 };
     case "watch_hill":
@@ -473,10 +473,10 @@ export type PlotTypeId = (typeof PLOT_TYPES)[number];
 function emptyResources(n = 1000): ResourceBag {
   return {
     food: n,
-    timber: n,
+    wood: n,
     stone: n,
-    iron: Math.floor(n / 2),
-    coin: Math.floor(n / 2),
+    ore: Math.floor(n / 2),
+    crownmark: Math.floor(n / 2),
   };
 }
 
@@ -652,26 +652,26 @@ export function resolveCampDefGroups(
 export function productionPerHour(city: City): ResourceBag {
   const rates: ResourceBag = {
     food: 120,
-    timber: 100,
+    wood: 100,
     stone: 80,
-    iron: 40,
-    coin: 20,
+    ore: 40,
+    crownmark: 20,
   };
   for (const p of city.plots) {
     if (!p.plotType || p.level <= 0) continue;
     const mult = p.level * 30;
     if (p.plotType === "farm") rates.food += mult;
-    if (p.plotType === "lumber_yard") rates.timber += mult;
+    if (p.plotType === "lumber_yard") rates.wood += mult;
     if (p.plotType === "quarry") rates.stone += mult;
-    if (p.plotType === "mine") rates.iron += mult;
+    if (p.plotType === "mine") rates.ore += mult;
   }
   const wildBonus = 1; // wild claims applied by caller if needed
   return {
     food: rates.food * wildBonus,
-    timber: rates.timber * wildBonus,
+    wood: rates.wood * wildBonus,
     stone: rates.stone * wildBonus,
-    iron: rates.iron * wildBonus,
-    coin: rates.coin * wildBonus,
+    ore: rates.ore * wildBonus,
+    crownmark: rates.crownmark * wildBonus,
   };
 }
 
@@ -705,10 +705,10 @@ export function tickCityResources(
   // remainders now accumulate until a whole unit lands.
   const frac: ResourceBag = city.resFraction ?? {
     food: 0,
-    timber: 0,
+    wood: 0,
     stone: 0,
-    iron: 0,
-    coin: 0,
+    ore: 0,
+    crownmark: 0,
   };
   const next: ResourceBag = { ...city.resources };
   const accrue = (key: keyof ResourceBag, ratePerHour: number) => {
@@ -723,10 +723,10 @@ export function tickCityResources(
     }
   };
   accrue("food", rates.food + wildFood);
-  accrue("timber", rates.timber + wildTimber);
+  accrue("wood", rates.wood + wildTimber);
   accrue("stone", rates.stone + wildStone);
-  accrue("iron", rates.iron + wildIron);
-  accrue("coin", rates.coin);
+  accrue("ore", rates.ore + wildIron);
+  accrue("crownmark", rates.crownmark);
 
   // Population growth: grows based on habitation building levels.
   // Proportional with fractional carry — the old Math.max(1, …) granted
@@ -1023,10 +1023,10 @@ export class World {
       }
       const id = randomUUID();
       const WILDERNESS_TYPES = [
-        { type: "forest", bonus: "timber", rate: 30 },
+        { type: "forest", bonus: "wood", rate: 30 },
         { type: "fertile_land", bonus: "food", rate: 40 },
         { type: "quarry", bonus: "stone", rate: 25 },
-        { type: "iron_hills", bonus: "iron", rate: 15 },
+        { type: "iron_hills", bonus: "ore", rate: 15 },
         { type: "crossroads", bonus: "logistics", rate: 0 },
         { type: "watch_hill", bonus: "scouting", rate: 0 },
       ];
@@ -1187,10 +1187,10 @@ export class World {
         next.population !== city.population ||
         next.maxPopulation !== city.maxPopulation ||
         next.resources.food !== city.resources.food ||
-        next.resources.timber !== city.resources.timber ||
+        next.resources.wood !== city.resources.wood ||
         next.resources.stone !== city.resources.stone ||
-        next.resources.iron !== city.resources.iron ||
-        next.resources.coin !== city.resources.coin
+        next.resources.ore !== city.resources.ore ||
+        next.resources.crownmark !== city.resources.crownmark
       ) {
         this.putCity(city.id, next);
       } else {
@@ -1328,7 +1328,7 @@ export class World {
       }
     }
 
-    const baseCost = def.build_cost ?? { food: 100, timber: 100 };
+    const baseCost = def.build_cost ?? { food: 100, wood: 100 };
     const missing: string[] = [];
     for (const [res, base] of Object.entries(baseCost)) {
       const key = res as keyof ResourceBag;
@@ -1465,25 +1465,25 @@ export class World {
     }
     const costs = getUnitCost(unit);
     const costK = costs.food * n;
-    const costD = costs.timber * n;
+    const costD = costs.wood * n;
     const costB = costs.stone * n;
-    const costS = costs.iron * n;
+    const costS = costs.ore * n;
     if (city.resources.food < costK) {
       throw Object.assign(new Error("insufficient food"), { code: "NO_RES" });
     }
-    if (city.resources.timber < costD) {
-      throw Object.assign(new Error("insufficient timber"), { code: "NO_RES" });
+    if (city.resources.wood < costD) {
+      throw Object.assign(new Error("insufficient wood"), { code: "NO_RES" });
     }
     if (city.resources.stone < costB) {
       throw Object.assign(new Error("insufficient stone"), { code: "NO_RES" });
     }
-    if (city.resources.iron < costS) {
-      throw Object.assign(new Error("insufficient iron"), { code: "NO_RES" });
+    if (city.resources.ore < costS) {
+      throw Object.assign(new Error("insufficient ore"), { code: "NO_RES" });
     }
     city.resources.food -= costK;
-    city.resources.timber -= costD;
+    city.resources.wood -= costD;
     city.resources.stone -= costB;
-    city.resources.iron -= costS;
+    city.resources.ore -= costS;
     const barracksFactor = trainSpeedFactor(
       bestBuildingLevel(this, playerId, "barracks"),
     );
@@ -1600,8 +1600,8 @@ export class World {
       const coinCost = RECRUIT_COST_COIN_PER_OWNED * owned;
       const foodCost = RECRUIT_COST_FOOD_PER_OWNED * owned;
       const missing: string[] = [];
-      if ((city.resources.coin ?? 0) < coinCost) {
-        missing.push(`coin need ${coinCost} have ${city.resources.coin ?? 0}`);
+      if ((city.resources.crownmark ?? 0) < coinCost) {
+        missing.push(`crownmark need ${coinCost} have ${city.resources.crownmark ?? 0}`);
       }
       if ((city.resources.food ?? 0) < foodCost) {
         missing.push(`food need ${foodCost} have ${city.resources.food ?? 0}`);
@@ -1612,7 +1612,7 @@ export class World {
           { code: "RECRUIT_COST" },
         );
       }
-      city.resources.coin -= coinCost;
+      city.resources.crownmark -= coinCost;
       city.resources.food -= foodCost;
       this.putCity(city.id, city);
     }
@@ -1691,7 +1691,7 @@ export class World {
     return city;
   }
 
-  /** Empty plot → assign type at L1. Costs food + timber. */
+  /** Empty plot → assign type at L1. Costs food + wood. */
   assignPlot(
     cityId: string,
     playerId: string,
@@ -1713,13 +1713,13 @@ export class World {
     }
     const costKelp = 80;
     const costDrift = 40;
-    if (city.resources.food < costKelp || city.resources.timber < costDrift) {
+    if (city.resources.food < costKelp || city.resources.wood < costDrift) {
       throw Object.assign(new Error("insufficient resources"), {
         code: "NO_RES",
       });
     }
     city.resources.food -= costKelp;
-    city.resources.timber -= costDrift;
+    city.resources.wood -= costDrift;
     plot.plotType = plotType;
     plot.level = 1;
     this.putCity(city.id, city);
@@ -1740,13 +1740,13 @@ export class World {
     }
     const costKelp = 50 * plot.level;
     const costDrift = 50 * plot.level;
-    if (city.resources.food < costKelp || city.resources.timber < costDrift) {
+    if (city.resources.food < costKelp || city.resources.wood < costDrift) {
       throw Object.assign(new Error("insufficient resources"), {
         code: "NO_RES",
       });
     }
     city.resources.food -= costKelp;
-    city.resources.timber -= costDrift;
+    city.resources.wood -= costDrift;
     plot.level += 1;
     this.putCity(city.id, city);
     return { ...plot };
@@ -1764,24 +1764,24 @@ export class World {
     const wildBonus = this.ownedWildernessBonus(city.playerId);
     return {
       food: Math.floor(rates.food + wildBonus.food),
-      timber: Math.floor(rates.timber + wildBonus.timber),
+      wood: Math.floor(rates.wood + wildBonus.wood),
       stone: Math.floor(rates.stone + wildBonus.stone),
-      iron: Math.floor(rates.iron + wildBonus.iron),
-      coin: Math.floor(rates.coin + wildBonus.coin),
+      ore: Math.floor(rates.ore + wildBonus.ore),
+      crownmark: Math.floor(rates.crownmark + wildBonus.crownmark),
     };
   }
 
   /** Per-type wilderness resource bonus for a player. */
   private ownedWildernessBonus(playerId: string): ResourceBag {
-    const bonus: ResourceBag = { food: 0, timber: 0, stone: 0, iron: 0, coin: 0 };
+    const bonus: ResourceBag = { food: 0, wood: 0, stone: 0, ore: 0, crownmark: 0 };
     for (const w of this.wilderness.values()) {
       if (w.ownerPlayerId !== playerId) continue;
       const amount = wildernessBenefit(w).amount;
       switch (w.resourceType) {
-        case "forest": bonus.timber += amount; break;
+        case "forest": bonus.wood += amount; break;
         case "fertile_land": bonus.food += amount; break;
         case "quarry": bonus.stone += amount; break;
-        case "iron_hills": bonus.iron += amount; break;
+        case "iron_hills": bonus.ore += amount; break;
         // crossroads and watch_hill are strategic, non-resource benefits.
       }
     }
@@ -2249,10 +2249,10 @@ export class World {
       const requested = opts.cargo ?? {};
       for (const key of [
         "food",
-        "timber",
+        "wood",
         "stone",
-        "iron",
-        "coin",
+        "ore",
+        "crownmark",
       ] as const) {
         const want = Math.max(0, Math.floor(Number(requested[key] ?? 0)));
         if (want <= 0) continue;
@@ -2645,7 +2645,7 @@ export class World {
       if (camp) {
         loot = {
           food: 50 * camp.level,
-          timber: 30 * camp.level,
+          wood: 30 * camp.level,
           stone: 10 * camp.level,
         };
         // Track camp defeat before evidence selection so the first successful
@@ -2701,7 +2701,7 @@ export class World {
         wild.ownerPlayerId = march.playerId;
         this.putWilderness(wild.id, wild);
         const benefit = wildernessBenefit(wild);
-        loot = { food: 40 * wild.level, timber: 40 * wild.level };
+        loot = { food: 40 * wild.level, wood: 40 * wild.level };
         if (benefit.kind === "dragon_evidence") {
           const inv = this.inventory.get(march.playerId) ?? {};
           inv["dragon_material_wild"] = (inv["dragon_material_wild"] ?? 0) + 1;
@@ -2761,7 +2761,7 @@ export class World {
     return report;
   }
 
-  /** Saltvault protects portion of non-coin resources. */
+  /** Saltvault protects portion of non-crownmark resources. */
   plunderCity(city: City, rate = 1): Partial<ResourceBag> {
     const salt = city.buildings.find((b) => b.buildingType === "saltvault");
     const protectRatio = salt
@@ -2771,17 +2771,17 @@ export class World {
       Math.floor(amount * (1 - protectRatio) * 0.25 * rate);
     const loot: Partial<ResourceBag> = {
       food: lootable(city.resources.food),
-      timber: lootable(city.resources.timber),
+      wood: lootable(city.resources.wood),
       stone: lootable(city.resources.stone),
-      iron: lootable(city.resources.iron),
-      // coin never protected by Saltvault — still only partial raid
-      coin: Math.floor(city.resources.coin * 0.15 * rate),
+      ore: lootable(city.resources.ore),
+      // crownmark never protected by Saltvault — still only partial raid
+      crownmark: Math.floor(city.resources.crownmark * 0.15 * rate),
     };
     city.resources.food -= loot.food ?? 0;
-    city.resources.timber -= loot.timber ?? 0;
+    city.resources.wood -= loot.wood ?? 0;
     city.resources.stone -= loot.stone ?? 0;
-    city.resources.iron -= loot.iron ?? 0;
-    city.resources.coin -= loot.coin ?? 0;
+    city.resources.ore -= loot.ore ?? 0;
+    city.resources.crownmark -= loot.crownmark ?? 0;
     this.putCity(city.id, city);
     return loot;
   }

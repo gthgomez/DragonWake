@@ -23,7 +23,7 @@ retain their differentiated starter units and research gates.
 | STIRRING | evidence, research, watch, scouting, or camp progress | the realm is producing credible signs |
 | AWAKENED | expedition is active | the dragon scar has answered |
 | BONDED | expedition charter is earned | the kingdom has a living bond with the frontier |
-| BATTLE_READY | dragon-focused holding exists | dragon knowledge shapes war preparation |
+| BATTLE_READY | Galeari/dragon-focused holding exists, the expedition bond is earned, and Dragon Studies is level 3+ | dragon knowledge shapes war preparation |
 
 This projection intentionally does not add or rename database identifiers.
 Production art remains temporary; see `ALPHA_R2_ART_REQUIREMENTS.md`.

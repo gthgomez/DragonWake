@@ -1,21 +1,29 @@
 {
-  "version": "0.1.0-medieval",
-  "description": "Domain catalog mapping legacy IDs to target medieval concepts. Transitional adapter.",
+  "version": "0.2.0-final-domain",
+  "description": "Domain catalog for the final Dragon Wake resource vocabulary with three-generation compatibility mappings.",
   "resources": {
     "legacy_to_target": {
       "kelp": "food",
-      "driftwood": "timber",
+      "driftwood": "wood",
+      "timber": "wood",
       "basalt": "stone",
-      "slagiron": "iron",
-      "tidegilt": "coin"
+      "slagiron": "ore",
+      "iron": "ore",
+      "tidegilt": "crownmark",
+      "coin": "crownmark"
     },
-    "target": ["food", "timber", "stone", "iron", "coin"],
+    "target": ["food", "wood", "stone", "ore", "crownmark"],
     "columns": {
       "food": "kelp",
-      "timber": "driftwood",
+      "wood": "driftwood",
       "stone": "basalt",
-      "iron": "slagiron",
-      "coin": "tidegilt"
+      "ore": "slagiron",
+      "crownmark": "tidegilt"
+    },
+    "generations": {
+      "aquatic": ["kelp", "driftwood", "basalt", "slagiron", "tidegilt"],
+      "intermediate": ["food", "timber", "stone", "iron", "coin"],
+      "final": ["food", "wood", "stone", "ore", "crownmark"]
     }
   },
   "units": {
@@ -120,10 +128,10 @@
     "wyrm_scarred_ruin": { "levels": [8, 9, 10], "description": "Dragon-damaged ancient site" }
   },
   "wilderness_types": {
-    "forest": { "bonus": "timber", "description": "Dense woodland" },
+    "forest": { "bonus": "wood", "description": "Dense woodland" },
     "fertile_land": { "bonus": "food", "description": "Rich farmland" },
     "quarry": { "bonus": "stone", "description": "Stone deposits" },
-    "iron_hills": { "bonus": "iron", "description": "Iron ore veins" },
+    "iron_hills": { "bonus": "ore", "description": "Ore veins" },
     "crossroads": { "bonus": "logistics", "description": "Strategic junction" },
     "watch_hill": { "bonus": "scouting", "description": "High ground" }
   }
