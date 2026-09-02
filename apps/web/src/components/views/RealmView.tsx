@@ -326,6 +326,8 @@ export function RealmView({
               </h3>
               <p className="muted tiny">
                 {wildInfo(selectedInfo.wild.resourceType).bonusLine} ·{" "}
+                {selectedInfo.wild.benefit?.description ?? "Its frontier benefit is being assessed."} ·{" "}
+                <strong>{selectedInfo.wild.benefit?.label ?? "Strategic frontier asset"}</strong> ·{" "}
                 {selectedInfo.wild.ownerPlayerId
                   ? "held by another lord — claiming it will mean battle"
                   : "unclaimed — sending settlers will bring its bounty home"}{" "}

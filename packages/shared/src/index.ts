@@ -96,6 +96,13 @@ export type CityPublic = {
   research: Record<string, number>;
 };
 
+export type WildernessBenefitPublic = {
+  kind: "production" | "logistics" | "scouting" | "dragon_evidence";
+  label: string;
+  description: string;
+  amount: number;
+};
+
 export const SALTVAULT_PROTECT_RATIO = 0.5; // 50% of non-coin protected at L1 baseline
 export const NEW_PLAYER_PROTECTION_MS = 72 * 60 * 60 * 1000;
 export const MAP_W = 40;

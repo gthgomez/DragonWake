@@ -1112,6 +1112,36 @@ describe("Camp Variation", () => {
     expect(readiness.requirements).toHaveLength(5);
   });
 
+  it("wilderness level and terrain create strategic benefits", () => {
+    const world = freshWorld();
+    const { player, city } = world.createGuest("WildR2", "northern_kingdom");
+    const wild = [...world.wilderness.values()].find((w) => w.resourceType === "crossroads")!;
+    wild.level = 4;
+    wild.ownerPlayerId = player.id;
+    expect(world.wildernessLogisticsLevel(player.id)).toBe(4);
+    expect(world.mapViewport(0, 0, 39, 39).wilderness.find((w) => w.id === wild.id)?.benefit.label).toBe("12% faster marches");
+    const watch = [...world.wilderness.values()].find((w) => w.resourceType === "watch_hill")!;
+    watch.ownerPlayerId = player.id;
+    watch.level = 3;
+    expect(world.scoutIntelLevel(player.id)).toBe(3);
+    expect(city.id).toBeTruthy();
+  });
+
+  it("allows a researched specialized holding through the player route", () => {
+    const world = freshWorld();
+    const { player } = world.createGuest("ForestR2", "northern_kingdom");
+    world.adminGrant(player.id, { brineholdUnlock: true });
+    const brine = world.foundBrinehold(player.id);
+    const capital = world.citiesForPlayer(player.id).find((c) => c.kind === "capital")!;
+    capital.research.stonekeel_unlock = 1;
+    world.foundStonekeel(player.id);
+    capital.research.cinderreach_unlock = 1;
+    const forest = world.foundCitadel(player.id, "cinderreach");
+    expect(forest.kind).toBe("cinderreach");
+    expect(forest.stacks.forest_ranger).toBe(8);
+    expect(brine.kind).toBe("brinehold");
+  });
+
   it("derives Dragon Presence lifecycle from authoritative progress", () => {
     const world = freshWorld();
     const { player } = world.createGuest("PresenceA", "northern_kingdom");

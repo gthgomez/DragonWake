@@ -66,6 +66,7 @@ test.describe.configure({ mode: "serial" });
 test("alpha r1: complete the first kingdom-to-marcher-keep journey with player UI only", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await enterRealm(page, `${Date.now() % 100000}`);
+  await expect(page.getByTestId("dragon-presence")).toContainText("Dormant");
   await shot(page, "01-kingdom-entered");
 
   await buildOnPlot(page, 2, "Homes");
@@ -118,6 +119,8 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
   await sendSelected(page, /Send attack \(/, /Confirm — send the attack/);
   await waitForReport(page, "Camp attack");
   await expect(page.getByText("Victory").first()).toBeVisible();
+  await page.getByRole("button", { name: "Castle", exact: true }).click();
+  await expect(page.getByTestId("dragon-presence")).toContainText("Stirring");
   await shot(page, "09-battle-victory");
 
   for (let i = 0; i < 6; i += 1) {
@@ -149,6 +152,9 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
 
   await page.getByRole("button", { name: "Set out on the Dragon Expedition" }).click();
   await expect(page.getByText(/Stage 1 of/)).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("button", { name: "Castle", exact: true }).click();
+  await expect(page.getByTestId("dragon-presence")).toContainText("Awakened");
+  await page.getByRole("button", { name: "Knowledge", exact: true }).click();
   await page.getByRole("button", { name: "Accomplish this stage" }).click();
   await expect(page.getByText(/Stage 2 of/)).toBeVisible({ timeout: 20_000 });
   await page.getByRole("button", { name: "Accomplish this stage" }).click();
@@ -163,6 +169,7 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
   await page.getByRole("button", { name: "Review the founding" }).click();
   await page.getByRole("button", { name: "Found the Marcher Keep" }).click();
   await expect(page.getByText(/Marcher Keep stands/i)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("dragon-presence")).toContainText("Bonded");
   await shot(page, "14-marcher-keep-founded");
   const settlementPicker = page.locator(".castle-city-picker select");
   await expect(settlementPicker).toBeVisible();

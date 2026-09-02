@@ -2,6 +2,19 @@
 
 Multiplayer web MMORTS MVP beta (async city builder + map combat).
 
+## Alpha R2 status (2026-09-02)
+
+The Awakening closure work is active on PR #7. The current build includes a
+server-derived Dragon Presence lifecycle, Castle-first presentation, an
+authoritative Dragon campaign objective ladder, level-scaled wilderness
+benefits (production, logistics, scouting), and a player-accessible Forest
+Frontier Charter route through the existing settlement prerequisite chain.
+
+Verification is green for server tests, TypeScript, and the production web
+build. Exact-head CI also covers PostgreSQL persistence. Full browser journey
+certification and live Postgres evidence remain release gates until run in the
+CI/runtime environment.
+
 ## Design authority
 
 Read these before changing fiction, content IDs, or client presentation:

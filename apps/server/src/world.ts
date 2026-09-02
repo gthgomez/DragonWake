@@ -163,6 +163,33 @@ export type Wilderness = {
   resourceType: string;
   ownerPlayerId: string | null;
 };
+
+export type WildernessBenefit = {
+  kind: "production" | "logistics" | "scouting" | "dragon_evidence";
+  label: string;
+  description: string;
+  amount: number;
+};
+
+export function wildernessBenefit(wilderness: Wilderness): WildernessBenefit {
+  const amount = wilderness.level;
+  switch (wilderness.resourceType) {
+    case "forest":
+      return { kind: "production", label: `+${amount * 30} timber/hour`, description: "Managed woodland feeds your sawpits.", amount: amount * 30 };
+    case "fertile_land":
+      return { kind: "production", label: `+${amount * 40} food/hour`, description: "Rich soil supports the kingdom's growing population.", amount: amount * 40 };
+    case "quarry":
+      return { kind: "production", label: `+${amount * 25} stone/hour`, description: "Stone seams strengthen every wall and road.", amount: amount * 25 };
+    case "iron_hills":
+      return { kind: "production", label: `+${amount * 15} iron/hour`, description: "Ore from the hills arms the frontier.", amount: amount * 15 };
+    case "crossroads":
+      return { kind: "logistics", label: `${amount * 3}% faster marches`, description: "A held crossroads shortens every route through the realm.", amount: amount * 3 };
+    case "watch_hill":
+      return { kind: "dragon_evidence", label: `+${amount} scouting depth · dragon sign`, description: "High ground reveals deeper intelligence and exposes traces ordinary scouts miss.", amount };
+    default:
+      return { kind: "production", label: "Frontier foothold", description: "A useful foothold in the wilds.", amount: 0 };
+  }
+}
 export type Alliance = {
   id: string;
   realmId: number;
@@ -380,6 +407,13 @@ export type DragonPresence = {
   title: string;
   summary: string;
   nextMilestone: string;
+};
+
+export type DragonObjective = {
+  id: string;
+  title: string;
+  description: string;
+  complete: boolean;
 };
 
 /** Minimal store surface so World can flush without circular import at type level. */
@@ -645,7 +679,7 @@ export function productionPerHour(city: City): ResourceBag {
 export function tickCityResources(
   city: City,
   now: number,
-  ownedWilderness: string[] = [],
+  ownedWilderness: Array<string | Wilderness> = [],
 ): City {
   const elapsedMs = Math.max(0, now - city.lastResourceTick);
   if (elapsedMs < 1000) return city;
@@ -653,12 +687,16 @@ export function tickCityResources(
   const rates = productionPerHour(city);
   // Per-type wilderness bonuses
   let wildTimber = 0, wildFood = 0, wildStone = 0, wildIron = 0;
-  for (const wt of ownedWilderness) {
-    switch (wt) {
-      case "forest": wildTimber += 30; break;
-      case "fertile_land": wildFood += 40; break;
-      case "quarry": wildStone += 25; break;
-      case "iron_hills": wildIron += 15; break;
+  for (const owned of ownedWilderness) {
+    const wild = typeof owned === "string"
+      ? { resourceType: owned, level: 1 } as Wilderness
+      : owned;
+    const benefit = wildernessBenefit(wild);
+    switch (wild.resourceType) {
+      case "forest": wildTimber += benefit.amount; break;
+      case "fertile_land": wildFood += benefit.amount; break;
+      case "quarry": wildStone += benefit.amount; break;
+      case "iron_hills": wildIron += benefit.amount; break;
     }
   }
 
@@ -1139,7 +1177,7 @@ export class World {
     for (const city of this.cities.values()) {
       const wildTypes = [...this.wilderness.values()]
         .filter((w) => w.ownerPlayerId === city.playerId)
-        .map((w) => w.resourceType);
+        .map((w) => w);
       const next = tickCityResources(city, now, wildTypes);
       // Only persist-worthy when a whole unit of something landed —
       // otherwise this would re-mark every city dirty every second.
@@ -1510,7 +1548,16 @@ export class World {
 
   /** Max lookout (Watchtower) level across the player's cities → intel depth. */
   scoutIntelLevel(playerId: string): number {
-    return this.buildingLevel(playerId, "lookout");
+    const watchHill = [...this.wilderness.values()]
+      .filter((w) => w.ownerPlayerId === playerId && w.resourceType === "watch_hill")
+      .reduce((sum, w) => sum + w.level, 0);
+    return this.buildingLevel(playerId, "lookout") + watchHill;
+  }
+
+  wildernessLogisticsLevel(playerId: string): number {
+    return [...this.wilderness.values()]
+      .filter((w) => w.ownerPlayerId === playerId && w.resourceType === "crossroads")
+      .reduce((sum, w) => sum + w.level, 0);
   }
 
   /** Max concurrent train jobs per city: base + training_camp bonus (capped). */
@@ -1729,12 +1776,13 @@ export class World {
     const bonus: ResourceBag = { food: 0, timber: 0, stone: 0, iron: 0, coin: 0 };
     for (const w of this.wilderness.values()) {
       if (w.ownerPlayerId !== playerId) continue;
+      const amount = wildernessBenefit(w).amount;
       switch (w.resourceType) {
-        case "forest": bonus.timber += 30; break;
-        case "fertile_land": bonus.food += 40; break;
-        case "quarry": bonus.stone += 25; break;
-        case "iron_hills": bonus.iron += 15; break;
-        // crossroads, watch_hill: non-resource bonuses (TODO)
+        case "forest": bonus.timber += amount; break;
+        case "fertile_land": bonus.food += amount; break;
+        case "quarry": bonus.stone += amount; break;
+        case "iron_hills": bonus.iron += amount; break;
+        // crossroads and watch_hill are strategic, non-resource benefits.
       }
     }
     return bonus;
@@ -1894,7 +1942,11 @@ export class World {
     const hasBattleHolding = this.citiesForPlayer(playerId).some(
       (city) => city.kind === "galeari",
     );
-    if (hasBattleHolding) {
+    const dragonCombatStudy = this.citiesForPlayer(playerId).reduce(
+      (max, city) => Math.max(max, city.research.dragon_studies ?? 0),
+      0,
+    );
+    if (hasBattleHolding && progress.charterEarned && dragonCombatStudy >= 3) {
       return {
         state: "BATTLE_READY",
         title: "Battle-ready",
@@ -1918,7 +1970,7 @@ export class World {
         nextMilestone: "Complete the expedition stages to earn the settlement charter.",
       };
     }
-    if (hasEvidence && (progress.bestiaryStudied > 0 || watch >= 2)) {
+    if (hasEvidence) {
       return {
         state: "STIRRING",
         title: "Stirring",
@@ -1932,6 +1984,25 @@ export class World {
       summary: "A vast, sleeping presence lies beneath the kingdom's oldest foundations.",
       nextMilestone: "Build the Dragon Watch and bring back your first sign from the realm.",
     };
+  }
+
+  dragonObjectives(playerId: string): DragonObjective[] {
+    const progress = this.ensureDragonProgress(playerId);
+    const watch = this.buildingLevel(playerId, "skyreost");
+    const bestiary = progress.bestiaryStudied > 0;
+    const specialized = this.citiesForPlayer(playerId).some(
+      (city) => city.kind === "cinderreach" || city.kind === "galeari",
+    );
+    return [
+      { id: "presence", title: "Witness the presence", description: "Enter your kingdom and read the dragon's current state.", complete: true },
+      { id: "evidence", title: "Bring back evidence", description: "Record a verified sign in the Bestiary.", complete: bestiary },
+      { id: "watch", title: "Raise the Dragon Watch", description: "Raise the Dragon Watch to level 2.", complete: watch >= 2 },
+      { id: "camps", title: "Learn the camps", description: "Defeat camps at two different levels.", complete: progress.campTypesDefeated.size >= 2 },
+      { id: "wilds", title: "Claim meaningful wilds", description: "Hold a wilderness and use its strategic benefit.", complete: this.ownedWildernessCount(playerId) > 0 },
+      { id: "expedition", title: "Set out on the expedition", description: "Complete the Dragon Scar Expedition and earn its charter.", complete: progress.charterEarned },
+      { id: "marcher_keep", title: "Extend the frontier", description: "Found a Marcher Keep with the earned charter.", complete: this.citiesForPlayer(playerId).some((city) => city.kind === "marcher_keep") },
+      { id: "specialized_holding", title: "Choose a specialization", description: "Found a Forest Citadel or dragon-focused holding.", complete: specialized },
+    ];
   }
 
   /** True when cumulative gameplay counters satisfy a stage's requirements. */
@@ -2229,7 +2300,11 @@ export class World {
     const musterFactor = marchSpeedFactor(
       bestBuildingLevel(this, playerId, "rally_quay"),
     );
-    const travelSec = Math.max(5, dist * 8 * musterFactor);
+    const crossroadsFactor = Math.max(
+      0.7,
+      1 - 0.03 * this.wildernessLogisticsLevel(playerId),
+    );
+    const travelSec = Math.max(5, dist * 8 * musterFactor * crossroadsFactor);
     const now = this.now();
     const march: March = {
       id: randomUUID(),
@@ -2625,7 +2700,13 @@ export class World {
       } else if (wild && march.intent === "occupy") {
         wild.ownerPlayerId = march.playerId;
         this.putWilderness(wild.id, wild);
-        loot = { food: 40, timber: 40 };
+        const benefit = wildernessBenefit(wild);
+        loot = { food: 40 * wild.level, timber: 40 * wild.level };
+        if (benefit.kind === "dragon_evidence") {
+          const inv = this.inventory.get(march.playerId) ?? {};
+          inv["dragon_material_wild"] = (inv["dragon_material_wild"] ?? 0) + 1;
+          this.putInventory(march.playerId, inv);
+        }
       } else if (defCity && (harborLoot || battle.winner === "attacker")) {
         loot = this.plunderCity(defCity, harborLoot ? 0.5 : 1);
       }
@@ -3386,6 +3467,7 @@ export class World {
         y: w.y,
         level: w.level,
         resourceType: w.resourceType,
+        benefit: wildernessBenefit(w),
         ownerPlayerId: w.ownerPlayerId,
       }));
     return { x0, y0, x1, y1, mapW: MAP_W, mapH: MAP_H, cities, camps, wilderness };

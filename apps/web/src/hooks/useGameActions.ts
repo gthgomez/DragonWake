@@ -410,6 +410,17 @@ export function useGameActions(deps: UseGameActionsDeps) {
     });
   }
 
+  async function foundHolding(kind: string) {
+    if (!token) return;
+    await run(`${kind.replace(/_/g, " ")} founded`, async () => {
+      await api("/api/v1/citadels/found", token, {
+        method: "POST",
+        body: JSON.stringify({ kind, unlock: false }),
+      });
+      await refreshMe(token);
+    });
+  }
+
   async function setPosture(posture: string) {
     if (!token || !city) return;
     await run("Defense posture updated", async () => {
@@ -484,6 +495,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
     foundMarcherKeep,
     foundBrine,
     foundStone,
+    foundHolding,
     setPosture,
     assignPlot,
     upgradePlot,

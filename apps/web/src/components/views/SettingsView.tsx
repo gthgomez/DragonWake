@@ -11,6 +11,7 @@ type SettingsViewProps = {
   grantDev: (body: Record<string, unknown>, label: string) => Promise<void>;
   foundBrine: () => Promise<void>;
   foundStone: () => Promise<void>;
+  foundHolding: (kind: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -23,6 +24,7 @@ export function SettingsView({
   grantDev,
   foundBrine,
   foundStone,
+  foundHolding,
   logout,
 }: SettingsViewProps) {
   return (
@@ -56,6 +58,14 @@ export function SettingsView({
       <button type="button" className="danger" onClick={logout}>
         Log out
       </button>
+
+      {city.kind === "stonekeel" && (
+        <div className="charter-card">
+          <strong>Forest Frontier</strong>
+          <p className="muted tiny">Research the Forest Frontier Charter in the Castle, then found Cinderreach here. Its ranger and warhound companies are built for woodland campaigns.</p>
+          <button type="button" onClick={() => void foundHolding("cinderreach")}>Found Cinderreach</button>
+        </div>
+      )}
 
       {devMode && (
         <details className="dev-panel">

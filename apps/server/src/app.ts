@@ -954,6 +954,12 @@ export function createApp(world: World) {
     return c.json(status);
   });
 
+  api.get("/dragon/objectives", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    return c.json({ objectives: world.dragonObjectives(player.id) });
+  });
+
   api.get("/dragon/bestiary", (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);

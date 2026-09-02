@@ -53,6 +53,7 @@ export function useGame() {
   const [bestiaryEntries, setBestiaryEntries] = useState<any[]>([]);
   const [expeditionStatus, setExpeditionStatus] = useState<any>(null);
   const [clueData, setClueData] = useState<any>(null);
+  const [dragonObjectives, setDragonObjectives] = useState<Array<{ id: string; title: string; description: string; complete: boolean }>>([]);
   const [units, setUnits] = useState<UnitDef[]>([]);
   const [buildingDefs, setBuildingDefs] = useState<BuildingDef[]>([]);
   const [unlockDefs, setUnlockDefs] = useState<ResearchUnlock[]>([]);
@@ -200,16 +201,18 @@ export function useGame() {
   async function refreshKnowledge() {
     if (!token) return;
     try {
-      const [readyResp, bestResp, expResp, clueResp] = await Promise.all([
+      const [readyResp, bestResp, expResp, clueResp, objectiveResp] = await Promise.all([
         api<any>("/api/v1/dragon/readiness", token),
         api<any>("/api/v1/dragon/bestiary", token),
         api<any>("/api/v1/dragon/expedition", token),
         api<any>("/api/v1/dragon/clues", token),
+        api<any>("/api/v1/dragon/objectives", token),
       ]);
       setReadinessStatus(readyResp);
       setBestiaryEntries(bestResp.entries ?? []);
       setExpeditionStatus(expResp);
       setClueData(clueResp);
+      setDragonObjectives(objectiveResp.objectives ?? []);
     } catch {
       // silently fail — knowledge is non-critical
     }
@@ -413,6 +416,7 @@ export function useGame() {
     bestiaryEntries,
     expeditionStatus,
     clueData,
+    dragonObjectives,
     units,
     buildingDefs,
     unlockDefs,

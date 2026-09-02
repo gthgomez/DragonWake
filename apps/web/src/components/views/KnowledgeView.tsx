@@ -9,6 +9,7 @@ type KnowledgeViewProps = {
   bestiaryDefs: BestiaryEntryDef[];
   expeditionStatus: any;
   clueData: any;
+  dragonObjectives?: Array<{ id: string; title: string; description: string; complete: boolean }>;
   formulas: unknown;
   startDragonExpedition: () => Promise<void>;
   completeDragonStage: (stageNumber: number) => Promise<void>;
@@ -66,6 +67,7 @@ export function KnowledgeView({
   bestiaryDefs,
   expeditionStatus,
   clueData,
+  dragonObjectives = [],
   formulas,
   startDragonExpedition,
   completeDragonStage,
@@ -107,6 +109,21 @@ export function KnowledgeView({
           </p>
         </div>
       </section>
+
+      {dragonObjectives.length > 0 && (
+        <section className="r2-objectives" data-testid="dragon-objectives" aria-label="Dragon campaign objectives">
+          <div className="eyebrow">The Awakening · campaign path</div>
+          <h3>What changes the kingdom next</h3>
+          <div className="r2-objective-grid">
+            {dragonObjectives.map((objective) => (
+              <div key={objective.id} className={`r2-objective ${objective.complete ? "complete" : ""}`}>
+                <span aria-hidden="true">{objective.complete ? "✓" : "○"}</span>
+                <div><strong>{objective.title}</strong><p className="muted tiny">{objective.description}</p></div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <h3 className="codex-heading">Dragon Readiness</h3>
       {readinessStatus ? (

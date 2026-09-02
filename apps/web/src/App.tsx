@@ -171,6 +171,7 @@ export function App() {
           bestiaryDefs={g.bestiaryDefs}
           expeditionStatus={g.expeditionStatus}
           clueData={g.clueData}
+          dragonObjectives={g.dragonObjectives}
           formulas={g.formulas}
           startDragonExpedition={g.startDragonExpedition}
           completeDragonStage={g.completeDragonStage}
@@ -188,6 +189,7 @@ export function App() {
           grantDev={g.grantDev}
           foundBrine={g.foundBrine}
           foundStone={g.foundStone}
+          foundHolding={g.foundHolding}
           logout={g.logout}
         />
       )}

@@ -819,6 +819,13 @@ button:disabled {
 }
 .dragon-presence-copy h3 { margin: 0.05rem 0 0.2rem; color: #f0d58c; }
 .dragon-presence-copy p { margin: 0.2rem 0; }
+.r2-objectives { margin: 0.8rem 0 1rem; padding: 0.8rem; border: 1px solid var(--border); border-radius: 10px; background: rgba(0,0,0,0.12); }
+.r2-objectives h3 { margin: 0.15rem 0 0.55rem; }
+.r2-objective-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
+.r2-objective { display: flex; gap: 0.5rem; padding: 0.45rem; border: 1px solid rgba(255,255,255,0.06); border-radius: 7px; }
+.r2-objective.complete { border-color: rgba(141,255,176,0.3); color: var(--ok); }
+.r2-objective p { margin: 0.15rem 0 0; }
+@media (max-width: 560px) { .r2-objective-grid { grid-template-columns: 1fr; } }
 @media (max-width: 480px) {
   .dragon-presence { align-items: flex-start; }
   .dragon-presence-glyph { width: 46px; height: 46px; }

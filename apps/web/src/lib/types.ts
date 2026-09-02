@@ -144,6 +144,7 @@ export type MapData = {
     y: number;
     level: number;
     resourceType: string;
+    benefit?: { kind: string; label: string; description: string; amount: number };
     ownerPlayerId: string | null;
   }[];
   cities: {

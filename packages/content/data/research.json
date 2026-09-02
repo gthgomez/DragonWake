@@ -110,5 +110,29 @@
     "max_level": 5,
     "group": "utility",
     "cost": { "coin": 150 }
+  },
+  {
+    "id": "stonekeel_unlock",
+    "name": "Stonekeel Charter",
+    "per_level": 0,
+    "max_level": 1,
+    "group": "expansion",
+    "cost": { "stone": 800, "coin": 300 }
+  },
+  {
+    "id": "cinderreach_unlock",
+    "name": "Forest Frontier Charter",
+    "per_level": 0,
+    "max_level": 1,
+    "group": "expansion",
+    "cost": { "timber": 1200, "coin": 500 }
+  },
+  {
+    "id": "galeari_unlock",
+    "name": "Dragon Site Charter",
+    "per_level": 0,
+    "max_level": 1,
+    "group": "expansion",
+    "cost": { "stone": 1600, "iron": 1000, "coin": 800 }
   }
 ]
