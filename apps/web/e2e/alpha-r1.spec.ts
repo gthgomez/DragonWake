@@ -50,7 +50,8 @@ async function selectFirstCamp(page: Page, level?: number) {
     : "button[aria-label^=\"Bandit Camp\"]";
   const camp = page.locator(selector).first();
   await expect(camp).toBeVisible({ timeout: 20_000 });
-  await camp.click();
+  await camp.click({ force: true });
+  await expect(page.getByLabel("Levy Spearman count to send")).toBeVisible({ timeout: 20_000 });
 }
 
 async function setMixedCompany(page: Page, levy = 50, bowman = 25) {
