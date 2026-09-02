@@ -80,6 +80,7 @@ export function App() {
           doBuild={g.doBuild}
           doResearch={g.doResearch}
           doTrain={g.doTrain}
+          upgradeKeep={g.upgradeKeep}
           foundMarcherKeep={g.foundMarcherKeep}
           claimQuest={g.claimQuest}
         />
@@ -175,6 +176,7 @@ export function App() {
           formulas={g.formulas}
           startDragonExpedition={g.startDragonExpedition}
           completeDragonStage={g.completeDragonStage}
+          startDragonWarCouncil={g.startDragonWarCouncil}
           loadCodex={g.loadCodex}
         />
       )}

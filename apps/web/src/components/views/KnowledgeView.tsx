@@ -13,6 +13,7 @@ type KnowledgeViewProps = {
   formulas: unknown;
   startDragonExpedition: () => Promise<void>;
   completeDragonStage: (stageNumber: number) => Promise<void>;
+  startDragonWarCouncil: () => Promise<void>;
   loadCodex: () => Promise<void>;
 };
 
@@ -71,6 +72,7 @@ export function KnowledgeView({
   formulas,
   startDragonExpedition,
   completeDragonStage,
+  startDragonWarCouncil,
   loadCodex,
 }: KnowledgeViewProps) {
   const formulaRows = formulaEntries(formulas);
@@ -154,6 +156,15 @@ export function KnowledgeView({
           {readinessStatus.ready && (
             <div className="readiness-ready">
               The realm stands ready — the Dragon Expedition may set out.
+            </div>
+          )}
+          {readinessStatus.presence?.state === "BATTLE_READY" && (
+            <div className="readiness-ready">
+              Dragon War Council: spend 1,000 food, 1,000 wood, and 600 stone
+              to create a persistent war plan.
+              <button type="button" className="button" onClick={() => void startDragonWarCouncil()}>
+                Convene council
+              </button>
             </div>
           )}
         </div>

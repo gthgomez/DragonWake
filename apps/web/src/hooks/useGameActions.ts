@@ -191,6 +191,21 @@ export function useGameActions(deps: UseGameActionsDeps) {
     );
   }
 
+  async function upgradeKeep() {
+    if (!token || !city) return;
+    const next = (city.keepLevel ?? 1) + 1;
+    const cost = { food: 500 * next, wood: 500 * next, stone: 300 * next, crownmark: 100 * next };
+    if (!canAfford(city.resources, cost)) {
+      setError(`Keep upgrade needs ${cost.food} Food, ${cost.wood} Wood, ${cost.stone} Stone, and ${cost.crownmark} Crownmarks.`);
+      return;
+    }
+    await run(`Forge-Heart upgrade queued (L${next})`, async () => {
+      await api(`/api/v1/cities/${city.id}/keep/upgrade`, token, { method: "POST" });
+      await refreshMe(token);
+      await refreshQueues(token, city.id);
+    });
+  }
+
   async function doTrain(unitId: string, count: number) {
     if (!token || !city) return;
     const def = units.find((u) => u.id === unitId);
@@ -341,6 +356,15 @@ export function useGameActions(deps: UseGameActionsDeps) {
     });
   }
 
+  async function startDragonWarCouncil() {
+    if (!token) return;
+    await run("Dragon War Council convened", async () => {
+      await api("/api/v1/dragon/war-council", token, { method: "POST" });
+      await refreshMe(token);
+      await refreshKnowledge();
+    });
+  }
+
   async function claimQuest(questId: string) {
     if (!token) return;
     await run("Daily deed claimed", async () => {
@@ -481,6 +505,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
     loginGuest,
     doBuild,
     doResearch,
+    upgradeKeep,
     doTrain,
     sendMarch,
     recruitCommander,
@@ -489,6 +514,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
     advanceTutorial,
     startDragonExpedition,
     completeDragonStage,
+    startDragonWarCouncil,
     claimQuest,
     sendChat,
     grantDev,

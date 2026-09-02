@@ -26,6 +26,11 @@ export type City = {
   research: Record<string, number>;
   productionPerHour?: Resources;
   ownedWilderness?: number;
+  wildernessCapacity?: number;
+  activeOperations?: number;
+  operationCapacity?: number;
+  troopsPerMarchCapacity?: number;
+  keepLevel?: number;
   population?: number;
   maxPopulation?: number;
   usedManpower?: number;
@@ -137,7 +142,7 @@ export type Commander = {
 export type MapData = {
   mapW?: number;
   mapH?: number;
-  camps: { id: string; x: number; y: number; level: number }[];
+  camps: { id: string; x: number; y: number; level: number; band?: string }[];
   wilderness: {
     id: string;
     x: number;

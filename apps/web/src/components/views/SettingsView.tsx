@@ -67,6 +67,30 @@ export function SettingsView({
         </div>
       )}
 
+      {city.kind === "capital" && city.research.brinehold_unlock && (
+        <div className="charter-card">
+          <strong>Brinehold charter ready</strong>
+          <p className="muted tiny">Found Brinehold to open shieldman and crossbowman companies and begin the metallurgy frontier.</p>
+          <button type="button" onClick={() => void foundHolding("brinehold")}>Found Brinehold</button>
+        </div>
+      )}
+
+      {city.kind === "brinehold" && city.research.stonekeel_unlock && (
+        <div className="charter-card">
+          <strong>Stonekeel charter ready</strong>
+          <p className="muted tiny">Found Stonekeel to unlock sapper and halberdier companies for fortification and siege preparation.</p>
+          <button type="button" onClick={() => void foundHolding("stonekeel")}>Found Stonekeel</button>
+        </div>
+      )}
+
+      {city.kind === "cinderreach" && city.research.galeari_unlock && (
+        <div className="charter-card">
+          <strong>Galeari charter ready</strong>
+          <p className="muted tiny">Found Galeari to prepare dragon slayers and ballistae for the realm's most dangerous operations.</p>
+          <button type="button" onClick={() => void foundHolding("galeari")}>Found Galeari</button>
+        </div>
+      )}
+
       {devMode && (
         <details className="dev-panel">
           <summary>Developer tools</summary>

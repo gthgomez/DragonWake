@@ -92,6 +92,10 @@ export type City = {
   /** Sub-unit population growth remainder (same rationale). */
   popFraction?: number;
 };
+
+export function keepLevel(city: City): number {
+  return city.buildings.find((b) => b.buildingType === "forge_heart")?.level ?? 1;
+}
 export type QueueJob = {
   id: string;
   cityId: string;
@@ -154,6 +158,14 @@ export type Camp = {
   y: number;
   level: number;
 };
+
+/** Canonical PvE mastery bands; levels vary composition within a band. */
+export function campBand(level: number): string {
+  if (level <= 3) return "Bandit Camp";
+  if (level <= 5) return "Raider Fort";
+  if (level <= 7) return "Beast Den";
+  return "Wyrm-Scarred Ruin";
+}
 export type Wilderness = {
   id: string;
   realmId: number;
@@ -165,7 +177,7 @@ export type Wilderness = {
 };
 
 export type WildernessBenefit = {
-  kind: "production" | "logistics" | "scouting" | "dragon_evidence";
+  kind: "production" | "logistics" | "scouting";
   label: string;
   description: string;
   amount: number;
@@ -185,7 +197,7 @@ export function wildernessBenefit(wilderness: Wilderness): WildernessBenefit {
     case "crossroads":
       return { kind: "logistics", label: `${amount * 3}% faster marches`, description: "A held crossroads shortens every route through the realm.", amount: amount * 3 };
     case "watch_hill":
-      return { kind: "dragon_evidence", label: `+${amount} scouting depth · dragon sign`, description: "High ground reveals deeper intelligence and exposes traces ordinary scouts miss.", amount };
+      return { kind: "scouting", label: `+${amount} scouting depth - high ground`, description: "High ground reveals deeper intelligence and incoming movement.", amount };
     default:
       return { kind: "production", label: "Frontier foothold", description: "A useful foothold in the wilds.", amount: 0 };
   }
@@ -375,7 +387,7 @@ export const COMMANDER_LOSS_XP = 25; // INITIAL_TEST_FIXTURE
 export const COMMANDER_WOUNDED_SEC = 30 * 60; // INITIAL_TEST_FIXTURE
 /** Hard cap on concurrently-commanded marches (slot cap = min(gallery level, this)). */
 export const COMMANDER_SLOT_CAP_MAX = 3; // INITIAL_TEST_FIXTURE
-export const RECRUIT_COST_COIN_PER_OWNED = 250; // INITIAL_TEST_FIXTURE
+export const RECRUIT_COST_CROWNS_PER_OWNED = 250; // INITIAL_TEST_FIXTURE
 export const RECRUIT_COST_FOOD_PER_OWNED = 500; // INITIAL_TEST_FIXTURE
 
 /** Per-player daily clue-drop usage — resets with the same UTC day key as dailies. */
@@ -438,6 +450,11 @@ const FACTIONS: Faction[] = [
 const BASE_POPULATION = 200;
 const HOMES_CAPACITY_PER_LEVEL = 100;
 const POPULATION_GROWTH_RATE = 0.01; // per hour per occupied habitation slot
+const BASE_WILDERNESS_CAPACITY = 2;
+const BASE_OPERATION_CAPACITY = 4;
+const MAX_OPERATION_CAPACITY = 10;
+const BASE_TROOPS_PER_MARCH = 500;
+const TROOPS_PER_MUSTER_LEVEL = 100;
 
 /**
  * The first three successful camp victories teach the player what evidence
@@ -1258,6 +1275,35 @@ export class World {
     });
   }
 
+  /** Queue a Forge-Heart upgrade; the resulting building is persisted like any job. */
+  startKeepUpgrade(cityId: string, playerId: string): QueueJob {
+    const city = this.requireCityOwner(cityId, playerId);
+    const current = keepLevel(city);
+    if (current >= 10) {
+      throw Object.assign(new Error("Forge-Heart is at max level"), { code: "KEEP_MAX" });
+    }
+    const running = [...this.jobs.values()].filter((j) => j.cityId === cityId && j.kind === "build" && j.status === "running");
+    if (running.length >= 2) {
+      throw Object.assign(new Error("build queue full"), { code: "QUEUE_FULL" });
+    }
+    if (running.some((j) => Number(j.payload.slotIndex) === 0)) {
+      throw Object.assign(new Error("Keep upgrade already in progress"), { code: "SLOT_BUSY" });
+    }
+    const next = current + 1;
+    const costs: Partial<ResourceBag> = { food: 500 * next, wood: 500 * next, stone: 300 * next, crownmark: 100 * next };
+    const missing = Object.entries(costs).filter(([key, amount]) => city.resources[key as keyof ResourceBag] < amount).map(([key, amount]) => `${key} need ${amount} have ${city.resources[key as keyof ResourceBag]}`);
+    if (missing.length) {
+      throw Object.assign(new Error(`cannot afford Forge-Heart L${next}: ${missing.join("; ")}`), { code: "KEEP_COST" });
+    }
+    for (const [key, amount] of Object.entries(costs)) city.resources[key as keyof ResourceBag] -= amount;
+    const now = this.now();
+    const job: QueueJob = { id: randomUUID(), cityId, playerId, kind: "build", payload: { slotIndex: 0, buildingType: "forge_heart", upgradeTo: next, keepUpgrade: true }, startedAt: now, finishesAt: now + durationMs(90 * next, this.devFastTime), status: "running" };
+    this.putJob(job.id, job);
+    this.putCity(city.id, city);
+    this.markDaily(playerId, "build");
+    return job;
+  }
+
   /**
    * Queue construction on a slot. Empty slot = new building at L1;
    * occupied slot with the SAME type = authoritative upgrade to level+1.
@@ -1288,6 +1334,13 @@ export class World {
       throw Object.assign(
         new Error(`${def.name} requires further research`),
         { code: "BUILDING_LOCKED" },
+      );
+    }
+    const currentBuilding = city.buildings.find((b) => b.slotIndex === slotIndex);
+    if (currentBuilding?.buildingType === buildingType && currentBuilding.level + 1 > keepLevel(city) + 2) {
+      throw Object.assign(
+        new Error(`${def.name} L${currentBuilding.level + 1} requires Forge-Heart L${currentBuilding.level - 1}; upgrade the Keep first`),
+        { code: "KEEP_GATE", keepLevel: keepLevel(city), requiredKeepLevel: currentBuilding.level - 1 },
       );
     }
     const running = [...this.jobs.values()].filter(
@@ -1464,26 +1517,26 @@ export class World {
       });
     }
     const costs = getUnitCost(unit);
-    const costK = costs.food * n;
-    const costD = costs.wood * n;
-    const costB = costs.stone * n;
-    const costS = costs.ore * n;
-    if (city.resources.food < costK) {
+    const costFood = costs.food * n;
+    const costWood = costs.wood * n;
+    const costStone = costs.stone * n;
+    const costOre = costs.ore * n;
+    if (city.resources.food < costFood) {
       throw Object.assign(new Error("insufficient food"), { code: "NO_RES" });
     }
-    if (city.resources.wood < costD) {
+    if (city.resources.wood < costWood) {
       throw Object.assign(new Error("insufficient wood"), { code: "NO_RES" });
     }
-    if (city.resources.stone < costB) {
+    if (city.resources.stone < costStone) {
       throw Object.assign(new Error("insufficient stone"), { code: "NO_RES" });
     }
-    if (city.resources.ore < costS) {
+    if (city.resources.ore < costOre) {
       throw Object.assign(new Error("insufficient ore"), { code: "NO_RES" });
     }
-    city.resources.food -= costK;
-    city.resources.wood -= costD;
-    city.resources.stone -= costB;
-    city.resources.ore -= costS;
+    city.resources.food -= costFood;
+    city.resources.wood -= costWood;
+    city.resources.stone -= costStone;
+    city.resources.ore -= costOre;
     const barracksFactor = trainSpeedFactor(
       bestBuildingLevel(this, playerId, "barracks"),
     );
@@ -1571,6 +1624,27 @@ export class World {
     return MAX_TRAIN_JOBS + Math.min(camp, TRAINING_CAMP_QUEUE_SLOTS_MAX_BONUS);
   }
 
+  /** Active operations are independent from commander-led march slots. */
+  activeOperations(playerId: string): number {
+    return [...this.marches.values()].filter(
+      (m) => m.playerId === playerId &&
+        m.status !== "completed" && m.status !== "cancelled",
+    ).length;
+  }
+
+  musterOperationCapacity(playerId: string): number {
+    const keep = Math.max(...this.citiesForPlayer(playerId).map(keepLevel), 1);
+    return Math.min(
+      MAX_OPERATION_CAPACITY,
+      BASE_OPERATION_CAPACITY + this.buildingLevel(playerId, "rally_quay") + Math.max(0, keep - 1),
+    );
+  }
+
+  troopsPerMarchCapacity(playerId: string): number {
+    const keep = Math.max(...this.citiesForPlayer(playerId).map(keepLevel), 1);
+    return BASE_TROOPS_PER_MARCH + TROOPS_PER_MUSTER_LEVEL * this.buildingLevel(playerId, "rally_quay") + 250 * Math.max(0, keep - 1);
+  }
+
   /** Max concurrently-commanded marches: min(gallery level, hard cap). */
   commanderSlotCap(playerId: string): number {
     return Math.min(this.commandGalleryLevel(playerId), COMMANDER_SLOT_CAP_MAX);
@@ -1597,11 +1671,11 @@ export class World {
       );
     }
     if (owned >= 1) {
-      const coinCost = RECRUIT_COST_COIN_PER_OWNED * owned;
+      const crownmarkCost = RECRUIT_COST_CROWNS_PER_OWNED * owned;
       const foodCost = RECRUIT_COST_FOOD_PER_OWNED * owned;
       const missing: string[] = [];
-      if ((city.resources.crownmark ?? 0) < coinCost) {
-        missing.push(`crownmark need ${coinCost} have ${city.resources.crownmark ?? 0}`);
+      if ((city.resources.crownmark ?? 0) < crownmarkCost) {
+        missing.push(`crownmark need ${crownmarkCost} have ${city.resources.crownmark ?? 0}`);
       }
       if ((city.resources.food ?? 0) < foodCost) {
         missing.push(`food need ${foodCost} have ${city.resources.food ?? 0}`);
@@ -1612,7 +1686,7 @@ export class World {
           { code: "RECRUIT_COST" },
         );
       }
-      city.resources.crownmark -= coinCost;
+      city.resources.crownmark -= crownmarkCost;
       city.resources.food -= foodCost;
       this.putCity(city.id, city);
     }
@@ -1711,15 +1785,15 @@ export class World {
         code: "PLOT_OCCUPIED",
       });
     }
-    const costKelp = 80;
-    const costDrift = 40;
-    if (city.resources.food < costKelp || city.resources.wood < costDrift) {
+    const costFood = 80;
+    const costWood = 40;
+    if (city.resources.food < costFood || city.resources.wood < costWood) {
       throw Object.assign(new Error("insufficient resources"), {
         code: "NO_RES",
       });
     }
-    city.resources.food -= costKelp;
-    city.resources.wood -= costDrift;
+    city.resources.food -= costFood;
+    city.resources.wood -= costWood;
     plot.plotType = plotType;
     plot.level = 1;
     this.putCity(city.id, city);
@@ -1738,15 +1812,15 @@ export class World {
     if (plot.level >= 5) {
       throw Object.assign(new Error("plot max level"), { code: "PLOT_MAX" });
     }
-    const costKelp = 50 * plot.level;
-    const costDrift = 50 * plot.level;
-    if (city.resources.food < costKelp || city.resources.wood < costDrift) {
+    const costFood = 50 * plot.level;
+    const costWood = 50 * plot.level;
+    if (city.resources.food < costFood || city.resources.wood < costWood) {
       throw Object.assign(new Error("insufficient resources"), {
         code: "NO_RES",
       });
     }
-    city.resources.food -= costKelp;
-    city.resources.wood -= costDrift;
+    city.resources.food -= costFood;
+    city.resources.wood -= costWood;
     plot.level += 1;
     this.putCity(city.id, city);
     return { ...plot };
@@ -1756,6 +1830,22 @@ export class World {
     return [...this.wilderness.values()].filter(
       (w) => w.ownerPlayerId === playerId,
     ).length;
+  }
+
+  /** Capacity is deliberately finite so claiming one more wild is a choice. */
+  wildernessCapacity(playerId: string): number {
+    const keep = Math.max(...this.citiesForPlayer(playerId).map(keepLevel), 1);
+    return BASE_WILDERNESS_CAPACITY + Math.max(0, keep - 1);
+  }
+
+  abandonWilderness(playerId: string, wildernessId: string): Wilderness {
+    const wild = this.wilderness.get(wildernessId);
+    if (!wild || wild.ownerPlayerId !== playerId) {
+      throw Object.assign(new Error("wilderness is not yours"), { code: "NO_WILDERNESS" });
+    }
+    wild.ownerPlayerId = null;
+    this.putWilderness(wild.id, wild);
+    return wild;
   }
 
   /** Effective production/hour including wilderness bonus (same as tick). */
@@ -1986,6 +2076,47 @@ export class World {
     };
   }
 
+  /**
+   * BATTLE_READY consequence: convene the Dragon War Council once the bonded
+   * dragon-focused holding and study threshold are real. The plan is an
+   * inventory item so the preparation survives reloads and can be consumed by
+   * a later dragon operation without introducing a parallel hidden counter.
+   */
+  startDragonWarCouncil(playerId: string): { itemId: string; remaining: ResourceBag } {
+    if (this.dragonPresence(playerId).state !== "BATTLE_READY") {
+      throw Object.assign(new Error("the kingdom is not battle-ready"), {
+        code: "DRAGON_NOT_READY",
+      });
+    }
+    const city = this.citiesForPlayer(playerId)[0];
+    if (!city) throw new Error("no settlement");
+    const cost: Partial<ResourceBag> = { food: 1000, wood: 1000, stone: 600 };
+    for (const [key, amount] of Object.entries(cost)) {
+      const resource = key as keyof ResourceBag;
+      if (city.resources[resource] < amount) {
+        throw Object.assign(new Error("insufficient resources for the Dragon War Council"), {
+          code: "DRAGON_COUNCIL_COST",
+        });
+      }
+    }
+    for (const [key, amount] of Object.entries(cost)) {
+      const resource = key as keyof ResourceBag;
+      city.resources[resource] -= amount;
+    }
+    this.putCity(city.id, city);
+    const itemId = "dragon_war_plan";
+    const inventory = this.inventory.get(playerId) ?? {};
+    inventory[itemId] = (inventory[itemId] ?? 0) + 1;
+    this.putInventory(playerId, inventory);
+    this.pushEvent(
+      playerId,
+      "info",
+      "Dragon War Council convened — the next dragon operation may use the war plan.",
+      { kind: "dragon_war_council", itemId },
+    );
+    return { itemId, remaining: { ...city.resources } };
+  }
+
   dragonObjectives(playerId: string): DragonObjective[] {
     const progress = this.ensureDragonProgress(playerId);
     const watch = this.buildingLevel(playerId, "skyreost");
@@ -2200,6 +2331,37 @@ export class World {
   ): March {
     const city = this.requireCityOwner(opts.fromCityId, playerId);
 
+    if (this.activeOperations(playerId) >= this.musterOperationCapacity(playerId)) {
+      throw Object.assign(
+        new Error(`operation capacity reached (${this.musterOperationCapacity(playerId)}); raise the Muster Yard or complete an operation`),
+        { code: "OPERATION_CAP", capacity: this.musterOperationCapacity(playerId) },
+      );
+    }
+
+    const troopCapacity = Object.entries(opts.composition).reduce((sum, [unitId, count]) => {
+      const unit = getUnitById(unitId);
+      return sum + (unit?.pop ?? 0) * Math.max(0, Math.floor(count));
+    }, 0);
+    if (troopCapacity > this.troopsPerMarchCapacity(playerId)) {
+      throw Object.assign(
+        new Error(`march carries ${troopCapacity} troop capacity, but the Muster Yard allows ${this.troopsPerMarchCapacity(playerId)}`),
+        { code: "MARCH_CAP", capacity: this.troopsPerMarchCapacity(playerId), requested: troopCapacity },
+      );
+    }
+
+    if (opts.intent === "occupy" && opts.targetType === "wilderness") {
+      const wild = opts.targetId ? this.wilderness.get(opts.targetId) : undefined;
+      if (wild?.ownerPlayerId === playerId) {
+        throw Object.assign(new Error("wilderness already held"), { code: "ALREADY_OWNED" });
+      }
+      if (this.ownedWildernessCount(playerId) >= this.wildernessCapacity(playerId)) {
+        throw Object.assign(
+          new Error(`wilderness capacity reached (${this.wildernessCapacity(playerId)}); abandon a holding before claiming another`),
+          { code: "WILDERNESS_CAP", capacity: this.wildernessCapacity(playerId) },
+        );
+      }
+    }
+
     // Commander validations before any state mutation (spec §6).
     let commander: Commander | null = null;
     if (opts.commanderId) {
@@ -2331,6 +2493,17 @@ export class World {
       this.putCommander(commander.id, commander);
     }
     this.putMarch(march.id, march);
+    if (opts.intent === "attack" && opts.targetType === "city") {
+      const target = opts.targetId ? this.cities.get(opts.targetId) : undefined;
+      if (target && target.playerId !== playerId) {
+        this.pushEvent(
+          target.playerId,
+          "info",
+          `Incoming attack detected near ${target.name}; prepare the garrison before arrival.`,
+          { kind: "incoming_attack", marchId: march.id, arriveAt: march.arriveAt, targetCityId: target.id },
+        );
+      }
+    }
     return march;
   }
 
@@ -2366,6 +2539,19 @@ export class World {
         target: { x: march.targetX, y: march.targetY, type: march.targetType },
         intel: this.buildScoutIntel(march),
       });
+      const membership = this.allianceMembers.get(march.playerId);
+      if (membership) {
+        const intel = (report.result as { intel?: Record<string, unknown> }).intel ?? {};
+        for (const member of this.allianceMembers.values()) {
+          if (member.allianceId !== membership.allianceId || member.playerId === march.playerId) continue;
+          this.pushEvent(
+            member.playerId,
+            "info",
+            `Shared scout intelligence from ${this.players.get(march.playerId)?.displayName ?? "an ally"}.`,
+            { kind: "shared_scout_intel", sourcePlayerId: march.playerId, reportId: report.id, intel },
+          );
+        }
+      }
       this.startReturn(march, now, march.composition);
     } else if (march.intent === "attack" || march.intent === "occupy") {
       report = this.resolveAttack(march, now);
@@ -2700,13 +2886,7 @@ export class World {
       } else if (wild && march.intent === "occupy") {
         wild.ownerPlayerId = march.playerId;
         this.putWilderness(wild.id, wild);
-        const benefit = wildernessBenefit(wild);
         loot = { food: 40 * wild.level, wood: 40 * wild.level };
-        if (benefit.kind === "dragon_evidence") {
-          const inv = this.inventory.get(march.playerId) ?? {};
-          inv["dragon_material_wild"] = (inv["dragon_material_wild"] ?? 0) + 1;
-          this.putInventory(march.playerId, inv);
-        }
       } else if (defCity && (harborLoot || battle.winner === "attacker")) {
         loot = this.plunderCity(defCity, harborLoot ? 0.5 : 1);
       }
@@ -2836,6 +3016,8 @@ export class World {
         kind: "camp",
         campId: camp.id,
         level: camp.level,
+        band: campBand(camp.level),
+        bandLabel: campBand(camp.level),
         exampleComp: def?.example_comp ?? null,
         threatBand: camp.level <= 3 ? "low" : camp.level <= 7 ? "mid" : "high",
         // Watchtower intel: reveal the camp's actual seeded composition.
@@ -3458,7 +3640,7 @@ export class World {
       }));
     const camps = [...this.camps.values()]
       .filter((c) => c.x >= x0 && c.x <= x1 && c.y >= y0 && c.y <= y1)
-      .map((c) => ({ id: c.id, x: c.x, y: c.y, level: c.level }));
+      .map((c) => ({ id: c.id, x: c.x, y: c.y, level: c.level, band: campBand(c.level) }));
     const wilderness = [...this.wilderness.values()]
       .filter((w) => w.x >= x0 && w.x <= x1 && w.y >= y0 && w.y <= y1)
       .map((w) => ({

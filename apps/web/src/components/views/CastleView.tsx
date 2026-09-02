@@ -38,6 +38,7 @@ type CastleViewProps = {
   doBuild: (buildingType: string, slotIndex?: number) => Promise<void>;
   doResearch: (techId: string) => Promise<void>;
   doTrain: (unitId: string, count: number) => Promise<void>;
+  upgradeKeep: () => Promise<void>;
   foundMarcherKeep: () => Promise<void>;
   claimQuest: (questId: string) => Promise<void>;
 };
@@ -86,6 +87,7 @@ export function CastleView({
   doBuild,
   doResearch,
   doTrain,
+  upgradeKeep,
   foundMarcherKeep,
   claimQuest,
 }: CastleViewProps) {
@@ -184,6 +186,22 @@ export function CastleView({
       </ul>
 
       <h3>The Settlement</h3>
+      <section className="keep-progression" aria-label="Keep progression">
+        <div>
+          <strong>Forge-Heart · Keep level {city.keepLevel ?? 1}</strong>
+          <p className="muted tiny">
+            The Keep governs how far buildings, operations, and frontier holdings can grow.
+            Upgrade it when your next scale requirement is the blocker.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={(city.keepLevel ?? 1) >= 10}
+          onClick={() => void upgradeKeep()}
+        >
+          {(city.keepLevel ?? 1) >= 10 ? "Keep mastered" : `Upgrade to L${(city.keepLevel ?? 1) + 1}`}
+        </button>
+      </section>
       <div className="dragon-watch-panel" data-testid="dragon-watch-panel">
         <div className="dragon-watch-mark" aria-hidden="true">
           <Icon name="dragon" size={28} />
@@ -276,8 +294,14 @@ export function CastleView({
         <div>
           <h3>Muster</h3>
           <p className="muted tiny">
-            Available manpower: {fmtNum(city.availableManpower ?? 0)} — training
+            Available manpower: {fmtNum(city.availableManpower ?? 0)} - training
             reserves people as well as supplies.
+          </p>
+          <p className="muted tiny">
+            Operations: {city.activeOperations ?? 0} / {city.operationCapacity ?? 4}
+            . Troop capacity per march: {fmtNum(city.troopsPerMarchCapacity ?? 500)}.
+            Muster Yard raises both limits; Commanders remain a separate leadership
+            constraint.
           </p>
           <ul className="muster-list">
             {trainable.map((u) => {
@@ -405,7 +429,9 @@ export function CastleView({
       )}
       {typeof city.ownedWilderness === "number" && (
         <p className="muted tiny">
-          Held wildlands: {city.ownedWilderness} — each adds to your production
+          Held wildlands: {city.ownedWilderness} / {city.wildernessCapacity ?? 2} —
+          each adds a strategic production, logistics, or scouting benefit. Release
+          a lower-value holding in the Realm before claiming another.
           (see Lands).
         </p>
       )}
