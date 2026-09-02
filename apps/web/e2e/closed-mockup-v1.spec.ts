@@ -147,7 +147,9 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
   });
   await page.waitForTimeout(2500);
   const sendAllLevy = () =>
-    page.getByLabel("Levy Spearman count to send").fill("999");
+    // The default Muster Yard caps a march at 500 troops; stay at the legal
+    // maximum so this journey exercises the battle flow, not the cap error.
+    page.getByLabel("Levy Spearman count to send").fill("500");
   const attackCamp = async () => {
     await page.getByRole("button", { name: "Realm", exact: true }).click();
     await campTile.click();
@@ -203,7 +205,7 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
     timeout: 90_000,
   });
   await page.getByRole("button", { name: "Castle", exact: true }).click();
-  await expect(page.getByText(/Held wildlands: 1/)).toBeVisible();
+  await expect(page.getByText(/Wilderness holdings: 1 \/ 2/)).toBeVisible();
   await shot("10-wilderness-held");
 
   // 11. fixture the RNG-gated readiness inputs (dev grant)

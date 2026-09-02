@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 
 import "./city.css";
@@ -302,6 +302,14 @@ function CostRow({
 export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (selectedSlot !== null) return;
+    const dragonWatch = city.buildings.find(
+      (building) => building.buildingType === "skyreost",
+    );
+    if (dragonWatch) setSelectedSlot(dragonWatch.slotIndex);
+  }, [city.buildings, selectedSlot]);
+
   const bySlot = useMemo(() => {
     const m = new Map<number, Building>();
     for (const b of city.buildings) m.set(b.slotIndex, b);
@@ -391,7 +399,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                         : `Empty plot ${slot}`
                   }
                   aria-pressed={isSel}
-                  onClick={() => setSelectedSlot(isSel ? null : slot)}
+                  onClick={() => setSelectedSlot(slot)}
                 >
                   <span className="city-ground" aria-hidden="true" />
                   {b && (

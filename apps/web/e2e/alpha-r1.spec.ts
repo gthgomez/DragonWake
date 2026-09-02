@@ -98,7 +98,7 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
   await expect(dragonWatchTile).toHaveCount(1);
   const dragonWatchDetail = page.locator(".city-detail").getByRole("heading", { name: "Dragon Watch", exact: true });
   if (!(await dragonWatchDetail.isVisible().catch(() => false))) {
-    await dragonWatchTile.click();
+    await dragonWatchTile.click({ force: true });
   }
   await expect(dragonWatchDetail).toBeVisible();
   await page.locator(".city-detail").getByRole("button", { name: /Improve to level 2/ }).click();
