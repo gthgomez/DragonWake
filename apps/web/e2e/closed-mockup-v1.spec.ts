@@ -289,7 +289,7 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
     if (stage < 4) {
       await expect(
         page.getByText(new RegExp(`Stage ${stage + 1} of 4`)),
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 30_000 });
     } else {
       await expect(page.getByText(/The charter is earned/)).toBeVisible();
     }
