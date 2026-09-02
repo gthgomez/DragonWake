@@ -25,7 +25,7 @@ export default defineConfig({
       env: { DEV_FAST_TIME: "1", DEV_SKIP_TUTORIAL: "0", PORT: "3001" },
     },
     {
-      command: "pnpm dev:web",
+      command: "pnpm --filter @dragonwake/web dev",
       url: "http://localhost:5173",
       timeout: 120_000,
       reuseExistingServer: false,

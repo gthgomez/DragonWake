@@ -38,11 +38,14 @@ This is an in-progress checkpoint, not a merge or final campaign verdict.
 - Non-PostgreSQL server suite: 16 files / 162 tests passed serially outside the
   sandbox after fixing operation-slot lifecycle and independent Command Gallery
   progression compatibility.
+- Focused Alpha R2 Playwright journey: 1 test passed with 1 worker; the server
+  and web processes started through separate configured commands.
 - Initial sandboxed Vitest attempts were blocked before collection by host
   `spawn EPERM` during Vite/esbuild process resolution; elevated serial runs
   subsequently executed normally.
 - PostgreSQL-dependent tests, browser journeys, exact-head CI, critic review,
-  and release state remain outstanding.
+  and exact-head CI remain outstanding; the local PostgreSQL suite reported
+  three documented skips because localhost PostgreSQL was unreachable.
 - Full suite, PostgreSQL, browser, exact-head CI, critic review, and release
   state: not yet run in this checkpoint.
 
