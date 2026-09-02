@@ -6,13 +6,11 @@ This is an in-progress checkpoint, not a merge or final campaign verdict.
 
 - Starting integration line: `codex/doa-parity-campaign`
 - Starting observed head: `7feba552eb3b9d4f22c03b751476bf9ad506c530`
-- Current head: `b7e87bd81607e00a6cdd0bf6d79040c7414ee56d` before the pending
-  staged/unstaged R3 batches; work remains on the same branch.
+- Current head: `1b3c1fade95195b59a705f74fe7467bc262063e9` on the same branch.
 - Preserved untracked user document: `DRAGON_WAKE_DOA_PARITY_IMPLEMENTATION_MASTER.md`.
-- Live GitHub state is captured in `delivery/evidence/dragonwake-r2-live-state.json`;
-  PR #7 remains open at the known R2 head, with successful exact-head CI but no
-  independent review at that historical head. The current R3 review is captured
-  in `delivery/evidence/dragonwake-r3-independent-critic.md`.
+- PR #7 remains open at the current campaign head. Exact-head CI run `33651223436`
+  is green, and the independent re-audit still recommends `NOT_SAFE_TO_MERGE`
+  pending broader campaign evidence.
 
 ## Implemented in this checkpoint
 
@@ -43,6 +41,10 @@ This is an in-progress checkpoint, not a merge or final campaign verdict.
 - Brinehold Charter is now an ordinary research technology; later charter
   technologies reject premature research until world-earned prerequisites are
   present. Admin grants remain test/demo fixtures only.
+- Added an ordinary-player server journey proving real camp victories, scouting,
+  wilderness occupation, dragon readiness, expedition completion, Marcher Keep
+  founding, and Brinehold Charter research/founding without charter or counter
+  admin grants.
 - Added a deterministic seven-horizon pacing simulator and recovery/PvE-band
   report in `delivery/R3_PACING_SIMULATION.md`.
 - Added focused tests for Watch Hill, wilderness capacity, Keep gates, Muster
@@ -58,7 +60,8 @@ This is an in-progress checkpoint, not a merge or final campaign verdict.
 - Active-code terminology audit: pass for legacy coin/kelp/drift identifiers in
   the audited server gameplay paths.
 - Focused R3 suite: 8 files / 11 tests passed serially outside the sandbox.
-- Holding capability regression: 1 test passed.
+- Holding capability regression: 3 tests passed, including the ordinary-player
+  world-earned path through Brinehold.
 - Holding-chain prerequisite regression: 2 tests passed.
 - Pacing simulation: 3 tests passed across seven horizons, four PvE bands, and
   six recovery mistakes.
@@ -88,21 +91,21 @@ This is an in-progress checkpoint, not a merge or final campaign verdict.
 - Initial sandboxed Vitest attempts were blocked before collection by host
   `spawn EPERM` during Vite/esbuild process resolution; elevated serial runs
   subsequently executed normally.
-- The independent critic review is complete and recorded as
-  `NOT_SAFE_TO_MERGE`; it identified open reinforcement lifecycle, persistence,
-  browser-depth, alliance workflow, and positive holding-path gaps.
+- The independent critic re-audit confirms the positive ordinary holding path,
+  wilderness race, dragon consequence, reinforcement lifecycle, and narrow
+  shared-intel gaps are resolved. It still records persistence-specific holding
+  restart proof, browser-depth, and campaign-completeness evidence as open.
 - PostgreSQL-dependent tests remain unavailable locally; the local suite
   reported three documented skips because localhost PostgreSQL was unreachable.
-- Fresh exact-head CI for the current R3 head and release reconciliation remain
-  outstanding.
+- Exact-head CI run `33651223436` passed all steps, including PostgreSQL-required
+  server tests and Alpha browser certification.
 
-## Known semantic gap
+## Remaining release evidence gap
 
-The current same-alliance reinforce primitive is an authoritative one-way
-delivery into the target city's stack. Failed delivery returns the sender's
-composition intact, and tests prove no loss or duplication on that path. It is
-not yet a temporary stationed-garrison lifecycle with recall/owner records
-across restart; this checkpoint does not claim full reinforcement parity.
+The implementation now has a real stationed reinforcement lifecycle and an
+ordinary world-earned holding path. The independent re-audit still treats
+holding-specific restart proof, broader responsive/browser depth, and a full
+campaign completion report as release debt; this document is not a merge verdict.
 
 ## Host guard
 
