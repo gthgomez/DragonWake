@@ -4,8 +4,8 @@
 
 `R3_IMPLEMENTED_WITH_RELEASE_EVIDENCE_OPEN`
 
-The R3 implementation is pushed on PR #7 at commit `1b3c1fa`. Exact-head
-GitHub Actions run `33651223436` passed all CI steps, including PostgreSQL-
+The R3 implementation is pushed on PR #7 at commit `d42d8cc`. Exact-head
+GitHub Actions run `33670007885` passed all CI steps, including PostgreSQL-
 required server tests, typechecks, production build, and all eight serial
 browser journeys. An independent re-audit confirms the previously identified
 wilderness race, Dragon War Council consequence, reinforcement lifecycle, and
@@ -40,4 +40,3 @@ DOA matrix.
    wilderness replacement, holdings, social-war, and recovery journeys.
 3. Reconcile the DOA parity matrix and publish a final sign-off after those
    checks pass.
-

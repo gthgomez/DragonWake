@@ -6,7 +6,7 @@ This is an in-progress checkpoint, not a merge or final campaign verdict.
 
 - Starting integration line: `codex/doa-parity-campaign`
 - Starting observed head: `7feba552eb3b9d4f22c03b751476bf9ad506c530`
-- Current head: `1b3c1fade95195b59a705f74fe7467bc262063e9` on the same branch.
+- Current head: `d42d8cc04d8cf6e51f61b0914673d14a04fe8b67` on the same branch.
 - Preserved untracked user document: `DRAGON_WAKE_DOA_PARITY_IMPLEMENTATION_MASTER.md`.
 - PR #7 remains open at the current campaign head. Exact-head CI run `33651223436`
   is green, and the independent re-audit still recommends `NOT_SAFE_TO_MERGE`
@@ -97,7 +97,7 @@ This is an in-progress checkpoint, not a merge or final campaign verdict.
   restart proof, browser-depth, and campaign-completeness evidence as open.
 - PostgreSQL-dependent tests remain unavailable locally; the local suite
   reported three documented skips because localhost PostgreSQL was unreachable.
-- Exact-head CI run `33651223436` passed all steps, including PostgreSQL-required
+- Exact-head CI run `33670007885` passed all steps, including PostgreSQL-required
   server tests and Alpha browser certification.
 
 ## Remaining release evidence gap
