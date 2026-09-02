@@ -75,6 +75,7 @@ export function App() {
           dailyQuests={g.dailyQuests}
           jobs={g.jobs}
           now={g.now}
+          dragonPresence={g.readinessStatus?.presence ?? null}
           expeditionStatus={g.expeditionStatus}
           doBuild={g.doBuild}
           doResearch={g.doResearch}

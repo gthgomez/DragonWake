@@ -24,6 +24,12 @@ type CastleViewProps = {
   dailyQuests: DailyQuest[];
   jobs: QueueJob[];
   now: number;
+  dragonPresence: {
+    state?: string;
+    title?: string;
+    summary?: string;
+    nextMilestone?: string;
+  } | null;
   expeditionStatus: {
     charterEarned?: boolean;
     currentStage?: number;
@@ -75,6 +81,7 @@ export function CastleView({
   dailyQuests,
   jobs,
   now,
+  dragonPresence,
   expeditionStatus,
   doBuild,
   doResearch,
@@ -142,6 +149,16 @@ export function CastleView({
           </label>
         )}
       </header>
+
+      <section className="dragon-presence" data-testid="dragon-presence" aria-label="Dragon Presence">
+        <div className="dragon-presence-glyph"><Icon name="dragon" size={32} /></div>
+        <div className="dragon-presence-copy">
+          <div className="eyebrow">Dragon Presence</div>
+          <h3>{dragonPresence?.title ?? "Dormant"}</h3>
+          <p>{dragonPresence?.summary ?? "A vast, sleeping presence lies beneath the kingdom's oldest foundations."}</p>
+          <p className="muted tiny"><strong>Next:</strong> {dragonPresence?.nextMilestone ?? "Build the Dragon Watch and bring back your first sign from the realm."}</p>
+        </div>
+      </section>
 
       {city.kind === "marcher_keep" && (
         <div className="marcher-banner" role="note">

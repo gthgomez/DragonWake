@@ -1112,6 +1112,19 @@ describe("Camp Variation", () => {
     expect(readiness.requirements).toHaveLength(5);
   });
 
+  it("derives Dragon Presence lifecycle from authoritative progress", () => {
+    const world = freshWorld();
+    const { player } = world.createGuest("PresenceA", "northern_kingdom");
+    expect(world.dragonPresence(player.id).state).toBe("DORMANT");
+
+    world.updateBestiary(player.id, "claw_marks_stone", 3);
+    expect(world.dragonPresence(player.id).state).toBe("STIRRING");
+
+    const readiness = world.checkDragonReadiness(player.id);
+    expect(readiness.presence.title).toBe("Stirring");
+    expect(readiness.presence.nextMilestone).toMatch(/readiness/i);
+  });
+
   it("dragon clues are deterministic content", () => {
     const clues = getDragonClues();
     expect(clues.length).toBeGreaterThan(0);

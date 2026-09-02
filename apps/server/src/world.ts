@@ -368,6 +368,20 @@ export type DragonProgress = {
   scoutsSent: number;
 };
 
+export type DragonLifecycleState =
+  | "DORMANT"
+  | "STIRRING"
+  | "AWAKENED"
+  | "BONDED"
+  | "BATTLE_READY";
+
+export type DragonPresence = {
+  state: DragonLifecycleState;
+  title: string;
+  summary: string;
+  nextMilestone: string;
+};
+
 /** Minimal store surface so World can flush without circular import at type level. */
 export type WorldStore = {
   mode: "postgres" | "memory";
@@ -1824,6 +1838,7 @@ export class World {
     ready: boolean;
     requirements: Array<{ id: string; met: boolean; description: string }>;
     reward?: string;
+    presence: DragonPresence;
   } {
     this.recalcDragonReadiness(playerId);
     const progress = this.dragonProgress.get(playerId);
@@ -1852,7 +1867,71 @@ export class World {
       return { id: req.id, met, description: req.description };
     });
     const ready = requirements.every((r) => r.met);
-    return { ready, requirements, reward: ready ? config.reward : undefined };
+    return {
+      ready,
+      requirements,
+      reward: ready ? config.reward : undefined,
+      presence: this.dragonPresence(playerId),
+    };
+  }
+
+  /**
+   * Player-facing dragon lifecycle. The state is derived exclusively from
+   * authoritative persisted gameplay facts, so refreshes cannot fabricate a
+   * milestone and old saves remain compatible.
+   */
+  dragonPresence(playerId: string): DragonPresence {
+    const progress = this.ensureDragonProgress(playerId);
+    const readiness = this.dragonProgress.get(playerId);
+    const watch = bestBuildingLevel(this, playerId, "skyreost");
+    const hasEvidence =
+      progress.bestiaryStudied > 0 ||
+      progress.materialsCollected > 0 ||
+      progress.campsDefeated > 0 ||
+      progress.scoutsSent > 0 ||
+      progress.researchLevel > 0 ||
+      watch > 0;
+    const hasBattleHolding = this.citiesForPlayer(playerId).some(
+      (city) => city.kind === "galeari",
+    );
+    if (hasBattleHolding) {
+      return {
+        state: "BATTLE_READY",
+        title: "Battle-ready",
+        summary: "The dragon answers the kingdom's banners. Its presence now shapes war preparations.",
+        nextMilestone: "Strengthen the frontier and prepare for greater threats.",
+      };
+    }
+    if (progress.charterEarned) {
+      return {
+        state: "BONDED",
+        title: "Bonded",
+        summary: "The expedition returned with a living bond between your kingdom and the scarred wilds.",
+        nextMilestone: "Found a Marcher Keep, then pursue a specialized frontier holding.",
+      };
+    }
+    if (readiness?.expeditionStage && readiness.expeditionStage > 0) {
+      return {
+        state: "AWAKENED",
+        title: "Awakened",
+        summary: "The expedition has reached the dragon scar. Something beneath the old stone is listening.",
+        nextMilestone: "Complete the expedition stages to earn the settlement charter.",
+      };
+    }
+    if (hasEvidence && (progress.bestiaryStudied > 0 || watch >= 2)) {
+      return {
+        state: "STIRRING",
+        title: "Stirring",
+        summary: "Evidence is accumulating, and the watchtower reports movement beyond the tree line.",
+        nextMilestone: "Meet every Dragon Expedition readiness requirement.",
+      };
+    }
+    return {
+      state: "DORMANT",
+      title: "Dormant",
+      summary: "A vast, sleeping presence lies beneath the kingdom's oldest foundations.",
+      nextMilestone: "Build the Dragon Watch and bring back your first sign from the realm.",
+    };
   }
 
   /** True when cumulative gameplay counters satisfy a stage's requirements. */

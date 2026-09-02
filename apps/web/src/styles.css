@@ -791,3 +791,35 @@ button:disabled {
     linear-gradient(180deg, rgba(232, 199, 119, 0.07), rgba(0, 0, 0, 0.15)),
     var(--panel-2, #241d16);
 }
+
+/* Alpha R2: the dragon is a first-session kingdom surface, not a hidden tab. */
+.dragon-presence {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  margin: 0.75rem 0 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(232, 199, 119, 0.38);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 8% 20%, rgba(155, 87, 44, 0.24), transparent 34%),
+    linear-gradient(110deg, rgba(68, 42, 25, 0.88), rgba(31, 24, 18, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.dragon-presence-glyph {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(232, 199, 119, 0.42);
+  border-radius: 50%;
+  color: #e8c777;
+  background: radial-gradient(circle, rgba(232, 199, 119, 0.2), transparent 70%);
+}
+.dragon-presence-copy h3 { margin: 0.05rem 0 0.2rem; color: #f0d58c; }
+.dragon-presence-copy p { margin: 0.2rem 0; }
+@media (max-width: 480px) {
+  .dragon-presence { align-items: flex-start; }
+  .dragon-presence-glyph { width: 46px; height: 46px; }
+}
