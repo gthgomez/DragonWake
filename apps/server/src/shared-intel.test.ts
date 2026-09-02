@@ -5,8 +5,8 @@ import { World } from "./world";
 describe("alliance shared intelligence", () => {
   it("forwards a scout report to alliance members", () => {
     const world = new World({ persist: false });
-    const a = world.createGuest("Scout Lord");
-    const b = world.createGuest("Watch Lord");
+    const a = world.createGuest("Scout Lord", "northern_kingdom");
+    const b = world.createGuest("Watch Lord", "mountain_realm");
     const alliance = world.createAlliance(a.player.id, "Shared Sight", "SIGHT");
     world.joinAlliance(b.player.id, alliance.id);
     const camp = [...world.camps.values()][0]!;
@@ -20,6 +20,6 @@ describe("alliance shared intelligence", () => {
       composition: { scout: 1 },
     });
     world.landMarch(march, march.arriveAt);
-    expect(world.events.some((event) => event.playerId === b.player.id && event.data?.kind === "shared_scout_intel")).toBe(true);
+    expect(world.eventsSince(b.player.id, 0).some((event) => event.data?.kind === "shared_scout_intel")).toBe(true);
   });
 });

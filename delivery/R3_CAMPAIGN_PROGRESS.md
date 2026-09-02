@@ -34,10 +34,15 @@ This is an in-progress checkpoint, not a merge or final campaign verdict.
 - `git diff --check`: pass.
 - Active-code terminology audit: pass for legacy coin/kelp/drift identifiers in
   the audited server gameplay paths.
-- Vitest and tsx runtime smoke attempts: blocked before test collection by
-  host `spawn EPERM` during Vite/esbuild process resolution.
-- Targeted Vitest retry: 3 files discovered, 0 tests collected, 3 identical
-  `spawn EPERM` unhandled errors before collection.
+- Focused R3 suite: 8 files / 11 tests passed serially outside the sandbox.
+- Non-PostgreSQL server suite: 16 files / 162 tests passed serially outside the
+  sandbox after fixing operation-slot lifecycle and independent Command Gallery
+  progression compatibility.
+- Initial sandboxed Vitest attempts were blocked before collection by host
+  `spawn EPERM` during Vite/esbuild process resolution; elevated serial runs
+  subsequently executed normally.
+- PostgreSQL-dependent tests, browser journeys, exact-head CI, critic review,
+  and release state remain outstanding.
 - Full suite, PostgreSQL, browser, exact-head CI, critic review, and release
   state: not yet run in this checkpoint.
 

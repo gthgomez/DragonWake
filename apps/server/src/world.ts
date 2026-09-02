@@ -1337,7 +1337,7 @@ export class World {
       );
     }
     const currentBuilding = city.buildings.find((b) => b.slotIndex === slotIndex);
-    if (currentBuilding?.buildingType === buildingType && currentBuilding.level + 1 > keepLevel(city) + 2) {
+    if (buildingType !== "command_gallery" && currentBuilding?.buildingType === buildingType && currentBuilding.level < def.max_level && currentBuilding.level + 1 > keepLevel(city) + 2) {
       throw Object.assign(
         new Error(`${def.name} L${currentBuilding.level + 1} requires Forge-Heart L${currentBuilding.level - 1}; upgrade the Keep first`),
         { code: "KEEP_GATE", keepLevel: keepLevel(city), requiredKeepLevel: currentBuilding.level - 1 },
@@ -1626,9 +1626,12 @@ export class World {
 
   /** Active operations are independent from commander-led march slots. */
   activeOperations(playerId: string): number {
+    // A returning force no longer occupies a departure slot; it cannot be
+    // launched again, but releasing the slot preserves parallel progression
+    // while the troops travel home.
     return [...this.marches.values()].filter(
       (m) => m.playerId === playerId &&
-        m.status !== "completed" && m.status !== "cancelled",
+        (m.status === "en_route" || m.status === "resolving"),
     ).length;
   }
 
