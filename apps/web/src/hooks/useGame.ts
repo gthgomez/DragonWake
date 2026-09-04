@@ -370,6 +370,7 @@ export function useGame() {
   const actions = useGameActions({
     token,
     city,
+    loadMap,
     setError,
     setStatus,
     pushToast,

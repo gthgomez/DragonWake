@@ -39,6 +39,7 @@ type RealmViewProps = {
   loadMap: (focus?: MapFocus) => Promise<void>;
   setError: Dispatch<SetStateAction<string | null>>;
   recruitCommander: () => Promise<void>;
+  onAbandonWild: (wildId: string) => Promise<void>;
   sendMarch: (opts: {
     intent: "attack" | "occupy" | "scout" | "reinforce";
     target: {
@@ -73,6 +74,7 @@ export function RealmView({
   loadMap,
   setError,
   recruitCommander,
+  onAbandonWild,
   sendMarch,
 }: RealmViewProps) {
   const [confirmIntent, setConfirmIntent] = useState<string | null>(null);
@@ -534,31 +536,42 @@ export function RealmView({
                 </>
               )}
               {selectedInfo?.kind === "wild" && (
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={
-                    totalSelected === 0 ||
-                    overSelected.length > 0 ||
-                    Boolean(selectedInfo.wild.ownerPlayerId === player.id)
-                  }
-                  onClick={() =>
-                    confirmIntent === "occupy"
-                      ? launch("occupy", {
-                          type: "wilderness",
-                          id: selectedInfo.wild.id,
-                          x: selectedInfo.wild.x,
-                          y: selectedInfo.wild.y,
-                        })
-                      : setConfirmIntent("occupy")
-                  }
-                >
-                  {confirmIntent === "occupy"
-                    ? "Confirm — send the settlers-at-arms"
-                    : selectedInfo.wild.ownerPlayerId
-                      ? "Contest this claim (attack)"
-                      : "Claim for the realm (occupy)"}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={
+                      totalSelected === 0 ||
+                      overSelected.length > 0 ||
+                      Boolean(selectedInfo.wild.ownerPlayerId === player.id)
+                    }
+                    onClick={() =>
+                      confirmIntent === "occupy"
+                        ? launch("occupy", {
+                            type: "wilderness",
+                            id: selectedInfo.wild.id,
+                            x: selectedInfo.wild.x,
+                            y: selectedInfo.wild.y,
+                          })
+                        : setConfirmIntent("occupy")
+                    }
+                  >
+                    {confirmIntent === "occupy"
+                      ? "Confirm — send the settlers-at-arms"
+                      : selectedInfo.wild.ownerPlayerId
+                        ? "Contest this claim (attack)"
+                        : "Claim for the realm (occupy)"}
+                  </button>
+                  {selectedInfo.wild.ownerPlayerId === player.id && (
+                    <button
+                      type="button"
+                      data-testid="abandon-wild"
+                      onClick={() => void onAbandonWild(selectedInfo.wild.id)}
+                    >
+                      Abandon this wildland
+                    </button>
+                  )}
+                </>
               )}
               {selectedInfo?.kind === "city" && (
                 <>

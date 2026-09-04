@@ -15,6 +15,7 @@ import type {
   ChatMessage,
   City,
   Commander,
+  MapFocus,
   March,
   Player,
   QueueJob,
@@ -25,6 +26,7 @@ import type {
 export type UseGameActionsDeps = {
   token: string | null;
   city: City | null;
+  loadMap: (focus?: MapFocus) => Promise<void>;
   setError: Dispatch<SetStateAction<string | null>>;
   setStatus: Dispatch<SetStateAction<string>>;
   pushToast: (message: string, kind?: Toast["kind"]) => void;
@@ -71,6 +73,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
   const {
     token,
     city,
+    loadMap,
     setError,
     setStatus,
     pushToast,
@@ -510,6 +513,17 @@ export function useGameActions(deps: UseGameActionsDeps) {
     setMarchLeaderId("");
   }
 
+  async function abandonWild(wildId: string) {
+    if (!token) return;
+    await run("Wildland abandoned — the frontier is open again", async () => {
+      await api(`/api/v1/wilderness/${wildId}/abandon`, token, {
+        method: "POST",
+      });
+      await refreshMe(token);
+      await loadMap();
+    });
+  }
+
   return {
     loginGuest,
     doBuild,
@@ -519,6 +533,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
     sendMarch,
     recallReinforcement,
     recruitCommander,
+    abandonWild,
     createAlly,
     joinAlly,
     advanceTutorial,

@@ -201,6 +201,16 @@ export function CastleView({
             The Keep governs how far buildings, operations, and frontier holdings can grow.
             Upgrade it when your next scale requirement is the blocker.
           </p>
+          {(city.keepLevel ?? 1) < 10 && (
+            <p className="muted tiny" data-testid="keep-upgrade-costs">
+              Next level costs:{" "}
+              <span><Icon name="food" size={12} /> {fmtNum(500 * ((city.keepLevel ?? 1) + 1))}</span>{" "}
+              <span><Icon name="wood" size={12} /> {fmtNum(500 * ((city.keepLevel ?? 1) + 1))}</span>{" "}
+              <span><Icon name="stone" size={12} /> {fmtNum(300 * ((city.keepLevel ?? 1) + 1))}</span>{" "}
+              <span><Icon name="crownmark" size={12} /> {fmtNum(100 * ((city.keepLevel ?? 1) + 1))}</span>
+              {" "}· about {90 * ((city.keepLevel ?? 1) + 1)}s
+            </p>
+          )}
         </div>
         <button
           type="button"

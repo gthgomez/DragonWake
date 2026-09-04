@@ -311,7 +311,8 @@
 
 .city-cost-row {
   display: flex;
-  gap: 0.9rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
 }
 
 .city-cost {
@@ -362,8 +363,13 @@
 
 .city-pick-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr) lets the columns shrink with the panel; fixed 1fr kept
+     each button's min-content width and forced horizontal overflow on mobile. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.4rem;
+}
+@media (max-width: 480px) {
+  .city-pick-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .city-pick-grid button {

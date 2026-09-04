@@ -117,6 +117,7 @@ export function App() {
           loadMap={g.loadMap}
           setError={g.setError}
           recruitCommander={g.recruitCommander}
+          onAbandonWild={g.abandonWild}
           sendMarch={g.sendMarch}
         />
       )}
