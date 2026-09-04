@@ -69,7 +69,12 @@ test("cert desktop: wilderness replacement — claim, abandon, re-claim", async 
   const musterRow = page.locator("li.muster-row", { hasText: "Levy Spearman" });
   await musterRow.locator("input[type=number]").fill("60");
   await musterRow.getByRole("button", { name: "Train" }).click();
-  await expect(musterRow).toContainText(/owned (5[0-9]|6[0-9])/,{ timeout: 30_000 });
+  await expect
+    .poll(async () => {
+      const text = (await musterRow.textContent()) ?? "";
+      return Number(/owned (\d+)/.exec(text)?.[1] ?? 0);
+    }, { timeout: 30_000, intervals: [500, 1_000] })
+    .toBeGreaterThanOrEqual(100);
 
   const claimWild = async () => {
     await page.getByRole("button", { name: "Realm", exact: true }).click();
@@ -88,7 +93,8 @@ test("cert desktop: wilderness replacement — claim, abandon, re-claim", async 
 
   // Abandon from the realm panel, freeing capacity for the replacement claim.
   await page.getByRole("button", { name: "Realm", exact: true }).click();
-  const claimedTile = page.locator("button[aria-label*='claimed, at']").first();
+  // the leading comma keeps this from matching "…, unclaimed, at …" tiles
+  const claimedTile = page.locator("button[aria-label*=', claimed, at']").first();
   await expect(claimedTile).toBeVisible({ timeout: 20_000 });
   await claimedTile.click();
   await page.getByTestId("abandon-wild").click();

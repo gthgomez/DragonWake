@@ -76,9 +76,11 @@ Highlights:
 - **Language**: no API URLs, raw ids, UUID fragments, or server prose in the
   player flow; internal codes stay in console diagnostics.
 
-Out of scope / prototype remains: shop UI, alliances depth, haul UX, and
-Postgres runtime verification in CI. The former Sovereign machinery has been
-removed from live product paths; only migration/history references remain.
+Out of scope / prototype remains: shop UI, alliances depth, and haul UX.
+CI runs the server suite with `REQUIRE_PG=1` against a PostgreSQL 16
+service, so persistence coverage is required there, not optional. The
+former Sovereign machinery has been removed from live product paths; only
+migration/history references remain.
 
 Do not start content-heavy mobile UI against the current aquatic / elemental
 content model.
@@ -90,7 +92,7 @@ content model.
 | Monorepo | pnpm workspaces + TypeScript |
 | Web | Vite + React |
 | Server | Hono (Node) + in-process sim |
-| DB | PostgreSQL 16 (optional; schema in `schema.sql`) |
+| DB | PostgreSQL 16 (required in CI via `REQUIRE_PG=1`; optional locally, in-memory fallback) |
 | Combat | `packages/combat` pure `resolveBattle` |
 
 ## Packages
@@ -113,7 +115,8 @@ docs/design       — Direction Freeze, canon authority, migration plan
 ## Setup
 
 ```powershell
-cd C:\Workspace\TideforgeEmpires
+git clone https://github.com/gthgomez/DragonWake.git
+cd DragonWake
 copy .env.example .env
 pnpm install
 ```

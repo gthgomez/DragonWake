@@ -44,17 +44,63 @@ async function waitForReport(page: Page, headline: string | RegExp) {
   await expect(page.getByText("No active marches")).toBeVisible({ timeout: 30_000 });
 }
 
+async function ownedOf(row: ReturnType<Page["getByRole"]> | import("@playwright/test").Locator) {
+  const text = (await row.textContent()) ?? "";
+  return Number(/owned (\d+)/.exec(text)?.[1] ?? 0);
+}
+
+/** Retrain battle losses the way the objective log tells players to. */
+async function topUp(page: Page, unit: string, minOwned: number) {
+  await page.getByRole("button", { name: "Castle", exact: true }).click();
+  const row = page.locator("li.muster-row", { hasText: unit }).first();
+  await expect(row).toBeVisible({ timeout: 20_000 });
+  await expect
+    .poll(async () => {
+      if ((await ownedOf(row)) >= minOwned) return true;
+      // one batch per round; the train queue caps concurrent jobs, so a
+      // rejected click just waits for the next interval
+      await row.locator("input[type=number]").fill(String(minOwned - (await ownedOf(row))));
+      await row.getByRole("button", { name: "Train" }).click();
+      return false;
+    }, { timeout: 60_000, intervals: [1_000, 2_000] })
+    .toBe(true);
+}
+
 async function selectFirstCamp(page: Page, level?: number) {
   const selector = level
     ? `button[aria-label^="Bandit Camp, level ${level}"]`
     : "button[aria-label^=\"Bandit Camp\"]";
   const troopInput = page.getByLabel("Levy Spearman count to send");
   await expect(page.locator(selector).first()).toBeVisible({ timeout: 20_000 });
-  await expect.poll(async () => {
-    const camp = page.locator(selector).first();
-    await camp.click({ force: true });
-    return troopInput.isVisible();
-  }, { timeout: 20_000, intervals: [100, 250, 500] }).toBe(true);
+  await expect
+    .poll(async () => {
+      // try on-screen tiles first: a force-click on a tile panned past the
+      // viewport edge lands on whatever is topmost there and silently
+      // selects nothing (or the wrong tile)
+      const camps = page.locator(selector);
+      const total = await camps.count();
+      const vp = page.viewportSize() ?? { width: 0, height: 0 };
+      const ordered: import("@playwright/test").Locator[] = [];
+      for (let i = 0; i < total; i += 1) ordered.push(camps.nth(i));
+      const inside: import("@playwright/test").Locator[] = [];
+      const outside: import("@playwright/test").Locator[] = [];
+      for (const tile of ordered) {
+        const box = await tile.boundingBox();
+        const onScreen =
+          box !== null &&
+          box.x >= 0 &&
+          box.y >= 0 &&
+          box.x + box.width <= vp.width &&
+          box.y + box.height <= vp.height;
+        (onScreen ? inside : outside).push(tile);
+      }
+      for (const tile of [...inside, ...outside]) {
+        await tile.click({ force: true });
+        if (await troopInput.isVisible()) return true;
+      }
+      return false;
+    }, { timeout: 20_000, intervals: [100, 250, 500] })
+    .toBe(true);
 }
 
 async function setMixedCompany(page: Page, levy = 50, bowman = 25) {
@@ -129,7 +175,14 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
   await expect(page.getByTestId("dragon-presence")).toContainText("Stirring");
   await shot(page, "09-battle-victory");
 
+  // casualties are real: replenish before the deeper camp circuit, exactly
+  // as the objective log instructs ("muster more spearmen")
+  await topUp(page, "Levy Spearman", 60);
+  await topUp(page, "Bowman", 45);
+
   for (let i = 0; i < 6; i += 1) {
+    await topUp(page, "Levy Spearman", 60);
+    await topUp(page, "Bowman", 45);
     await page.getByRole("button", { name: "Realm", exact: true }).click();
     await selectFirstCamp(page, i === 0 ? 2 : 1);
     await setMixedCompany(page, 50, 35);
