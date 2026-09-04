@@ -1,7 +1,7 @@
 # DRAGON WAKE — DOA PARITY IMPLEMENTATION MASTER CONTRACT
 
-**Repository:** `gthgomez/DragonWake`  
-**Primary mission:** Bring Dragon Wake to strong gameplay/progression parity with the original *Dragons of Atlantis* (DoA) while keeping Dragon Wake legally and creatively original.  
+**Repository:** `gthgomez/DragonWake`
+**Primary mission:** Bring Dragon Wake to strong gameplay/progression parity with the original *Dragons of Atlantis* (DoA) while keeping Dragon Wake legally and creatively original.
 **Artifact role:** This file is an implementation authority and working reference for the coding agent. Read it before changing code, keep it available throughout implementation, and update the repo's canonical design/status documents as the work lands.
 
 ---
