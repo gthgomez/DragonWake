@@ -392,4 +392,144 @@ describe("PG persistence (shipped PgStore + World)", () => {
 
     await store2!.close();
   }, 20_000);
+
+  it("holding ladder progression survives restart (ordinary-player path)", async ({
+    skip,
+  }) => {
+    if (!canRun) {
+      skip(
+        probeError
+          ? `${probeError} (set REQUIRE_PG=1 to fail hard)`
+          : "Postgres not available",
+      );
+      return;
+    }
+
+    const store1 = await PgStore.connect(DATABASE_URL);
+    expect(store1).not.toBeNull();
+    const world1 = new World({ devFastTime: true, skipTutorial: true });
+    await world1.attachStore(store1!);
+    const { player, city } = world1.createGuest(
+      `Ladder_${Date.now()}`,
+      "northern_kingdom",
+    );
+    // Admin grants cover disposable starting resources/troops only — every
+    // charter, founding, and progression counter below is earned through
+    // ordinary world actions (camps, scouts, expedition, wilderness).
+    world1.adminGrant(player.id, {
+      resources: { food: 500000, wood: 500000, stone: 500000, ore: 500000, crownmark: 500000 },
+      units: { bowman: 20000 },
+    });
+
+    const finish = (job: { finishesAt: number }) => {
+      job.finishesAt = world1.now() - 1;
+      world1.processQueues(world1.now());
+    };
+    const research = (techId: string) => finish(world1.startResearch(city.id, player.id, techId));
+    const attackCamp = (level: number) => {
+      const camp = [...world1.camps.values()].find((c) => c.level === level)!;
+      const march = world1.createMarch(player.id, {
+        fromCityId: city.id, intent: "attack", targetType: "camp", targetId: camp.id,
+        targetX: camp.x, targetY: camp.y, composition: { bowman: 400 },
+      });
+      march.arriveAt = 0;
+      const report = world1.landMarch(march, world1.now())!;
+      world1.processMarches(world1.now() + 100000);
+      expect((report.result as { battle: { winner: string } }).battle.winner).toBe("attacker");
+    };
+    const scoutCamp = (level: number) => {
+      const camp = [...world1.camps.values()].find((c) => c.level === level)!;
+      const march = world1.createMarch(player.id, {
+        fromCityId: city.id, intent: "scout", targetType: "camp", targetId: camp.id,
+        targetX: camp.x, targetY: camp.y, composition: { bowman: 1 },
+      });
+      march.arriveAt = 0;
+      world1.landMarch(march, world1.now());
+      world1.processMarches(world1.now() + 100000);
+    };
+
+    research("dragon_studies");
+    research("dragon_studies");
+    finish(world1.startBuild(city.id, player.id, 2, "skyreost"));
+    finish(world1.startBuild(city.id, player.id, 2, "skyreost"));
+
+    for (let i = 0; i < 6; i += 1) attackCamp(1);
+    attackCamp(2);
+    scoutCamp(1);
+
+    expect(world1.checkDragonReadiness(player.id).ready).toBe(true);
+    expect(world1.startExpedition(player.id, "first_dragon_expedition")).not.toBeNull();
+    for (let stage = 1; stage <= 4; stage += 1) {
+      world1.completeExpeditionStage(player.id, "first_dragon_expedition", stage);
+    }
+
+    expect(world1.foundMarcherKeep(player.id, "Restart Keep").kind).toBe("marcher_keep");
+    const wild = [...world1.wilderness.values()][0]!;
+    const occupation = world1.createMarch(player.id, {
+      fromCityId: city.id, intent: "occupy", targetType: "wilderness", targetId: wild.id,
+      targetX: wild.x, targetY: wild.y, composition: { bowman: 100 },
+    });
+    occupation.arriveAt = 0;
+    world1.landMarch(occupation, world1.now());
+    world1.processMarches(world1.now() + 100000);
+
+    research("brinehold_unlock");
+    expect(world1.foundBrinehold(player.id, "Restart Brinehold").kind).toBe("brinehold");
+    research("stonekeel_unlock");
+    expect(world1.foundCitadel(player.id, "stonekeel").kind).toBe("stonekeel");
+    scoutCamp(2);
+    scoutCamp(3);
+    research("cinderreach_unlock");
+    expect(world1.foundCitadel(player.id, "cinderreach").kind).toBe("cinderreach");
+    research("dragon_studies");
+    research("galeari_unlock");
+    expect(world1.foundCitadel(player.id, "galeari", "Restart Galeari").kind).toBe("galeari");
+    expect(world1.dragonPresence(player.id).state).toBe("BATTLE_READY");
+
+    const expectedKinds = ["capital", "marcher_keep", "brinehold", "stonekeel", "cinderreach", "galeari"];
+    const expectedGaleariStacks = world1
+      .citiesForPlayer(player.id)
+      .find((c) => c.kind === "galeari")!.stacks;
+
+    await world1.flush();
+    await store1!.close();
+
+    const store2 = await PgStore.connect(DATABASE_URL);
+    expect(store2).not.toBeNull();
+    const world2 = new World({ devFastTime: true, skipTutorial: true });
+    await world2.attachStore(store2!);
+
+    expect(world2.players.get(player.id)).toBeTruthy();
+    const ownedKinds = world2
+      .citiesForPlayer(player.id)
+      .map((c) => c.kind)
+      .sort();
+    expect(ownedKinds).toEqual([...expectedKinds].sort());
+
+    const loadedCapital = world2
+      .citiesForPlayer(player.id)
+      .find((c) => c.kind === "capital")!;
+    expect(loadedCapital.research.brinehold_unlock).toBe(1);
+    expect(loadedCapital.research.stonekeel_unlock).toBe(1);
+    expect(loadedCapital.research.cinderreach_unlock).toBe(1);
+    expect(loadedCapital.research.galeari_unlock).toBe(1);
+    expect(loadedCapital.research.dragon_studies).toBe(3);
+
+    // Presence is re-derived from persisted facts, not stored: the restarted
+    // world must independently reach BATTLE_READY.
+    expect(world2.dragonPresence(player.id).state).toBe("BATTLE_READY");
+
+    // Holding-specific starter stacks survived (differentiated garrisons).
+    const loadedGaleari = world2
+      .citiesForPlayer(player.id)
+      .find((c) => c.kind === "galeari")!;
+    for (const [unitId, count] of Object.entries(expectedGaleariStacks)) {
+      expect(loadedGaleari.stacks[unitId]).toBe(count);
+    }
+
+    // The wilderness claim behind the charter ladder survived with its owner.
+    expect(world2.wilderness.get(wild.id)!.ownerPlayerId).toBe(player.id);
+
+    await store2!.close();
+  }, 30_000);
 });

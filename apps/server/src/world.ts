@@ -1522,6 +1522,10 @@ export class World {
     const has = (kind: CityKind) =>
       this.citiesForPlayer(city.playerId).some((candidate) => candidate.kind === kind);
     const ownedWilds = this.ownedWildernessCount(city.playerId);
+    const dragonStudies = this.citiesForPlayer(city.playerId).reduce(
+      (max, candidate) => Math.max(max, candidate.research.dragon_studies ?? 0),
+      0,
+    );
     const gates: Record<string, boolean> = {
       brinehold_unlock:
         has("marcher_keep") && progress.campsDefeated >= 3 && ownedWilds >= 1,
@@ -1529,15 +1533,19 @@ export class World {
         has("brinehold") && progress.campTypesDefeated.size >= 2 && ownedWilds >= 1,
       cinderreach_unlock:
         has("stonekeel") && progress.scoutsSent >= 3 && ownedWilds >= 1,
+      // Galeari is the battle holding itself, so its charter cannot demand the
+      // BATTLE_READY state that only exists once Galeari is founded. The bond
+      // plus Dragon Studies III are the earned prerequisites; founding Galeari
+      // is what turns the presence BATTLE_READY.
       galeari_unlock:
-        has("cinderreach") && this.dragonPresence(city.playerId).state === "BATTLE_READY",
+        has("cinderreach") && progress.charterEarned && dragonStudies >= 3,
     };
     if (gates[techId] !== false) return;
     const messages: Record<string, string> = {
       brinehold_unlock: "Brinehold Charter requires a Marcher Keep, three camp victories, and one wilderness holding",
       stonekeel_unlock: "Stonekeel Charter requires Brinehold, two mastered camp types, and one wilderness holding",
       cinderreach_unlock: "Forest Frontier Charter requires Stonekeel, three scouting operations, and one wilderness holding",
-      galeari_unlock: "Dragon Site Charter requires Cinderreach and a battle-ready dragon presence",
+      galeari_unlock: "Dragon Site Charter requires Cinderreach, the expedition bond, and Dragon Studies III",
     };
     throw Object.assign(new Error(messages[techId] ?? "world prerequisite not met"), {
       code: "WORLD_PREREQ",
