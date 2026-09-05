@@ -164,19 +164,25 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
   await waitForBuilding(page, /^Dragon Watch, level 2$/);
   await shot(page, "06-dragon-watch");
 
+  // Bowmen win camp fights at range almost unscathed; levy screens the line
+  // and soaks the counters. Buy the real army once, then keep it topped up —
+  // camp garrisons are real and casualties are real.
+  await topUp(page, "Levy Spearman", 30);
+  await topUp(page, "Bowman", 65);
+
   await page.getByRole("button", { name: "Realm", exact: true }).click();
   await expect(page.getByRole("heading", { name: "The Realm" })).toBeVisible();
   await selectFirstCamp(page, 1);
   await shot(page, "07-realm-target-selected");
 
-  await setMixedCompany(page, 50, 35);
+  await setMixedCompany(page, 25, 60);
   await sendSelected(page, "Send scouts", /Confirm — send scouts/);
   await waitForReport(page, "Scouting dispatch");
   await shot(page, "08-scout-report");
 
   await page.getByRole("button", { name: "Realm", exact: true }).click();
   await selectFirstCamp(page, 1);
-  await setMixedCompany(page, 50, 35);
+  await setMixedCompany(page, 25, 60);
   await sendSelected(page, /Send attack \(/, /Confirm — send the attack/);
   await waitForReport(page, "Camp attack");
   await expect(page.getByText("Victory").first()).toBeVisible();
@@ -184,21 +190,21 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
   await expect(page.getByTestId("dragon-presence")).toContainText("Stirring");
   await shot(page, "09-battle-victory");
 
-  // casualties are real: replenish before the deeper camp circuit, exactly
-  // as the objective log instructs ("muster more spearmen")
-  await topUp(page, "Levy Spearman", 55);
-  await topUp(page, "Bowman", 40);
-
+  // casualties are real: replenish between battles, exactly as the objective
+  // log instructs ("muster more spearmen")
   for (let i = 0; i < 6; i += 1) {
-    await topUp(page, "Levy Spearman", 55);
-    await topUp(page, "Bowman", 40);
+    await topUp(page, "Levy Spearman", 30);
+    await topUp(page, "Bowman", 65);
     await page.getByRole("button", { name: "Realm", exact: true }).click();
     await selectFirstCamp(page, i === 0 ? 2 : 1);
-    await setMixedCompany(page, 50, 35);
+    await setMixedCompany(page, 25, 60);
     await sendSelected(page, /Send attack \(/, /Confirm — send the attack/);
     await waitForReport(page, "Camp attack");
     await expect(page.getByText("Victory").first()).toBeVisible();
   }
+
+  await topUp(page, "Levy Spearman", 30);
+  await topUp(page, "Bowman", 65);
 
   await page.getByRole("button", { name: "Realm", exact: true }).click();
   const wild = page.locator("button[aria-label$=\", unclaimed, at 0, 0\"]").first();
@@ -206,7 +212,7 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
   const wildTile = (await wild.count()) > 0 ? wild : anyWild;
   await expect(wildTile).toBeVisible({ timeout: 20_000 });
   await wildTile.click();
-  await setMixedCompany(page, 20, 10);
+  await setMixedCompany(page, 20, 25);
   await sendSelected(page, /Claim for the realm|Claim for the realm/, /Confirm — send the settlers-at-arms/);
   await waitForReport(page, "Occupy wilderness");
   await shot(page, "10-claimed-wilderness");
