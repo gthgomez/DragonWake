@@ -2,9 +2,9 @@
 
 Multiplayer web MMORTS MVP beta (async city builder + map combat).
 
-## Alpha R2 status (2026-09-02)
+## Player-honest Alpha status (2026-09-05, landed on main via PR #7)
 
-The Awakening closure work is active on PR #7. The final resource domain is
+The final resource domain is
 Food, Wood, Stone, Ore, and Crownmarks; Chronite remains separate. Older
 aquatic and intermediate saves are canonicalized at the persistence/input
 boundary. See `docs/design/M2_FINAL_RESOURCE_CUTOVER.md` and
@@ -14,12 +14,25 @@ The current build includes a
 server-derived Dragon Presence lifecycle, Castle-first presentation, an
 authoritative Dragon campaign objective ladder, level-scaled wilderness
 benefits (production, logistics, scouting), and a player-accessible Forest
-Frontier Charter route through the existing settlement prerequisite chain.
+Frontier Charter route through the existing settlement prerequisite chain —
+through Galeari, whose charter circularity (Battle-ready required Galeari,
+which required Battle-ready) is now broken: the top holding is reachable
+through earned charters alone.
 
-Verification is green for server tests, TypeScript, and the production web
-build. Exact-head CI also covers PostgreSQL persistence. Full browser journey
-certification and live Postgres evidence remain release gates until run in the
-CI/runtime environment.
+**Certified player-honest:** a fresh guest completes the full first-session
+progression (onboard → build/upgrade → Lands → research → train → scout →
+camp victories → dragon evidence and Knowledge progression → Dragon
+Expedition → earned charter → found the Marcher Keep) through the real UI
+only — no `/admin/grant`, no fixtures, no dev unlocks. Admin/dev tooling
+remains for operators (admin-token gated in production, hidden dev panel).
+
+Verification at the merged head: combat 20/20; server suite 181/181 with
+`REQUIRE_PG=1` against live PostgreSQL (persistence incl. holding-ladder
+restart proven); Playwright 12/12 covering the full journey plus
+desktop/tablet/mobile and the wilderness claim → abandon → re-claim cycle.
+Early-game balance note: the level-2 camp pool no longer contains the
+bowman-mirror composition that made the mandatory level-2 victory an
+unrecoverable gamble for a fresh realm.
 
 ## Design authority
 
