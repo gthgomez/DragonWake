@@ -85,6 +85,14 @@ export function App() {
           foundMarcherKeep={g.foundMarcherKeep}
           claimQuest={g.claimQuest}
           recallReinforcement={g.recallReinforcement}
+          livingDragons={g.livingDragons}
+          nameHatchling={g.nameHatchling}
+          observeLivingDragon={g.observeLivingDragon}
+          setDragonHarness={g.setDragonHarness}
+          growLivingDragon={g.growLivingDragon}
+          stationFenWyrm={g.stationFenWyrm}
+          beginFenRivalry={g.beginFenRivalry}
+          pactFenWyrm={g.pactFenWyrm}
         />
       )}
 
@@ -182,6 +190,10 @@ export function App() {
           completeDragonStage={g.completeDragonStage}
           startDragonWarCouncil={g.startDragonWarCouncil}
           loadCodex={g.loadCodex}
+          livingDragons={g.livingDragons}
+          faceScarEncounter={g.faceScarEncounter}
+          cityStacks={city?.stacks ?? {}}
+          codifyDragonKnowledge={g.codifyDragonKnowledge}
         />
       )}
 

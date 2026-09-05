@@ -35,11 +35,17 @@ import {
   allianceJoinSchema,
   buildBodySchema,
   chatBodySchema,
+  dragonIdSchema,
   guestBodySchema,
+  hatchlingNameSchema,
+  harnessSchema,
+  knowledgeCodifySchema,
   marchBodySchema,
   parseBody,
   postureBodySchema,
   researchBodySchema,
+  scarEncounterSchema,
+  stationSchema,
   trainBodySchema,
 } from "./validate.js";
 
@@ -1107,6 +1113,152 @@ export function createApp(world: World) {
     }
     if (!result) return err(c, "EXPEDITION_FAIL", "cannot complete stage");
     return c.json(result);
+  });
+
+  api.get("/dragon/living", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    return c.json(world.livingState(player.id));
+  });
+
+  api.post("/dragon/scar-encounter", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = parseBody(scarEncounterSchema, await c.req.json().catch(() => ({})));
+    if (!body.ok) return err(c, body.code, body.message, 400);
+    try {
+      return c.json(world.faceScarEncounter(player.id, body.data.composition));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "ENCOUNTER_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/dragon/hatchling/name", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = parseBody(hatchlingNameSchema, await c.req.json().catch(() => ({})));
+    if (!body.ok) return err(c, body.code, body.message, 400);
+    try {
+      return c.json(world.nameHatchling(player.id, body.data.name));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "HATCHLING_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/dragon/observe", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = parseBody(dragonIdSchema, await c.req.json().catch(() => ({})));
+    if (!body.ok) return err(c, body.code, body.message, 400);
+    try {
+      return c.json(world.observeLivingDragon(player.id, body.data.dragonId));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "OBSERVE_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/dragon/harness", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = parseBody(harnessSchema, await c.req.json().catch(() => ({})));
+    if (!body.ok) return err(c, body.code, body.message, 400);
+    try {
+      return c.json(world.setDragonHarness(player.id, body.data.dragonId, body.data.role));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "HARNESS_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/dragon/grow", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = parseBody(dragonIdSchema, await c.req.json().catch(() => ({})));
+    if (!body.ok) return err(c, body.code, body.message, 400);
+    try {
+      return c.json(world.growLivingDragon(player.id, body.data.dragonId));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "GROW_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/dragon/knowledge/codify", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = parseBody(knowledgeCodifySchema, await c.req.json().catch(() => ({})));
+    if (!body.ok) return err(c, body.code, body.message, 400);
+    try {
+      return c.json(world.codifyDragonKnowledge(player.id, body.data.questionId));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "KNOWLEDGE_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/dragon/fen/begin", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      return c.json(world.beginFenRivalry(player.id));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "FEN_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/dragon/fen/pact", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      return c.json(world.pactLocalFenWyrm(player.id));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "PACT_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/dragon/fen/station", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = parseBody(stationSchema, await c.req.json().catch(() => ({})));
+    if (!body.ok) return err(c, body.code, body.message, 400);
+    try {
+      return c.json(world.stationLocalFenWyrm(player.id, body.data.where));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "STATION_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
   });
 
   api.get("/dragon/clues", (c) => {

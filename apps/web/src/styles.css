@@ -823,6 +823,22 @@ button:disabled {
 }
 .dragon-presence-copy h3 { margin: 0.05rem 0 0.2rem; color: #f0d58c; }
 .dragon-presence-copy p { margin: 0.2rem 0; }
+
+.roost-panel {
+  margin: 0.75rem 0 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  background: #231a12;
+}
+.roost-panel h3 { margin: 0.15rem 0 0.3rem; color: #f0d58c; }
+.roost-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0; }
+.chronicle ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+.chronicle li { font-size: 0.85rem; color: var(--muted); }
+.roost-panel input {
+  display: block;
+  margin: 0.3rem 0 0.5rem;
+  width: min(100%, 16rem);
+}
 .r2-objectives { margin: 0.8rem 0 1rem; padding: 0.8rem; border: 1px solid var(--border); border-radius: 10px; background: rgba(0,0,0,0.12); }
 .r2-objectives h3 { margin: 0.15rem 0 0.55rem; }
 .r2-objective-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }

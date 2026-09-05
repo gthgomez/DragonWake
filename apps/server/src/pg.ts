@@ -214,6 +214,29 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     ALTER TABLE cities ADD COLUMN IF NOT EXISTS pop_fraction DOUBLE PRECISION NOT NULL DEFAULT 0;
   `);
 
+  // 12. Living dragon individuals — not Presence. JSON payloads stay
+  //     evolvable without a column per future species.
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS dragon_individuals (
+      id               UUID PRIMARY KEY,
+      realm_id         SMALLINT NOT NULL REFERENCES realms(id),
+      owner_player_id  UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      payload          JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS dragon_individuals_owner_idx ON dragon_individuals(owner_player_id);
+    CREATE TABLE IF NOT EXISTS dragon_knowledge (
+      player_id    UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      question_id  TEXT NOT NULL,
+      payload      JSONB NOT NULL,
+      PRIMARY KEY (player_id, question_id)
+    );
+    CREATE TABLE IF NOT EXISTS dragon_world_verbs (
+      id       UUID PRIMARY KEY,
+      realm_id SMALLINT NOT NULL REFERENCES realms(id),
+      payload  JSONB NOT NULL
+    );
+  `);
+
   // 11. M4 — Sovereign deletion: drop the marches FK column first, then the
   //     table. Idempotent so it is safe on fresh and legacy volumes.
   await client.query(`

@@ -459,9 +459,11 @@ describe("PG persistence (shipped PgStore + World)", () => {
 
     expect(world1.checkDragonReadiness(player.id).ready).toBe(true);
     expect(world1.startExpedition(player.id, "first_dragon_expedition")).not.toBeNull();
-    for (let stage = 1; stage <= 4; stage += 1) {
+    for (let stage = 1; stage <= 3; stage += 1) {
       world1.completeExpeditionStage(player.id, "first_dragon_expedition", stage);
     }
+    world1.faceScarEncounter(player.id, { levy: 40 });
+    world1.nameHatchling(player.id, "Ashwake");
 
     expect(world1.foundMarcherKeep(player.id, "Restart Keep").kind).toBe("marcher_keep");
     const wild = [...world1.wilderness.values()][0]!;
@@ -518,6 +520,8 @@ describe("PG persistence (shipped PgStore + World)", () => {
     // Presence is re-derived from persisted facts, not stored: the restarted
     // world must independently reach BATTLE_READY.
     expect(world2.dragonPresence(player.id).state).toBe("BATTLE_READY");
+    expect(world2.livingState(player.id).dragons[0]?.givenName).toBe("Ashwake");
+    expect(world2.livingState(player.id).dragons[0]?.lifeStage).toBe("hatchling");
 
     // Holding-specific starter stacks survived (differentiated garrisons).
     const loadedGaleari = world2

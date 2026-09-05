@@ -44,6 +44,14 @@ type CastleViewProps = {
   foundMarcherKeep: () => Promise<void>;
   claimQuest: (questId: string) => Promise<void>;
   recallReinforcement: (marchId: string) => Promise<void>;
+  livingDragons?: any;
+  nameHatchling?: (name: string) => Promise<void>;
+  observeLivingDragon?: (dragonId: string) => Promise<void>;
+  setDragonHarness?: (dragonId: string, role: "yard" | "home_guard") => Promise<void>;
+  growLivingDragon?: (dragonId: string) => Promise<void>;
+  stationFenWyrm?: (where: "ford" | "home") => Promise<void>;
+  beginFenRivalry?: () => Promise<void>;
+  pactFenWyrm?: () => Promise<void>;
 };
 
 const RES_LABELS: Record<string, string> = {
@@ -69,6 +77,14 @@ function unitUnlocked(
 }
 
 /** Which company a settlement relies on — shown first in the muster. */
+function troopName(id: string, cityKind: string): string {
+  if (cityKind === "brinehold") {
+    if (id === "shieldman") return "Reedwarden";
+    if (id === "crossbowman") return "Ford Arbalest";
+  }
+  return unitName(id);
+}
+
 function musterPriority(u: UnitDef): number {
   const order = ["levy", "bowman", "scout", "porter", "pikeman", "man_at_arms"];
   const i = order.indexOf(u.id);
@@ -95,9 +111,20 @@ export function CastleView({
   foundMarcherKeep,
   claimQuest,
   recallReinforcement,
+  livingDragons,
+  nameHatchling,
+  observeLivingDragon,
+  setDragonHarness,
+  growLivingDragon,
+  stationFenWyrm,
+  beginFenRivalry,
+  pactFenWyrm,
 }: CastleViewProps) {
   const rates = city.productionPerHour;
   const [confirmFound, setConfirmFound] = useState(false);
+  const [hatchName, setHatchName] = useState("");
+  const signature = livingDragons?.dragons?.find((d: any) => d.kind === "signature");
+  const fen = livingDragons?.dragons?.find((d: any) => d.archetypeId === "fen_wyrm");
 
   const charterEarned = Boolean(expeditionStatus?.charterEarned);
   const hasMarcherKeep = cities.some((c) => c.kind === "marcher_keep");
@@ -163,12 +190,109 @@ export function CastleView({
       <section className="dragon-presence" data-testid="dragon-presence" aria-label="Dragon Presence">
         <div className="dragon-presence-glyph"><Icon name="dragon" size={32} /></div>
         <div className="dragon-presence-copy">
-          <div className="eyebrow">Dragon Presence</div>
+          <div className="eyebrow">Realm awareness</div>
           <h3>{dragonPresence?.title ?? "Dormant"}</h3>
           <p>{dragonPresence?.summary ?? "A vast, sleeping presence lies beneath the kingdom's oldest foundations."}</p>
           <p className="muted tiny"><strong>Next:</strong> {dragonPresence?.nextMilestone ?? "Build the Dragon Watch and bring back your first sign from the realm."}</p>
         </div>
       </section>
+
+      {city.kind === "capital" && (
+        <section className="roost-panel" data-testid="capital-roost" aria-label="Capital roost">
+          <div className="eyebrow">The roost</div>
+          {signature ? (
+            <>
+              <h3 data-testid="roost-name">{signature.roostEmpty ? `${signature.givenName} is away` : signature.givenName}</h3>
+              {signature.roostEmpty ? (
+                <p className="muted tiny">The roost is empty. {signature.givenName} is on the approaches (Home Guard).</p>
+              ) : (
+                <p className="muted tiny">
+                  {signature.lifeStage} · {signature.physicalState}
+                  {signature.woundId ? ` · ${String(signature.woundId).replace(/_/g, " ")}` : ""} · {signature.temperament}
+                  {signature.vaneTells ? ` · ${signature.vaneTells}` : ""}
+                </p>
+              )}
+              <p className="muted tiny">Harness: {signature.harnessRole === "home_guard" ? "Home Guard" : "Yard"}</p>
+              <div className="roost-actions">
+                <button type="button" onClick={() => void observeLivingDragon?.(signature.id)}>Watch the roost</button>
+                <button type="button" onClick={() => void setDragonHarness?.(signature.id, "yard")}>Yard</button>
+                <button type="button" onClick={() => void setDragonHarness?.(signature.id, "home_guard")}>Home Guard</button>
+                {signature.lifeStage === "hatchling" && (
+                  <button type="button" onClick={() => void growLivingDragon?.(signature.id)}>Mark first growth</button>
+                )}
+              </div>
+              {signature.chronicle?.length > 0 && (
+                <div className="chronicle" data-testid="dragon-chronicle">
+                  <strong>Chronicle</strong>
+                  <ul>
+                    {signature.chronicle.slice(-8).reverse().map((ev: any) => (
+                      <li key={ev.id}>{ev.summary}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : livingDragons?.clutchAvailable ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void nameHatchling?.(hatchName);
+              }}
+            >
+              <h3>An abandoned clutch survived the Scar</h3>
+              <p className="muted tiny">Name the hatchling. This begins the relationship — there is no Bond button.</p>
+              <label>
+                Name
+                <input
+                  value={hatchName}
+                  onChange={(e) => setHatchName(e.target.value)}
+                  maxLength={24}
+                  required
+                  minLength={2}
+                />
+              </label>
+              <button type="submit">Name the hatchling</button>
+            </form>
+          ) : (
+            <p className="muted tiny">No living dragon roosts here yet. Survive the Scar, then search the clutch.</p>
+          )}
+        </section>
+      )}
+
+      {city.kind === "brinehold" && fen && (
+        <section className="roost-panel" data-testid="fen-pact" aria-label="Fen Wyrm pact">
+          <div className="eyebrow">River pact</div>
+          <h3>{fen.epithet}</h3>
+          <p className="muted tiny">
+            {fen.relationship === "pacted" ? "Pacted, not owned." : fen.relationship} · {fen.locationKind}
+            {fen.locationKind === "ford" ? " — Brinehold's home waters are unguarded." : " — the wyrm coils at home waters."}
+          </p>
+          {fen.relationship === "pacted" && (
+            <div className="roost-actions">
+              <button type="button" onClick={() => void stationFenWyrm?.("ford")}>Station at the ford</button>
+              <button type="button" onClick={() => void stationFenWyrm?.("home")}>Return to home waters</button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {city.kind === "capital" && livingDragons?.fenRivalryAvailable && (
+        <section className="roost-panel" aria-label="River rivalry">
+          <div className="eyebrow">The river</div>
+          <h3>The ford is denied</h3>
+          <p className="muted tiny">A mature Fen Wyrm holds the water. This is not another hatchling.</p>
+          <button type="button" onClick={() => void beginFenRivalry?.()}>Seek the coils</button>
+        </section>
+      )}
+
+      {fen && fen.relationship !== "pacted" && city.kind === "capital" && (
+        <section className="roost-panel">
+          <div className="eyebrow">Negotiation</div>
+          <p className="muted tiny">{fen.epithet} — observe, then offer a territorial pact. The spawning ground stays unworked.</p>
+          <button type="button" onClick={() => void observeLivingDragon?.(fen.id)}>Observe the Fen Wyrm</button>
+          <button type="button" onClick={() => void pactFenWyrm?.()}>Offer the pact</button>
+        </section>
+      )}
 
       {city.kind === "marcher_keep" && (
         <div className="marcher-banner" role="note">
@@ -333,7 +457,7 @@ export function CastleView({
               return (
                 <li key={u.id} className="muster-row">
                   <div className="muster-info">
-                    <strong>{unitName(u.id)}</strong>
+                    <strong>{troopName(u.id, city.kind)}</strong>
                     <span className="muted tiny">
                       owned {fmtNum(city.stacks[u.id] ?? 0)}
                       {locked ? " · requires further study" : ""}
@@ -341,7 +465,7 @@ export function CastleView({
                   </div>
                   <div className="muster-controls">
                     <label className="city-visually-hidden" htmlFor={`muster-${u.id}`}>
-                      {unitName(u.id)} count
+                      {troopName(u.id, city.kind)} count
                     </label>
                     <input
                       id={`muster-${u.id}`}
@@ -393,7 +517,7 @@ export function CastleView({
               <li key={m.id} className="muster-row">
                 <span className="muted tiny">
                   {Object.entries(m.reinforcement?.composition ?? {})
-                    .map(([id, count]) => `${fmtNum(count)}× ${unitName(id)}`)
+                    .map(([id, count]) => `${fmtNum(count)}× ${troopName(id, city.kind)}`)
                     .join(", ")}
                 </span>
                 <button type="button" onClick={() => void recallReinforcement(m.id)}>
