@@ -1,7 +1,10 @@
 # Dragon Alpha Proof Slice
 
-Status: **CANON — FROZEN** as the next approved implementation campaign.
-This file is the design of that campaign, not the implementation.
+Status: **CANON — FROZEN** as the Alpha implementation campaign.
+Phase 0 amendments:
+[`DRAGON_ALPHA_CLOSURE_AMENDMENTS.md`](./DRAGON_ALPHA_CLOSURE_AMENDMENTS.md).
+World verb contract:
+[`DRAGON_WORLD_VERB_CONTRACT.md`](./DRAGON_WORLD_VERB_CONTRACT.md).
 
 Do not build six dragons. Do not build Pale Passage, Ironspine, or
 Old Karth in this slice. Do not expand live-ops. Do not polish generic
@@ -40,9 +43,10 @@ If the slice ships two reskins of "press Bond," it has failed.
 - Chronicle v1 (name, origin, named date, home, life stage, battles,
   wounds, current harness role, temperament tag)
 - first meaningful research: **Vane Reading** (OBSERVE → CODIFY)
-- one limited march role: **Escort** (or Home Guard if escort is too
-  much for the first slice)
-- Yard vs Escort harness role, crafted, no rarity
+- one limited operational role: **Home Guard** (Escort marches are cut)
+- Yard vs Home Guard harness role, crafted, no rarity
+- reachable in one accelerated first-session journey after the Scar
+  encounter (early acquisition ≠ combat maturity)
 
 Not in scope: Broadwing flight, Patrol radius, Veteran, permadeath,
 full temperament sim.
@@ -62,7 +66,10 @@ Chosen because it is the strongest difference from the starter:
 - own research: wet silt-pack or ford signaling
 - own progression axis: pact depth, not XP
 - limitation: cannot leave water; absence returns fords to ordinary
-- one authored alternative: **pact vs slayer-delay**
+- **PACT is the only implemented Alpha outcome.** Slayer-delay is later
+  design, not a fake worse-city branch.
+- Fen Wyrm is the species; each player gets a **local individual**, not
+  a globally unique "Mirecrown"
 
 ### 3. One harness path
 
@@ -120,10 +127,9 @@ Keep:
 Adapt:
 
 - Presence state `BONDED` must stop meaning "you own a dragon."
-  Recommended: keep the projection for compatibility, add later
-  states (`HATCHLING_FOUND`, `NAMED`, `PACTED`) or rename in a
-  follow-on content pass. Player-facing copy must be honest in this
-  slice.
+  Keep the projection enum for compatibility. Player-facing copy must
+  say the charter is earned, not that a dragon was bonded.
+  Living dragons are **DragonIndividual** records, not Presence values.
 - Expedition stage 4 becomes a real encounter.
 - Brinehold founding becomes the Mirecrown domain chapter, not a
   leftover aquatic city. Founding without the pact (slayer-delay)
@@ -152,9 +158,9 @@ Do not delete:
    possible.
 5. Limited Escort: home/away/wounded. Capital roost empty is
    scoutable.
-6. River rivalry: flood / denied ford. Choice: pact or slayer-delay.
+6. River rivalry: flood / denied ford. Canonical route: **pact**.
 7. On pact: Brinehold transforms; Ford verb works on an old river
-   tile; Reedwarden doctrine; Mirecrown absence is scoutable.
+   tile; Reedwarden doctrine; Fen Wyrm absence is scoutable.
 8. Cross-check: the named hatchling is still in the Chronicle and
    still at Capital. Mirecrown did not replace it.
 
@@ -189,8 +195,8 @@ Entire slice: **ALPHA REQUIRED**, burden **HIGH** but bounded.
 
 If scope threatens to slip, cut in this order (keep the thesis):
 
-1. Cut Escort march; keep Home Guard only.
-2. Cut slayer-delay branch; keep pact-only, document the alternative.
+1. Escort march is **already cut**; ship Home Guard only.
+2. Slayer-delay branch is **already cut**; pact-only.
 3. Do not cut: hatchling naming, Mirecrown adult difference, one map
    verb, scoutable absence, real encounter.
 

@@ -115,6 +115,11 @@ modifiers.
 They do **not** all hatch from eggs, start young, become conventionally
 owned, share UI, share harness slots, or unlock a settlement.
 
+**Instancing (Alpha+):** ordinary domain dragons are persistent **local
+individuals** instantiated from a species/archetype. Do not give every
+player the same globally unique named adult. Realm-scale Great Dragons
+(Old Karth class) may later be truly shared; they are not in Alpha.
+
 ### Layer C — Wild Dragon Ecology
 
 The world contains dragons that do not belong to the player: lesser drakes,

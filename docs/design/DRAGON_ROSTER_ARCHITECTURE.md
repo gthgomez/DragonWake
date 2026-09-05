@@ -8,7 +8,8 @@ lore. Do not treat placeholder names as frozen. Do not implement all five
 in the next campaign.
 
 Contract: [`DRAGON_IDENTITY_CONTRACT.md`](./DRAGON_IDENTITY_CONTRACT.md).
-Alpha in-scope: Wake-clutch hatchling + Mirecrown only. See
+Alpha in-scope: Wake-clutch hatchling + local Fen Wyrm (Mirecrown as
+campaign title only). See
 [`DRAGON_ALPHA_PROOF_SLICE.md`](./DRAGON_ALPHA_PROOF_SLICE.md).
 
 ---
@@ -297,16 +298,13 @@ First flood survived, pact date, a refused request, a blockade that
 saved an army, a drought year, a commander who learned not to bring
 horses into the shallows.
 
-### Meaningful alternative (Alpha-worth branching)
+### Meaningful alternative (later — not Alpha)
 
-- **Pact (canonical):** Brinehold transforms; Ford verb; Reedwarden
-  doctrine.
-- **Slayer delay:** kill or drive off Mirecrown. Brinehold can still
-  be founded later as a poorer river town without the verb. Research
-  tilts to Fen-slaying. The river may later host a different wild Fen
-  Wyrm (not the same individual). Another player could theoretically
-  pact a different individual. This is the one authored alternative
-  worth Alpha/Beta cost.
+- **Pact (canonical, Alpha-implemented):** Brinehold transforms; Ford
+  verb; Reedwarden doctrine. Each player pacts a **local Fen Wyrm
+  individual**, not a globally unique Mirecrown.
+- **Slayer delay:** later design. Do not ship as "worse Brinehold after
+  a wait." It needs a competitive identity before implementation.
 
 ---
 

@@ -80,13 +80,15 @@ this direction, not reopen it.
 
 ## NEXT APPROVED CAMPAIGN
 
-**Dragon Alpha Proof Slice** —
-[`design/DRAGON_ALPHA_PROOF_SLICE.md`](design/DRAGON_ALPHA_PROOF_SLICE.md).
+**Dragon Alpha Closure** (implements the Proof Slice, with Phase 0
+amendments in
+[`design/DRAGON_ALPHA_CLOSURE_AMENDMENTS.md`](design/DRAGON_ALPHA_CLOSURE_AMENDMENTS.md)).
 
-Prove: named hatchling + one adult domain dragon (Mirecrown) + one
-harness path + one scoutable absence + one real encounter.
+Prove A: named hatchling after a real Scar encounter, roost, growth,
+Chronicle, Vane Reading, Home Guard.
+Prove B: local Fen Wyrm pact, Brinehold, Ford/Blockade, scoutable absence.
 
-Do not implement the full roster.
+Do not implement the full roster. PACT only. Escort cut. Slayer branch cut.
 
 ---
 
