@@ -81,10 +81,18 @@ test("cert desktop: wilderness replacement — claim, abandon, re-claim", async 
     }, { timeout: 90_000, intervals: [1_000, 2_000] })
     .toBe(true);
 
+  // track the exact tile we claim — other actors' claimed wilds share the
+  // "claimed" label, and only the player's own wild offers Abandon
+  let claimedLabel = "";
   const claimWild = async () => {
     await page.getByRole("button", { name: "Realm", exact: true }).click();
     const wildTile = page.locator("button[aria-label*=', unclaimed, at ']").first();
     await expect(wildTile).toBeVisible({ timeout: 20_000 });
+    claimedLabel =
+      ((await wildTile.getAttribute("aria-label")) ?? "").replace(
+        ", unclaimed,",
+        ", claimed,",
+      );
     await wildTile.click();
     await page.getByLabel("Levy Spearman count to send").fill("20");
     await page.getByRole("button", { name: "Claim for the realm (occupy)" }).click();
@@ -98,8 +106,7 @@ test("cert desktop: wilderness replacement — claim, abandon, re-claim", async 
 
   // Abandon from the realm panel, freeing capacity for the replacement claim.
   await page.getByRole("button", { name: "Realm", exact: true }).click();
-  // the leading comma keeps this from matching "…, unclaimed, at …" tiles
-  const claimedTile = page.locator("button[aria-label*=', claimed, at']").first();
+  const claimedTile = page.locator(`button[aria-label="${claimedLabel}"]`);
   await expect(claimedTile).toBeVisible({ timeout: 20_000 });
   await claimedTile.click();
   // the panel refreshes map data on inspection; the control appears once
