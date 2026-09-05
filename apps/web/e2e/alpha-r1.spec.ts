@@ -197,7 +197,7 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
     await topUp(page, "Levy Spearman", 50);
     await topUp(page, "Bowman", 40);
     await page.getByRole("button", { name: "Realm", exact: true }).click();
-    await selectFirstCamp(page, 1);
+    await selectFirstCamp(page, i === 0 ? 2 : 1);
     await setMixedCompany(page, 50, 35);
     await sendSelected(page, /Send attack \(/, /Confirm — send the attack/);
     await waitForReport(page, "Camp attack");
