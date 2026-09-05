@@ -99,7 +99,7 @@ function WildGlyph({ resourceType }: { resourceType: string }) {
   if (resourceType === "iron_hills") {
     return (
       <span className="map-glyph">
-        <Icon name="iron" size={13} />
+        <Icon name="ore" size={13} />
       </span>
     );
   }
@@ -299,7 +299,7 @@ export function RealmMap({
               let label = `Open ground at ${x}, ${y}`;
               if (t.kind === "camp") {
                 cls.push("map-camp");
-                label = `${campLabel(t.camp.level)}, level ${t.camp.level}, at ${x}, ${y}`;
+                label = `${t.camp.band ?? campLabel(t.camp.level)}, level ${t.camp.level}, at ${x}, ${y}`;
               } else if (t.kind === "wild") {
                 cls.push("map-wild");
                 if (t.wild.ownerPlayerId) cls.push("map-wild-claimed");
@@ -344,7 +344,7 @@ export function RealmMap({
                           size={CAMP_GLYPH_SIZE[tierOf(t.camp.level)]}
                         />
                       </span>
-                      <span className="map-badge">{t.camp.level}</span>
+                      <span className="map-badge" title={t.camp.band ?? campLabel(t.camp.level)}>{t.camp.level}</span>
                     </>
                   )}
                   {t.kind === "wild" && <WildGlyph resourceType={t.wild.resourceType} />}

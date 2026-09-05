@@ -23,15 +23,15 @@ type WarViewProps = {
 
 const RESOURCE_ICONS: Partial<Record<string, IconName>> = {
   food: "food",
-  timber: "timber",
+  wood: "wood",
   stone: "stone",
-  iron: "iron",
-  coin: "coin",
+  ore: "ore",
+  crownmark: "crownmark",
 };
 
 function headlineIcon(type?: string): IconName {
   if (type === "scout") return "scroll";
-  if (type === "haul") return "coin";
+  if (type === "haul") return "crownmark";
   if (type === "pvp" || type === "pvp_blocked") return "crown";
   if (type === "occupy") return "shield";
   return "sword";
@@ -215,7 +215,7 @@ export function WarView({
 
                 <div className="rpt-loot">
                   <span className="rpt-loot-head">
-                    <Icon name="coin" size={14} title="Loot" />
+                    <Icon name="crownmark" size={14} title="Loot" />
                     Spoils
                   </span>
                   {lootEntries.length > 0 ? (
@@ -226,7 +226,7 @@ export function WarView({
                           <span
                             key={key}
                             className={`rpt-chip${
-                              key === "coin" ? " rpt-chip-coin" : ""
+                              key === "crownmark" ? " rpt-chip-crownmark" : ""
                             }`}
                           >
                             {icon && (

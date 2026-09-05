@@ -11,6 +11,7 @@ type SettingsViewProps = {
   grantDev: (body: Record<string, unknown>, label: string) => Promise<void>;
   foundBrine: () => Promise<void>;
   foundStone: () => Promise<void>;
+  foundHolding: (kind: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -23,6 +24,7 @@ export function SettingsView({
   grantDev,
   foundBrine,
   foundStone,
+  foundHolding,
   logout,
 }: SettingsViewProps) {
   return (
@@ -56,6 +58,38 @@ export function SettingsView({
       <button type="button" className="danger" onClick={logout}>
         Log out
       </button>
+
+      {city.kind === "stonekeel" && (
+        <div className="charter-card">
+          <strong>Forest Frontier</strong>
+          <p className="muted tiny">Research the Forest Frontier Charter in the Castle, then found Cinderreach here. Its ranger and warhound companies are built for woodland campaigns.</p>
+          <button type="button" onClick={() => void foundHolding("cinderreach")}>Found Cinderreach</button>
+        </div>
+      )}
+
+      {city.kind === "capital" && city.research.brinehold_unlock && (
+        <div className="charter-card">
+          <strong>Brinehold charter ready</strong>
+          <p className="muted tiny">Found Brinehold to open shieldman and crossbowman companies and begin the metallurgy frontier.</p>
+          <button type="button" onClick={() => void foundHolding("brinehold")}>Found Brinehold</button>
+        </div>
+      )}
+
+      {city.kind === "brinehold" && city.research.stonekeel_unlock && (
+        <div className="charter-card">
+          <strong>Stonekeel charter ready</strong>
+          <p className="muted tiny">Found Stonekeel to unlock sapper and halberdier companies for fortification and siege preparation.</p>
+          <button type="button" onClick={() => void foundHolding("stonekeel")}>Found Stonekeel</button>
+        </div>
+      )}
+
+      {city.kind === "cinderreach" && city.research.galeari_unlock && (
+        <div className="charter-card">
+          <strong>Galeari charter ready</strong>
+          <p className="muted tiny">Found Galeari to prepare dragon slayers and ballistae for the realm's most dangerous operations.</p>
+          <button type="button" onClick={() => void foundHolding("galeari")}>Found Galeari</button>
+        </div>
+      )}
 
       {devMode && (
         <details className="dev-panel">

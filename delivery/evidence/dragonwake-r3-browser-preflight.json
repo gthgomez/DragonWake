@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "risk_tier": "MEDIUM",
+  "dynamic_boosts_applied": [
+    "@{path=apps/web/playwright.config.ts; gitStatus=M; class=web; laneFit=match; laneCandidates=web-vercel; selectedLane=generic; staged=True; unstaged=False; untracked=False; ignored=False; planned=False; tracked=True; secretRisk=False; safeSecretSample=False; protectedRisk=False; generatedRisk=False; remediationAllowed=False; stagedDeletion=False; unstagedDeletion=False; stagedSourcePath=False; unstagedSourcePath=False; contentInspected=False; metadataInspected=True; secretValueInspected=False; diffStats=; blockingCodes=System.Object[]; warningCodes=System.Object[]}",
+    "@{path=delivery/R3_CAMPAIGN_PROGRESS.md; gitStatus=M; class=docs; laneFit=match; laneCandidates=System.Object[]; selectedLane=generic; staged=True; unstaged=False; untracked=False; ignored=False; planned=False; tracked=True; secretRisk=False; safeSecretSample=False; protectedRisk=False; generatedRisk=False; remediationAllowed=False; stagedDeletion=False; unstagedDeletion=False; stagedSourcePath=False; unstagedSourcePath=False; contentInspected=False; metadataInspected=True; secretValueInspected=False; diffStats=; blockingCodes=System.Object[]; warningCodes=System.Object[]}",
+    "@{path=apps/server/src/dragon-war-council.test.ts; gitStatus=M; class=web; laneFit=match; laneCandidates=web-vercel; selectedLane=generic; staged=False; unstaged=True; untracked=False; ignored=False; planned=False; tracked=True; secretRisk=False; safeSecretSample=False; protectedRisk=False; generatedRisk=False; remediationAllowed=False; stagedDeletion=False; unstagedDeletion=False; stagedSourcePath=False; unstagedSourcePath=False; contentInspected=False; metadataInspected=True; secretValueInspected=False; diffStats=; blockingCodes=System.Object[]; warningCodes=System.Object[]}",
+    "@{path=DRAGON_WAKE_DOA_PARITY_IMPLEMENTATION_MASTER.md; gitStatus=??; class=docs; laneFit=match; laneCandidates=System.Object[]; selectedLane=generic; staged=False; unstaged=False; untracked=True; ignored=False; planned=False; tracked=False; secretRisk=False; safeSecretSample=False; protectedRisk=False; generatedRisk=False; remediationAllowed=False; stagedDeletion=False; unstagedDeletion=False; stagedSourcePath=False; unstagedSourcePath=False; contentInspected=False; metadataInspected=True; secretValueInspected=False; diffStats=; blockingCodes=System.Object[]; warningCodes=System.Object[]}"
+  ],
+  "preflight_status": "BLOCKED",
+  "secret_scan": "blocked",
+  "path_classification": {
+    "staged": 2,
+    "unstaged": 1,
+    "untracked": 1,
+    "ignored": 0,
+    "totalGitVisible": 4,
+    "secretRisk": 0,
+    "protected": 0,
+    "laneMismatches": 0
+  },
+  "changed_paths": [
+    "apps/web/playwright.config.ts",
+    "delivery/R3_CAMPAIGN_PROGRESS.md"
+  ],
+  "blocking_codes": [
+    "COMMIT_PLAN_MISSING"
+  ],
+  "warning_codes": [
+    "WORKTREE_LIST_REPORTED"
+  ],
+  "agent_summary": "Focused Alpha R2 Playwright passed 1 test with 1 worker; local serial non-PostgreSQL server suite passed 162 tests; PostgreSQL tests skipped because localhost PostgreSQL was unreachable.",
+  "timestamp": "2026-09-02T05:01:57.3333527-05:00",
+  "commit_sha": "491e940087724691cc8207123633f035b4ba0f6d",
+  "branch": "codex/doa-parity-campaign"
+}

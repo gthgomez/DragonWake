@@ -92,6 +92,10 @@ export type City = {
   /** Sub-unit population growth remainder (same rationale). */
   popFraction?: number;
 };
+
+export function keepLevel(city: City): number {
+  return city.buildings.find((b) => b.buildingType === "forge_heart")?.level ?? 1;
+}
 export type QueueJob = {
   id: string;
   cityId: string;
@@ -119,9 +123,15 @@ export type March = {
   departAt: number;
   arriveAt: number;
   returnAt: number | null;
-  status: "en_route" | "resolving" | "returning" | "completed" | "cancelled";
+  status: "en_route" | "resolving" | "returning" | "stationed" | "completed" | "cancelled";
   battleReportId: string | null;
   landCount: number;
+  /** A delivered reinforcement remains attributable to its sender until recalled. */
+  reinforcement: {
+    targetCityId: string;
+    stationedAt: number;
+    composition: Record<string, number>;
+  } | null;
 };
 export type BattleReport = {
   id: string;
@@ -154,6 +164,14 @@ export type Camp = {
   y: number;
   level: number;
 };
+
+/** Canonical PvE mastery bands; levels vary composition within a band. */
+export function campBand(level: number): string {
+  if (level <= 3) return "Bandit Camp";
+  if (level <= 5) return "Raider Fort";
+  if (level <= 7) return "Beast Den";
+  return "Wyrm-Scarred Ruin";
+}
 export type Wilderness = {
   id: string;
   realmId: number;
@@ -163,6 +181,33 @@ export type Wilderness = {
   resourceType: string;
   ownerPlayerId: string | null;
 };
+
+export type WildernessBenefit = {
+  kind: "production" | "logistics" | "scouting";
+  label: string;
+  description: string;
+  amount: number;
+};
+
+export function wildernessBenefit(wilderness: Wilderness): WildernessBenefit {
+  const amount = wilderness.level;
+  switch (wilderness.resourceType) {
+    case "forest":
+      return { kind: "production", label: `+${amount * 30} wood/hour`, description: "Managed woodland feeds your sawpits.", amount: amount * 30 };
+    case "fertile_land":
+      return { kind: "production", label: `+${amount * 40} food/hour`, description: "Rich soil supports the kingdom's growing population.", amount: amount * 40 };
+    case "quarry":
+      return { kind: "production", label: `+${amount * 25} stone/hour`, description: "Stone seams strengthen every wall and road.", amount: amount * 25 };
+    case "iron_hills":
+      return { kind: "production", label: `+${amount * 15} ore/hour`, description: "Ore from the hills arms the frontier.", amount: amount * 15 };
+    case "crossroads":
+      return { kind: "logistics", label: `${amount * 3}% faster marches`, description: "A held crossroads shortens every route through the realm.", amount: amount * 3 };
+    case "watch_hill":
+      return { kind: "scouting", label: `+${amount} scouting depth - high ground`, description: "High ground reveals deeper intelligence and incoming movement.", amount };
+    default:
+      return { kind: "production", label: "Frontier foothold", description: "A useful foothold in the wilds.", amount: 0 };
+  }
+}
 export type Alliance = {
   id: string;
   realmId: number;
@@ -348,7 +393,7 @@ export const COMMANDER_LOSS_XP = 25; // INITIAL_TEST_FIXTURE
 export const COMMANDER_WOUNDED_SEC = 30 * 60; // INITIAL_TEST_FIXTURE
 /** Hard cap on concurrently-commanded marches (slot cap = min(gallery level, this)). */
 export const COMMANDER_SLOT_CAP_MAX = 3; // INITIAL_TEST_FIXTURE
-export const RECRUIT_COST_COIN_PER_OWNED = 250; // INITIAL_TEST_FIXTURE
+export const RECRUIT_COST_CROWNS_PER_OWNED = 250; // INITIAL_TEST_FIXTURE
 export const RECRUIT_COST_FOOD_PER_OWNED = 500; // INITIAL_TEST_FIXTURE
 
 /** Per-player daily clue-drop usage — resets with the same UTC day key as dailies. */
@@ -366,6 +411,27 @@ export type DragonProgress = {
   campsDefeated: number;
   /** Cumulative scout-intent marches that landed. */
   scoutsSent: number;
+};
+
+export type DragonLifecycleState =
+  | "DORMANT"
+  | "STIRRING"
+  | "AWAKENED"
+  | "BONDED"
+  | "BATTLE_READY";
+
+export type DragonPresence = {
+  state: DragonLifecycleState;
+  title: string;
+  summary: string;
+  nextMilestone: string;
+};
+
+export type DragonObjective = {
+  id: string;
+  title: string;
+  description: string;
+  complete: boolean;
 };
 
 /** Minimal store surface so World can flush without circular import at type level. */
@@ -390,6 +456,35 @@ const FACTIONS: Faction[] = [
 const BASE_POPULATION = 200;
 const HOMES_CAPACITY_PER_LEVEL = 100;
 const POPULATION_GROWTH_RATE = 0.01; // per hour per occupied habitation slot
+const BASE_WILDERNESS_CAPACITY = 2;
+const BASE_OPERATION_CAPACITY = 4;
+const MAX_OPERATION_CAPACITY = 10;
+const BASE_TROOPS_PER_MARCH = 500;
+const TROOPS_PER_MUSTER_LEVEL = 100;
+
+const UNIT_HOLDING_REQUIREMENTS: Record<string, CityKind> = {
+  light_cavalry: "marcher_keep",
+  mounted_scout: "marcher_keep",
+  shieldman: "brinehold",
+  crossbowman: "brinehold",
+  sapper: "stonekeel",
+  halberdier: "stonekeel",
+  forest_ranger: "cinderreach",
+  warhound: "cinderreach",
+  dragon_slayer: "galeari",
+  ballista: "galeari",
+};
+
+/**
+ * The first three successful camp victories teach the player what evidence
+ * looks like. This is a server-side pity path, not a grant: after onboarding,
+ * the ordinary seeded rarity roll resumes.
+ */
+const ONBOARDING_CLUE_IDS = [
+  "shed_scale",
+  "burned_livestock",
+  "claw_marks",
+] as const;
 
 // ── Building mechanics (INITIAL_TEST_FIXTURE) ──────────────────────────────
 
@@ -414,10 +509,10 @@ export type PlotTypeId = (typeof PLOT_TYPES)[number];
 function emptyResources(n = 1000): ResourceBag {
   return {
     food: n,
-    timber: n,
+    wood: n,
     stone: n,
-    iron: Math.floor(n / 2),
-    coin: Math.floor(n / 2),
+    ore: Math.floor(n / 2),
+    crownmark: Math.floor(n / 2),
   };
 }
 
@@ -593,26 +688,26 @@ export function resolveCampDefGroups(
 export function productionPerHour(city: City): ResourceBag {
   const rates: ResourceBag = {
     food: 120,
-    timber: 100,
+    wood: 100,
     stone: 80,
-    iron: 40,
-    coin: 20,
+    ore: 40,
+    crownmark: 20,
   };
   for (const p of city.plots) {
     if (!p.plotType || p.level <= 0) continue;
     const mult = p.level * 30;
     if (p.plotType === "farm") rates.food += mult;
-    if (p.plotType === "lumber_yard") rates.timber += mult;
+    if (p.plotType === "lumber_yard") rates.wood += mult;
     if (p.plotType === "quarry") rates.stone += mult;
-    if (p.plotType === "mine") rates.iron += mult;
+    if (p.plotType === "mine") rates.ore += mult;
   }
   const wildBonus = 1; // wild claims applied by caller if needed
   return {
     food: rates.food * wildBonus,
-    timber: rates.timber * wildBonus,
+    wood: rates.wood * wildBonus,
     stone: rates.stone * wildBonus,
-    iron: rates.iron * wildBonus,
-    coin: rates.coin * wildBonus,
+    ore: rates.ore * wildBonus,
+    crownmark: rates.crownmark * wildBonus,
   };
 }
 
@@ -620,7 +715,7 @@ export function productionPerHour(city: City): ResourceBag {
 export function tickCityResources(
   city: City,
   now: number,
-  ownedWilderness: string[] = [],
+  ownedWilderness: Array<string | Wilderness> = [],
 ): City {
   const elapsedMs = Math.max(0, now - city.lastResourceTick);
   if (elapsedMs < 1000) return city;
@@ -628,12 +723,16 @@ export function tickCityResources(
   const rates = productionPerHour(city);
   // Per-type wilderness bonuses
   let wildTimber = 0, wildFood = 0, wildStone = 0, wildIron = 0;
-  for (const wt of ownedWilderness) {
-    switch (wt) {
-      case "forest": wildTimber += 30; break;
-      case "fertile_land": wildFood += 40; break;
-      case "quarry": wildStone += 25; break;
-      case "iron_hills": wildIron += 15; break;
+  for (const owned of ownedWilderness) {
+    const wild = typeof owned === "string"
+      ? { resourceType: owned, level: 1 } as Wilderness
+      : owned;
+    const benefit = wildernessBenefit(wild);
+    switch (wild.resourceType) {
+      case "forest": wildTimber += benefit.amount; break;
+      case "fertile_land": wildFood += benefit.amount; break;
+      case "quarry": wildStone += benefit.amount; break;
+      case "iron_hills": wildIron += benefit.amount; break;
     }
   }
 
@@ -642,10 +741,10 @@ export function tickCityResources(
   // remainders now accumulate until a whole unit lands.
   const frac: ResourceBag = city.resFraction ?? {
     food: 0,
-    timber: 0,
+    wood: 0,
     stone: 0,
-    iron: 0,
-    coin: 0,
+    ore: 0,
+    crownmark: 0,
   };
   const next: ResourceBag = { ...city.resources };
   const accrue = (key: keyof ResourceBag, ratePerHour: number) => {
@@ -660,10 +759,10 @@ export function tickCityResources(
     }
   };
   accrue("food", rates.food + wildFood);
-  accrue("timber", rates.timber + wildTimber);
+  accrue("wood", rates.wood + wildTimber);
   accrue("stone", rates.stone + wildStone);
-  accrue("iron", rates.iron + wildIron);
-  accrue("coin", rates.coin);
+  accrue("ore", rates.ore + wildIron);
+  accrue("crownmark", rates.crownmark);
 
   // Population growth: grows based on habitation building levels.
   // Proportional with fractional carry — the old Math.max(1, …) granted
@@ -920,6 +1019,11 @@ export class World {
   }
 
   seedMap(): void {
+    // Place the first-session camp ring inside the default opening viewport.
+    // The map remains a 40×40 realm; this simply ensures a new lord can see
+    // an actionable PvE target before learning coordinate travel.
+    const campCenterX = 10;
+    const campCenterY = 10;
     // Place camps L1–10 in a ring pattern
     const campDefs = getCamps();
     let i = 0;
@@ -928,11 +1032,11 @@ export class World {
       const r = 8 + (def.camp_level % 5);
       const x = Math.min(
         MAP_W - 2,
-        Math.max(1, Math.round(MAP_W / 2 + Math.cos(angle) * r)),
+        Math.max(1, Math.round(campCenterX + Math.cos(angle) * r)),
       );
       const y = Math.min(
         MAP_H - 2,
-        Math.max(1, Math.round(MAP_H / 2 + Math.sin(angle) * r)),
+        Math.max(1, Math.round(campCenterY + Math.sin(angle) * r)),
       );
       const id = randomUUID();
       this.camps.set(id, {
@@ -955,10 +1059,10 @@ export class World {
       }
       const id = randomUUID();
       const WILDERNESS_TYPES = [
-        { type: "forest", bonus: "timber", rate: 30 },
+        { type: "forest", bonus: "wood", rate: 30 },
         { type: "fertile_land", bonus: "food", rate: 40 },
         { type: "quarry", bonus: "stone", rate: 25 },
-        { type: "iron_hills", bonus: "iron", rate: 15 },
+        { type: "iron_hills", bonus: "ore", rate: 15 },
         { type: "crossroads", bonus: "logistics", rate: 0 },
         { type: "watch_hill", bonus: "scouting", rate: 0 },
       ];
@@ -1047,7 +1151,9 @@ export class World {
       name: `${name} Capital`,
       mapX: x,
       mapY: y,
-      resources: emptyResources(1500),
+      // A fresh keep must be able to build, research, train a mixed company,
+      // and still have a meaningful first outing without admin assistance.
+      resources: emptyResources(4000),
       defensePosture: "withdraw",
       lastResourceTick: now,
       lastPostureChange: 0,
@@ -1107,7 +1213,7 @@ export class World {
     for (const city of this.cities.values()) {
       const wildTypes = [...this.wilderness.values()]
         .filter((w) => w.ownerPlayerId === city.playerId)
-        .map((w) => w.resourceType);
+        .map((w) => w);
       const next = tickCityResources(city, now, wildTypes);
       // Only persist-worthy when a whole unit of something landed —
       // otherwise this would re-mark every city dirty every second.
@@ -1117,10 +1223,10 @@ export class World {
         next.population !== city.population ||
         next.maxPopulation !== city.maxPopulation ||
         next.resources.food !== city.resources.food ||
-        next.resources.timber !== city.resources.timber ||
+        next.resources.wood !== city.resources.wood ||
         next.resources.stone !== city.resources.stone ||
-        next.resources.iron !== city.resources.iron ||
-        next.resources.coin !== city.resources.coin
+        next.resources.ore !== city.resources.ore ||
+        next.resources.crownmark !== city.resources.crownmark
       ) {
         this.putCity(city.id, next);
       } else {
@@ -1188,6 +1294,35 @@ export class World {
     });
   }
 
+  /** Queue a Forge-Heart upgrade; the resulting building is persisted like any job. */
+  startKeepUpgrade(cityId: string, playerId: string): QueueJob {
+    const city = this.requireCityOwner(cityId, playerId);
+    const current = keepLevel(city);
+    if (current >= 10) {
+      throw Object.assign(new Error("Forge-Heart is at max level"), { code: "KEEP_MAX" });
+    }
+    const running = [...this.jobs.values()].filter((j) => j.cityId === cityId && j.kind === "build" && j.status === "running");
+    if (running.length >= 2) {
+      throw Object.assign(new Error("build queue full"), { code: "QUEUE_FULL" });
+    }
+    if (running.some((j) => Number(j.payload.slotIndex) === 0)) {
+      throw Object.assign(new Error("Keep upgrade already in progress"), { code: "SLOT_BUSY" });
+    }
+    const next = current + 1;
+    const costs: Partial<ResourceBag> = { food: 500 * next, wood: 500 * next, stone: 300 * next, crownmark: 100 * next };
+    const missing = Object.entries(costs).filter(([key, amount]) => city.resources[key as keyof ResourceBag] < amount).map(([key, amount]) => `${key} need ${amount} have ${city.resources[key as keyof ResourceBag]}`);
+    if (missing.length) {
+      throw Object.assign(new Error(`cannot afford Forge-Heart L${next}: ${missing.join("; ")}`), { code: "KEEP_COST" });
+    }
+    for (const [key, amount] of Object.entries(costs)) city.resources[key as keyof ResourceBag] -= amount;
+    const now = this.now();
+    const job: QueueJob = { id: randomUUID(), cityId, playerId, kind: "build", payload: { slotIndex: 0, buildingType: "forge_heart", upgradeTo: next, keepUpgrade: true }, startedAt: now, finishesAt: now + durationMs(90 * next, this.devFastTime), status: "running" };
+    this.putJob(job.id, job);
+    this.putCity(city.id, city);
+    this.markDaily(playerId, "build");
+    return job;
+  }
+
   /**
    * Queue construction on a slot. Empty slot = new building at L1;
    * occupied slot with the SAME type = authoritative upgrade to level+1.
@@ -1218,6 +1353,13 @@ export class World {
       throw Object.assign(
         new Error(`${def.name} requires further research`),
         { code: "BUILDING_LOCKED" },
+      );
+    }
+    const currentBuilding = city.buildings.find((b) => b.slotIndex === slotIndex);
+    if (buildingType !== "command_gallery" && currentBuilding?.buildingType === buildingType && currentBuilding.level < def.max_level && currentBuilding.level + 1 > keepLevel(city) + 2) {
+      throw Object.assign(
+        new Error(`${def.name} L${currentBuilding.level + 1} requires Forge-Heart L${currentBuilding.level - 1}; upgrade the Keep first`),
+        { code: "KEEP_GATE", keepLevel: keepLevel(city), requiredKeepLevel: currentBuilding.level - 1 },
       );
     }
     const running = [...this.jobs.values()].filter(
@@ -1258,7 +1400,7 @@ export class World {
       }
     }
 
-    const baseCost = def.build_cost ?? { food: 100, timber: 100 };
+    const baseCost = def.build_cost ?? { food: 100, wood: 100 };
     const missing: string[] = [];
     for (const [res, base] of Object.entries(baseCost)) {
       const key = res as keyof ResourceBag;
@@ -1316,6 +1458,7 @@ export class World {
     const canonId = canonTechId(techId);
     const def = getResearch().find((t) => t.id === canonId)!;
     const nextLevel = (city.research[canonId] ?? 0) + 1;
+    this.requireExpansionResearchPrerequisites(city, canonId, nextLevel);
     if (def.cost) {
       const missing: string[] = [];
       for (const [res, base] of Object.entries(def.cost)) {
@@ -1360,6 +1503,56 @@ export class World {
     return job;
   }
 
+  /**
+   * Expansion charters are earned through the realm, not Crownmarks alone.
+   * Admin grants intentionally bypass this helper for deterministic fixtures.
+   */
+  private requireExpansionResearchPrerequisites(
+    city: City,
+    techId: string,
+    nextLevel: number,
+  ): void {
+    if (nextLevel !== 1 || !techId.endsWith("_unlock")) return;
+    if (city.kind !== "capital") {
+      throw Object.assign(new Error("charter research must be completed at the Capital"), {
+        code: "CHARTER_CAPITAL_REQUIRED",
+      });
+    }
+    const progress = this.ensureDragonProgress(city.playerId);
+    const has = (kind: CityKind) =>
+      this.citiesForPlayer(city.playerId).some((candidate) => candidate.kind === kind);
+    const ownedWilds = this.ownedWildernessCount(city.playerId);
+    const dragonStudies = this.citiesForPlayer(city.playerId).reduce(
+      (max, candidate) => Math.max(max, candidate.research.dragon_studies ?? 0),
+      0,
+    );
+    const gates: Record<string, boolean> = {
+      brinehold_unlock:
+        has("marcher_keep") && progress.campsDefeated >= 3 && ownedWilds >= 1,
+      stonekeel_unlock:
+        has("brinehold") && progress.campTypesDefeated.size >= 2 && ownedWilds >= 1,
+      cinderreach_unlock:
+        has("stonekeel") && progress.scoutsSent >= 3 && ownedWilds >= 1,
+      // Galeari is the battle holding itself, so its charter cannot demand the
+      // BATTLE_READY state that only exists once Galeari is founded. The bond
+      // plus Dragon Studies III are the earned prerequisites; founding Galeari
+      // is what turns the presence BATTLE_READY.
+      galeari_unlock:
+        has("cinderreach") && progress.charterEarned && dragonStudies >= 3,
+    };
+    if (gates[techId] !== false) return;
+    const messages: Record<string, string> = {
+      brinehold_unlock: "Brinehold Charter requires a Marcher Keep, three camp victories, and one wilderness holding",
+      stonekeel_unlock: "Stonekeel Charter requires Brinehold, two mastered camp types, and one wilderness holding",
+      cinderreach_unlock: "Forest Frontier Charter requires Stonekeel, three scouting operations, and one wilderness holding",
+      galeari_unlock: "Dragon Site Charter requires Cinderreach, the expedition bond, and Dragon Studies III",
+    };
+    throw Object.assign(new Error(messages[techId] ?? "world prerequisite not met"), {
+      code: "WORLD_PREREQ",
+      techId,
+    });
+  }
+
   startTrain(
     cityId: string,
     playerId: string,
@@ -1376,6 +1569,13 @@ export class World {
       throw Object.assign(new Error(`unit ${unitId} not unlocked by research`), {
         code: "UNIT_LOCKED",
       });
+    }
+    const requiredHolding = UNIT_HOLDING_REQUIREMENTS[unitId];
+    if (requiredHolding && city.kind !== requiredHolding) {
+      throw Object.assign(
+        new Error(`${unit.name} can only be trained at a ${requiredHolding}`),
+        { code: "HOLDING_REQUIRED", requiredHolding },
+      );
     }
     const n = Math.max(1, Math.floor(count));
     const runningTrains = [...this.jobs.values()].filter(
@@ -1394,26 +1594,26 @@ export class World {
       });
     }
     const costs = getUnitCost(unit);
-    const costK = costs.food * n;
-    const costD = costs.timber * n;
-    const costB = costs.stone * n;
-    const costS = costs.iron * n;
-    if (city.resources.food < costK) {
+    const costFood = costs.food * n;
+    const costWood = costs.wood * n;
+    const costStone = costs.stone * n;
+    const costOre = costs.ore * n;
+    if (city.resources.food < costFood) {
       throw Object.assign(new Error("insufficient food"), { code: "NO_RES" });
     }
-    if (city.resources.timber < costD) {
-      throw Object.assign(new Error("insufficient timber"), { code: "NO_RES" });
+    if (city.resources.wood < costWood) {
+      throw Object.assign(new Error("insufficient wood"), { code: "NO_RES" });
     }
-    if (city.resources.stone < costB) {
+    if (city.resources.stone < costStone) {
       throw Object.assign(new Error("insufficient stone"), { code: "NO_RES" });
     }
-    if (city.resources.iron < costS) {
-      throw Object.assign(new Error("insufficient iron"), { code: "NO_RES" });
+    if (city.resources.ore < costOre) {
+      throw Object.assign(new Error("insufficient ore"), { code: "NO_RES" });
     }
-    city.resources.food -= costK;
-    city.resources.timber -= costD;
-    city.resources.stone -= costB;
-    city.resources.iron -= costS;
+    city.resources.food -= costFood;
+    city.resources.wood -= costWood;
+    city.resources.stone -= costStone;
+    city.resources.ore -= costOre;
     const barracksFactor = trainSpeedFactor(
       bestBuildingLevel(this, playerId, "barracks"),
     );
@@ -1478,7 +1678,16 @@ export class World {
 
   /** Max lookout (Watchtower) level across the player's cities → intel depth. */
   scoutIntelLevel(playerId: string): number {
-    return this.buildingLevel(playerId, "lookout");
+    const watchHill = [...this.wilderness.values()]
+      .filter((w) => w.ownerPlayerId === playerId && w.resourceType === "watch_hill")
+      .reduce((sum, w) => sum + w.level, 0);
+    return this.buildingLevel(playerId, "lookout") + watchHill;
+  }
+
+  wildernessLogisticsLevel(playerId: string): number {
+    return [...this.wilderness.values()]
+      .filter((w) => w.ownerPlayerId === playerId && w.resourceType === "crossroads")
+      .reduce((sum, w) => sum + w.level, 0);
   }
 
   /** Max concurrent train jobs per city: base + training_camp bonus (capped). */
@@ -1490,6 +1699,30 @@ export class World {
       }
     }
     return MAX_TRAIN_JOBS + Math.min(camp, TRAINING_CAMP_QUEUE_SLOTS_MAX_BONUS);
+  }
+
+  /** Active operations are independent from commander-led march slots. */
+  activeOperations(playerId: string): number {
+    // A returning force no longer occupies a departure slot; it cannot be
+    // launched again, but releasing the slot preserves parallel progression
+    // while the troops travel home.
+    return [...this.marches.values()].filter(
+      (m) => m.playerId === playerId &&
+        (m.status === "en_route" || m.status === "resolving"),
+    ).length;
+  }
+
+  musterOperationCapacity(playerId: string): number {
+    const keep = Math.max(...this.citiesForPlayer(playerId).map(keepLevel), 1);
+    return Math.min(
+      MAX_OPERATION_CAPACITY,
+      BASE_OPERATION_CAPACITY + this.buildingLevel(playerId, "rally_quay") + Math.max(0, keep - 1),
+    );
+  }
+
+  troopsPerMarchCapacity(playerId: string): number {
+    const keep = Math.max(...this.citiesForPlayer(playerId).map(keepLevel), 1);
+    return BASE_TROOPS_PER_MARCH + TROOPS_PER_MUSTER_LEVEL * this.buildingLevel(playerId, "rally_quay") + 250 * Math.max(0, keep - 1);
   }
 
   /** Max concurrently-commanded marches: min(gallery level, hard cap). */
@@ -1518,11 +1751,11 @@ export class World {
       );
     }
     if (owned >= 1) {
-      const coinCost = RECRUIT_COST_COIN_PER_OWNED * owned;
+      const crownmarkCost = RECRUIT_COST_CROWNS_PER_OWNED * owned;
       const foodCost = RECRUIT_COST_FOOD_PER_OWNED * owned;
       const missing: string[] = [];
-      if ((city.resources.coin ?? 0) < coinCost) {
-        missing.push(`coin need ${coinCost} have ${city.resources.coin ?? 0}`);
+      if ((city.resources.crownmark ?? 0) < crownmarkCost) {
+        missing.push(`crownmark need ${crownmarkCost} have ${city.resources.crownmark ?? 0}`);
       }
       if ((city.resources.food ?? 0) < foodCost) {
         missing.push(`food need ${foodCost} have ${city.resources.food ?? 0}`);
@@ -1533,7 +1766,7 @@ export class World {
           { code: "RECRUIT_COST" },
         );
       }
-      city.resources.coin -= coinCost;
+      city.resources.crownmark -= crownmarkCost;
       city.resources.food -= foodCost;
       this.putCity(city.id, city);
     }
@@ -1612,7 +1845,7 @@ export class World {
     return city;
   }
 
-  /** Empty plot → assign type at L1. Costs food + timber. */
+  /** Empty plot → assign type at L1. Costs food + wood. */
   assignPlot(
     cityId: string,
     playerId: string,
@@ -1632,15 +1865,15 @@ export class World {
         code: "PLOT_OCCUPIED",
       });
     }
-    const costKelp = 80;
-    const costDrift = 40;
-    if (city.resources.food < costKelp || city.resources.timber < costDrift) {
+    const costFood = 80;
+    const costWood = 40;
+    if (city.resources.food < costFood || city.resources.wood < costWood) {
       throw Object.assign(new Error("insufficient resources"), {
         code: "NO_RES",
       });
     }
-    city.resources.food -= costKelp;
-    city.resources.timber -= costDrift;
+    city.resources.food -= costFood;
+    city.resources.wood -= costWood;
     plot.plotType = plotType;
     plot.level = 1;
     this.putCity(city.id, city);
@@ -1659,15 +1892,15 @@ export class World {
     if (plot.level >= 5) {
       throw Object.assign(new Error("plot max level"), { code: "PLOT_MAX" });
     }
-    const costKelp = 50 * plot.level;
-    const costDrift = 50 * plot.level;
-    if (city.resources.food < costKelp || city.resources.timber < costDrift) {
+    const costFood = 50 * plot.level;
+    const costWood = 50 * plot.level;
+    if (city.resources.food < costFood || city.resources.wood < costWood) {
       throw Object.assign(new Error("insufficient resources"), {
         code: "NO_RES",
       });
     }
-    city.resources.food -= costKelp;
-    city.resources.timber -= costDrift;
+    city.resources.food -= costFood;
+    city.resources.wood -= costWood;
     plot.level += 1;
     this.putCity(city.id, city);
     return { ...plot };
@@ -1679,30 +1912,47 @@ export class World {
     ).length;
   }
 
+  /** Capacity is deliberately finite so claiming one more wild is a choice. */
+  wildernessCapacity(playerId: string): number {
+    const keep = Math.max(...this.citiesForPlayer(playerId).map(keepLevel), 1);
+    return BASE_WILDERNESS_CAPACITY + Math.max(0, keep - 1);
+  }
+
+  abandonWilderness(playerId: string, wildernessId: string): Wilderness {
+    const wild = this.wilderness.get(wildernessId);
+    if (!wild || wild.ownerPlayerId !== playerId) {
+      throw Object.assign(new Error("wilderness is not yours"), { code: "NO_WILDERNESS" });
+    }
+    wild.ownerPlayerId = null;
+    this.putWilderness(wild.id, wild);
+    return wild;
+  }
+
   /** Effective production/hour including wilderness bonus (same as tick). */
   effectiveProduction(city: City): ResourceBag {
     const rates = productionPerHour(city);
     const wildBonus = this.ownedWildernessBonus(city.playerId);
     return {
       food: Math.floor(rates.food + wildBonus.food),
-      timber: Math.floor(rates.timber + wildBonus.timber),
+      wood: Math.floor(rates.wood + wildBonus.wood),
       stone: Math.floor(rates.stone + wildBonus.stone),
-      iron: Math.floor(rates.iron + wildBonus.iron),
-      coin: Math.floor(rates.coin + wildBonus.coin),
+      ore: Math.floor(rates.ore + wildBonus.ore),
+      crownmark: Math.floor(rates.crownmark + wildBonus.crownmark),
     };
   }
 
   /** Per-type wilderness resource bonus for a player. */
   private ownedWildernessBonus(playerId: string): ResourceBag {
-    const bonus: ResourceBag = { food: 0, timber: 0, stone: 0, iron: 0, coin: 0 };
+    const bonus: ResourceBag = { food: 0, wood: 0, stone: 0, ore: 0, crownmark: 0 };
     for (const w of this.wilderness.values()) {
       if (w.ownerPlayerId !== playerId) continue;
+      const amount = wildernessBenefit(w).amount;
       switch (w.resourceType) {
-        case "forest": bonus.timber += 30; break;
-        case "fertile_land": bonus.food += 40; break;
-        case "quarry": bonus.stone += 25; break;
-        case "iron_hills": bonus.iron += 15; break;
-        // crossroads, watch_hill: non-resource bonuses (TODO)
+        case "forest": bonus.wood += amount; break;
+        case "fertile_land": bonus.food += amount; break;
+        case "quarry": bonus.stone += amount; break;
+        case "iron_hills": bonus.ore += amount; break;
+        // crossroads and watch_hill are strategic, non-resource benefits.
       }
     }
     return bonus;
@@ -1806,6 +2056,7 @@ export class World {
     ready: boolean;
     requirements: Array<{ id: string; met: boolean; description: string }>;
     reward?: string;
+    presence: DragonPresence;
   } {
     this.recalcDragonReadiness(playerId);
     const progress = this.dragonProgress.get(playerId);
@@ -1834,7 +2085,135 @@ export class World {
       return { id: req.id, met, description: req.description };
     });
     const ready = requirements.every((r) => r.met);
-    return { ready, requirements, reward: ready ? config.reward : undefined };
+    return {
+      ready,
+      requirements,
+      reward: ready ? config.reward : undefined,
+      presence: this.dragonPresence(playerId),
+    };
+  }
+
+  /**
+   * Player-facing dragon lifecycle. The state is derived exclusively from
+   * authoritative persisted gameplay facts, so refreshes cannot fabricate a
+   * milestone and old saves remain compatible.
+   */
+  dragonPresence(playerId: string): DragonPresence {
+    const progress = this.ensureDragonProgress(playerId);
+    const readiness = this.dragonProgress.get(playerId);
+    const watch = bestBuildingLevel(this, playerId, "skyreost");
+    const hasEvidence =
+      progress.bestiaryStudied > 0 ||
+      progress.materialsCollected > 0 ||
+      progress.campsDefeated > 0 ||
+      progress.scoutsSent > 0 ||
+      progress.researchLevel > 0 ||
+      watch > 0;
+    const hasBattleHolding = this.citiesForPlayer(playerId).some(
+      (city) => city.kind === "galeari",
+    );
+    const dragonCombatStudy = this.citiesForPlayer(playerId).reduce(
+      (max, city) => Math.max(max, city.research.dragon_studies ?? 0),
+      0,
+    );
+    if (hasBattleHolding && progress.charterEarned && dragonCombatStudy >= 3) {
+      return {
+        state: "BATTLE_READY",
+        title: "Battle-ready",
+        summary: "The dragon answers the kingdom's banners. Its presence now shapes war preparations.",
+        nextMilestone: "Strengthen the frontier and prepare for greater threats.",
+      };
+    }
+    if (progress.charterEarned) {
+      return {
+        state: "BONDED",
+        title: "Bonded",
+        summary: "The expedition returned with a living bond between your kingdom and the scarred wilds.",
+        nextMilestone: "Found a Marcher Keep, then pursue a specialized frontier holding.",
+      };
+    }
+    if (readiness?.expeditionStage && readiness.expeditionStage > 0) {
+      return {
+        state: "AWAKENED",
+        title: "Awakened",
+        summary: "The expedition has reached the dragon scar. Something beneath the old stone is listening.",
+        nextMilestone: "Complete the expedition stages to earn the settlement charter.",
+      };
+    }
+    if (hasEvidence) {
+      return {
+        state: "STIRRING",
+        title: "Stirring",
+        summary: "Evidence is accumulating, and the watchtower reports movement beyond the tree line.",
+        nextMilestone: "Meet every Dragon Expedition readiness requirement.",
+      };
+    }
+    return {
+      state: "DORMANT",
+      title: "Dormant",
+      summary: "A vast, sleeping presence lies beneath the kingdom's oldest foundations.",
+      nextMilestone: "Build the Dragon Watch and bring back your first sign from the realm.",
+    };
+  }
+
+  /**
+   * BATTLE_READY consequence: convene the Dragon War Council once the bonded
+   * dragon-focused holding and study threshold are real. The plan is an
+   * inventory item so the preparation survives reloads and can be consumed by
+   * a later dragon operation without introducing a parallel hidden counter.
+   */
+  startDragonWarCouncil(playerId: string): { itemId: string; remaining: ResourceBag } {
+    if (this.dragonPresence(playerId).state !== "BATTLE_READY") {
+      throw Object.assign(new Error("the kingdom is not battle-ready"), {
+        code: "DRAGON_NOT_READY",
+      });
+    }
+    const city = this.citiesForPlayer(playerId)[0];
+    if (!city) throw new Error("no settlement");
+    const cost: Partial<ResourceBag> = { food: 1000, wood: 1000, stone: 600 };
+    for (const [key, amount] of Object.entries(cost)) {
+      const resource = key as keyof ResourceBag;
+      if (city.resources[resource] < amount) {
+        throw Object.assign(new Error("insufficient resources for the Dragon War Council"), {
+          code: "DRAGON_COUNCIL_COST",
+        });
+      }
+    }
+    for (const [key, amount] of Object.entries(cost)) {
+      const resource = key as keyof ResourceBag;
+      city.resources[resource] -= amount;
+    }
+    this.putCity(city.id, city);
+    const itemId = "dragon_war_plan";
+    const inventory = this.inventory.get(playerId) ?? {};
+    inventory[itemId] = (inventory[itemId] ?? 0) + 1;
+    this.putInventory(playerId, inventory);
+    this.pushEvent(
+      playerId,
+      "info",
+      "Dragon War Council convened — the next dragon operation may use the war plan.",
+      { kind: "dragon_war_council", itemId },
+    );
+    return { itemId, remaining: { ...city.resources } };
+  }
+
+  dragonObjectives(playerId: string): DragonObjective[] {
+    const progress = this.ensureDragonProgress(playerId);
+    const watch = this.buildingLevel(playerId, "skyreost");
+    const bestiary = progress.bestiaryStudied > 0;
+    const specialized = this.citiesForPlayer(playerId).some(
+      (city) => city.kind === "cinderreach" || city.kind === "galeari",
+    );
+    return [
+      { id: "presence", title: "Witness the presence", description: "Enter your kingdom and read the dragon's current state.", complete: true },
+      { id: "evidence", title: "Bring back evidence", description: "Record a verified sign in the Bestiary.", complete: bestiary },
+      { id: "watch", title: "Raise the Dragon Watch", description: "Raise the Dragon Watch to level 2.", complete: watch >= 2 },
+      { id: "camps", title: "Learn the camps", description: "Defeat camps at two different levels.", complete: progress.campTypesDefeated.size >= 2 },
+      { id: "wilds", title: "Claim meaningful wilds", description: "Hold a wilderness and use its strategic benefit.", complete: this.ownedWildernessCount(playerId) > 0 },
+      { id: "expedition", title: "Set out on the expedition", description: "Complete the Dragon Scar Expedition and earn its charter.", complete: progress.charterEarned },
+      { id: "marcher_keep", title: "Extend the frontier", description: "Found a Marcher Keep with the earned charter.", complete: this.citiesForPlayer(playerId).some((city) => city.kind === "marcher_keep") },
+      { id: "specialized_holding", title: "Choose a specialization", description: "Found a Forest Citadel or dragon-focused holding.", complete: specialized },
+    ];
   }
 
   /** True when cumulative gameplay counters satisfy a stage's requirements. */
@@ -2032,6 +2411,50 @@ export class World {
   ): March {
     const city = this.requireCityOwner(opts.fromCityId, playerId);
 
+    if (this.activeOperations(playerId) >= this.musterOperationCapacity(playerId)) {
+      throw Object.assign(
+        new Error(`operation capacity reached (${this.musterOperationCapacity(playerId)}); raise the Muster Yard or complete an operation`),
+        { code: "OPERATION_CAP", capacity: this.musterOperationCapacity(playerId) },
+      );
+    }
+
+    const troopCapacity = Object.entries(opts.composition).reduce((sum, [unitId, count]) => {
+      const unit = getUnitById(unitId);
+      return sum + (unit?.pop ?? 0) * Math.max(0, Math.floor(count));
+    }, 0);
+    if (troopCapacity > this.troopsPerMarchCapacity(playerId)) {
+      throw Object.assign(
+        new Error(`march carries ${troopCapacity} troop capacity, but the Muster Yard allows ${this.troopsPerMarchCapacity(playerId)}`),
+        { code: "MARCH_CAP", capacity: this.troopsPerMarchCapacity(playerId), requested: troopCapacity },
+      );
+    }
+
+    if (opts.intent === "occupy" && opts.targetType === "wilderness") {
+      const wild = opts.targetId ? this.wilderness.get(opts.targetId) : undefined;
+      if (wild?.ownerPlayerId === playerId) {
+        throw Object.assign(new Error("wilderness already held"), { code: "ALREADY_OWNED" });
+      }
+      if (this.ownedWildernessCount(playerId) >= this.wildernessCapacity(playerId)) {
+        throw Object.assign(
+          new Error(`wilderness capacity reached (${this.wildernessCapacity(playerId)}); abandon a holding before claiming another`),
+          { code: "WILDERNESS_CAP", capacity: this.wildernessCapacity(playerId) },
+        );
+      }
+    }
+
+    if (opts.intent === "attack" && opts.targetType === "camp" && opts.targetId) {
+      const camp = this.camps.get(opts.targetId);
+      if (camp && camp.level >= 8 && this.dragonPresence(playerId).state === "BATTLE_READY") {
+        const planCount = this.inventory.get(playerId)?.dragon_war_plan ?? 0;
+        if (planCount < 1) {
+          throw Object.assign(
+            new Error("a Dragon War Council plan is required before a Wyrm-Scarred hunt"),
+            { code: "DRAGON_HUNT_LOCKED" },
+          );
+        }
+      }
+    }
+
     // Commander validations before any state mutation (spec §6).
     let commander: Commander | null = null;
     if (opts.commanderId) {
@@ -2081,10 +2504,10 @@ export class World {
       const requested = opts.cargo ?? {};
       for (const key of [
         "food",
-        "timber",
+        "wood",
         "stone",
-        "iron",
-        "coin",
+        "ore",
+        "crownmark",
       ] as const) {
         const want = Math.max(0, Math.floor(Number(requested[key] ?? 0)));
         if (want <= 0) continue;
@@ -2132,7 +2555,11 @@ export class World {
     const musterFactor = marchSpeedFactor(
       bestBuildingLevel(this, playerId, "rally_quay"),
     );
-    const travelSec = Math.max(5, dist * 8 * musterFactor);
+    const crossroadsFactor = Math.max(
+      0.7,
+      1 - 0.03 * this.wildernessLogisticsLevel(playerId),
+    );
+    const travelSec = Math.max(5, dist * 8 * musterFactor * crossroadsFactor);
     const now = this.now();
     const march: March = {
       id: randomUUID(),
@@ -2153,12 +2580,24 @@ export class World {
       status: "en_route",
       battleReportId: null,
       landCount: 0,
+      reinforcement: null,
     };
     if (commander) {
       commander.busyMarchId = march.id;
       this.putCommander(commander.id, commander);
     }
     this.putMarch(march.id, march);
+    if (opts.intent === "attack" && opts.targetType === "city") {
+      const target = opts.targetId ? this.cities.get(opts.targetId) : undefined;
+      if (target && target.playerId !== playerId) {
+        this.pushEvent(
+          target.playerId,
+          "info",
+          `Incoming attack detected near ${target.name}; prepare the garrison before arrival.`,
+          { kind: "incoming_attack", marchId: march.id, arriveAt: march.arriveAt, targetCityId: target.id },
+        );
+      }
+    }
     return march;
   }
 
@@ -2194,14 +2633,39 @@ export class World {
         target: { x: march.targetX, y: march.targetY, type: march.targetType },
         intel: this.buildScoutIntel(march),
       });
+      const membership = this.allianceMembers.get(march.playerId);
+      if (membership) {
+        const intel = (report.result as { intel?: Record<string, unknown> }).intel ?? {};
+        for (const member of this.allianceMembers.values()) {
+          if (member.allianceId !== membership.allianceId || member.playerId === march.playerId) continue;
+          this.pushEvent(
+            member.playerId,
+            "info",
+            `Shared scout intelligence from ${this.players.get(march.playerId)?.displayName ?? "an ally"}.`,
+            { kind: "shared_scout_intel", sourcePlayerId: march.playerId, reportId: report.id, intel },
+          );
+        }
+      }
       this.startReturn(march, now, march.composition);
     } else if (march.intent === "attack" || march.intent === "occupy") {
       report = this.resolveAttack(march, now);
     } else if (march.intent === "reinforce") {
       const delivered = this.applyReinforce(march);
-      // Failed reinforce (no city at coords / not same alliance) must march
-      // the troops home — an empty return set annihilated them.
-      this.startReturn(march, now, delivered ? {} : march.composition);
+      if (delivered) {
+        march.status = "stationed";
+        march.returnAt = null;
+        this.putMarch(march.id, march);
+        this.pushEvent(
+          march.playerId,
+          "info",
+          "Your reinforcements are stationed under the receiving city's banner until recalled.",
+          { kind: "reinforcement_stationed", marchId: march.id, targetCityId: march.reinforcement?.targetCityId ?? null },
+        );
+      } else {
+        // Failed reinforce (no city at coords / not same alliance) must march
+        // the troops home — an empty return set annihilated them.
+        this.startReturn(march, now, march.composition);
+      }
     } else if (march.intent === "haul") {
       report = this.applyHaul(march, now);
     } else {
@@ -2337,6 +2801,10 @@ export class World {
     let camp: Camp | null = null;
     let wild: Wilderness | null = null;
     let harborLoot = false;
+    let wildernessClaimApplied = false;
+    let wildernessClaimBlocked = false;
+    let dragonHuntRewarded = false;
+    let dragonHuntBlocked = false;
 
     if (march.targetType === "camp") {
       camp =
@@ -2462,6 +2930,7 @@ export class World {
         const n = Number(lost) || 0;
         defCity.stacks[uid] = Math.max(0, (defCity.stacks[uid] ?? 0) - n);
       }
+      this.reconcileStationedLosses(defCity.id, battle.losses.defender);
       defCity.usedManpower = recalculateManpower(defCity);
       this.putCity(defCity.id, defCity);
     }
@@ -2473,23 +2942,38 @@ export class World {
       if (camp) {
         loot = {
           food: 50 * camp.level,
-          timber: 30 * camp.level,
+          wood: 30 * camp.level,
           stone: 10 * camp.level,
         };
-        // Roll for dragon clue drop — capped per UTC day (silent skip at cap)
+        // Track camp defeat before evidence selection so the first successful
+        // camp victories can receive guaranteed, legible onboarding clues.
+        const progress = this.ensureDragonProgress(march.playerId);
+        const campType = `camp_l${camp.level}`;
+        progress.campTypesDefeated.add(campType);
+        progress.campsDefeated += 1;
+        this.putDragonProgress(march.playerId, progress);
+
+        // Guaranteed first-progression evidence is still subject to the
+        // daily clue cap. It only replaces RNG for the onboarding window.
         const clueUsage = this.ensureDailyClueUsage(march.playerId);
-        if (clueUsage.used < DAILY_CLUE_CAP) {
+        if (progress.campsDefeated <= ONBOARDING_CLUE_IDS.length) {
+          const inv = this.inventory.get(march.playerId) ?? {};
+          const guaranteedId = ONBOARDING_CLUE_IDS.find((id) => !(inv[id] ?? 0));
+          if (guaranteedId && clueUsage.used < DAILY_CLUE_CAP) {
+            clueDrop = this.grantDragonClue(march.playerId, guaranteedId);
+            clueUsage.used += 1;
+          }
+        }
+
+        // After the three guaranteed onboarding discoveries, resume the
+        // ordinary seeded rarity roll so the wider game retains variation.
+        if (!clueDrop && clueUsage.used < DAILY_CLUE_CAP) {
           clueDrop = this.rollCampClueDrop(camp.level, seed + 1);
           if (clueDrop) {
             clueUsage.used += 1;
             this.grantDragonClue(march.playerId, clueDrop.id);
           }
         }
-        // Track camp defeat: bestiary readiness type set + expedition counter
-        const progress = this.ensureDragonProgress(march.playerId);
-        progress.campTypesDefeated.add(`camp_l${camp.level}`);
-        progress.campsDefeated += 1;
-        this.putDragonProgress(march.playerId, progress);
         // Update bestiary from the camp's content-mapped entry (falls back
         // to subject matching for content without an explicit mapping).
         const campDef = getCamps().find((c) => c.camp_level === camp.level);
@@ -2510,10 +2994,41 @@ export class World {
             }
           }
         }
+        if (camp.level >= 8 && this.dragonPresence(march.playerId).state === "BATTLE_READY") {
+          const inventory = this.inventory.get(march.playerId) ?? {};
+          if ((inventory.dragon_war_plan ?? 0) > 0) {
+            inventory.dragon_war_plan -= 1;
+            inventory.dragon_hunt_trophy = (inventory.dragon_hunt_trophy ?? 0) + 1;
+            this.putInventory(march.playerId, inventory);
+            dragonHuntRewarded = true;
+            this.pushEvent(
+              march.playerId,
+              "info",
+              "Wyrm-Scarred hunt complete — the Dragon War Council plan has been spent.",
+              { kind: "dragon_hunt_complete", campId: camp.id, itemId: "dragon_hunt_trophy" },
+            );
+          } else {
+            // Two marches may pass departure validation with one plan; only
+            // the first successful resolution can consume it.
+            dragonHuntBlocked = true;
+          }
+        }
       } else if (wild && march.intent === "occupy") {
-        wild.ownerPlayerId = march.playerId;
-        this.putWilderness(wild.id, wild);
-        loot = { food: 40, timber: 40 };
+        // Re-check at resolution time. Two legal departures can arrive after
+        // another claim or after the owner fills their capacity; departure
+        // validation alone cannot protect this persistent ownership boundary.
+        if (
+          wild.ownerPlayerId !== march.playerId &&
+          this.ownedWildernessCount(march.playerId) >=
+            this.wildernessCapacity(march.playerId)
+        ) {
+          wildernessClaimBlocked = true;
+        } else if (wild.ownerPlayerId !== march.playerId) {
+          wild.ownerPlayerId = march.playerId;
+          this.putWilderness(wild.id, wild);
+          wildernessClaimApplied = true;
+          loot = { food: 40 * wild.level, wood: 40 * wild.level };
+        }
       } else if (defCity && (harborLoot || battle.winner === "attacker")) {
         loot = this.plunderCity(defCity, harborLoot ? 0.5 : 1);
       }
@@ -2560,6 +3075,10 @@ export class World {
           x: march.targetX,
           y: march.targetY,
         },
+        wildernessClaimApplied,
+        wildernessClaimBlocked,
+        dragonHuntRewarded,
+        dragonHuntBlocked,
       },
       defenderPlayerId,
     );
@@ -2568,7 +3087,7 @@ export class World {
     return report;
   }
 
-  /** Saltvault protects portion of non-coin resources. */
+  /** Saltvault protects portion of non-crownmark resources. */
   plunderCity(city: City, rate = 1): Partial<ResourceBag> {
     const salt = city.buildings.find((b) => b.buildingType === "saltvault");
     const protectRatio = salt
@@ -2578,17 +3097,17 @@ export class World {
       Math.floor(amount * (1 - protectRatio) * 0.25 * rate);
     const loot: Partial<ResourceBag> = {
       food: lootable(city.resources.food),
-      timber: lootable(city.resources.timber),
+      wood: lootable(city.resources.wood),
       stone: lootable(city.resources.stone),
-      iron: lootable(city.resources.iron),
-      // coin never protected by Saltvault — still only partial raid
-      coin: Math.floor(city.resources.coin * 0.15 * rate),
+      ore: lootable(city.resources.ore),
+      // crownmark never protected by Saltvault — still only partial raid
+      crownmark: Math.floor(city.resources.crownmark * 0.15 * rate),
     };
     city.resources.food -= loot.food ?? 0;
-    city.resources.timber -= loot.timber ?? 0;
+    city.resources.wood -= loot.wood ?? 0;
     city.resources.stone -= loot.stone ?? 0;
-    city.resources.iron -= loot.iron ?? 0;
-    city.resources.coin -= loot.coin ?? 0;
+    city.resources.ore -= loot.ore ?? 0;
+    city.resources.crownmark -= loot.crownmark ?? 0;
     this.putCity(city.id, city);
     return loot;
   }
@@ -2611,8 +3130,71 @@ export class World {
     // Recalculate manpower after reinforcement (exploit fix)
     targetCity.usedManpower = recalculateManpower(targetCity);
     this.putCity(targetCity.id, targetCity);
+    march.reinforcement = {
+      targetCityId: targetCity.id,
+      stationedAt: this.now(),
+      composition: { ...march.composition },
+    };
     march.composition = {};
     return true;
+  }
+
+  /** Attribute defender losses to stationed records before a later recall. */
+  private reconcileStationedLosses(
+    targetCityId: string,
+    losses: Record<string, number>,
+  ): void {
+    const stationed = [...this.marches.values()].filter(
+      (march) =>
+        march.status === "stationed" &&
+        march.reinforcement?.targetCityId === targetCityId,
+    );
+    for (const [unitId, rawLoss] of Object.entries(losses)) {
+      let remaining = Math.max(0, Math.floor(Number(rawLoss) || 0));
+      for (const march of stationed) {
+        if (remaining <= 0 || !march.reinforcement) break;
+        const held = march.reinforcement.composition[unitId] ?? 0;
+        const consumed = Math.min(held, remaining);
+        if (consumed <= 0) continue;
+        march.reinforcement.composition[unitId] = held - consumed;
+        remaining -= consumed;
+        this.putMarch(march.id, march);
+      }
+    }
+  }
+
+  /** Recall a stationed force; exact available troops return home after travel. */
+  recallReinforcement(playerId: string, marchId: string): March {
+    const march = this.marches.get(marchId);
+    if (!march || march.playerId !== playerId) {
+      throw Object.assign(new Error("reinforcement not found"), { code: "NO_REINFORCEMENT" });
+    }
+    if (march.status !== "stationed" || !march.reinforcement) {
+      throw Object.assign(new Error("reinforcement is not stationed"), { code: "NOT_STATIONED" });
+    }
+    const targetCity = this.cities.get(march.reinforcement.targetCityId);
+    const returning: Record<string, number> = {};
+    if (targetCity) {
+      for (const [uid, count] of Object.entries(march.reinforcement.composition)) {
+        const available = Math.min(Math.max(0, Math.floor(count)), Math.max(0, targetCity.stacks[uid] ?? 0));
+        if (available > 0) {
+          targetCity.stacks[uid] -= available;
+          returning[uid] = available;
+        }
+      }
+      targetCity.usedManpower = recalculateManpower(targetCity);
+      this.putCity(targetCity.id, targetCity);
+    }
+    march.reinforcement = null;
+    this.startReturn(march, this.now(), returning);
+    this.putMarch(march.id, march);
+    this.pushEvent(
+      playerId,
+      "info",
+      "Your stationed reinforcements are marching home.",
+      { kind: "reinforcement_recalled", marchId: march.id, targetCityId: targetCity?.id ?? null },
+    );
+    return march;
   }
 
   /** Structured scout intel (server-side; client only displays). */
@@ -2643,6 +3225,8 @@ export class World {
         kind: "camp",
         campId: camp.id,
         level: camp.level,
+        band: campBand(camp.level),
+        bandLabel: campBand(camp.level),
         exampleComp: def?.example_comp ?? null,
         threatBand: camp.level <= 3 ? "low" : camp.level <= 7 ? "mid" : "high",
         // Watchtower intel: reveal the camp's actual seeded composition.
@@ -3078,6 +3662,80 @@ export class World {
     return a;
   }
 
+  /** Leader-only alliance rank management; rank changes persist with membership. */
+  setAllianceRank(
+    actorPlayerId: string,
+    allianceId: string,
+    targetPlayerId: string,
+    rank: AllianceMember["rank"],
+  ): AllianceMember {
+    const alliance = this.alliances.get(allianceId);
+    const actor = this.allianceMembers.get(actorPlayerId);
+    const target = this.allianceMembers.get(targetPlayerId);
+    if (!alliance || !actor || actor.allianceId !== allianceId || actorPlayerId !== alliance.leaderId) {
+      throw Object.assign(new Error("only the alliance leader may change ranks"), { code: "ALLIANCE_RANK_FORBIDDEN" });
+    }
+    if (!target || target.allianceId !== allianceId) {
+      throw Object.assign(new Error("target is not an alliance member"), { code: "NO_MEMBER" });
+    }
+    if (targetPlayerId === alliance.leaderId && rank !== "leader") {
+      throw Object.assign(new Error("transfer leadership before changing the leader's rank"), { code: "LEADER_RANK" });
+    }
+    if (rank === "leader") {
+      const current = this.allianceMembers.get(alliance.leaderId);
+      if (current) current.rank = "member";
+      alliance.leaderId = targetPlayerId;
+      this.putAlliance(alliance.id, alliance);
+    }
+    target.rank = rank;
+    this.putAllianceMember(target.playerId, target);
+    if (rank === "leader") {
+      const promoted = this.allianceMembers.get(targetPlayerId)!;
+      promoted.rank = "leader";
+      this.putAllianceMember(targetPlayerId, promoted);
+    }
+    return target;
+  }
+
+  /** Leave an alliance without orphaning stationed or in-flight forces. */
+  leaveAlliance(playerId: string, allianceId: string): void {
+    const membership = this.allianceMembers.get(playerId);
+    if (!membership || membership.allianceId !== allianceId) {
+      throw Object.assign(new Error("not an alliance member"), { code: "FORBIDDEN" });
+    }
+    const ownedCityIds = new Set(
+      this.citiesForPlayer(playerId).map((city) => city.id),
+    );
+    for (const march of [...this.marches.values()]) {
+      if (
+        march.status === "stationed" &&
+        march.reinforcement &&
+        (march.playerId === playerId || ownedCityIds.has(march.reinforcement.targetCityId))
+      ) {
+        this.recallReinforcement(march.playerId, march.id);
+      }
+    }
+    this.allianceMembers.delete(playerId);
+    this.dirty.allianceMembers.add(allianceId);
+    const remaining = [...this.allianceMembers.values()].filter(
+      (member) => member.allianceId === allianceId,
+    );
+    const alliance = this.alliances.get(allianceId);
+    if (alliance?.leaderId === playerId) {
+      const successor = remaining[0];
+      if (successor) {
+        alliance.leaderId = successor.playerId;
+        successor.rank = "leader";
+        this.putAlliance(alliance.id, alliance);
+        this.dirty.allianceMembers.add(allianceId);
+      } else {
+        // Keep an empty shell so the existing delta writer can preserve the
+        // alliance row across restart; a later player may join it again.
+        this.putAlliance(alliance.id, alliance);
+      }
+    }
+  }
+
   private dayKey(now = this.now()): string {
     return new Date(now).toISOString().slice(0, 10);
   }
@@ -3265,7 +3923,7 @@ export class World {
       }));
     const camps = [...this.camps.values()]
       .filter((c) => c.x >= x0 && c.x <= x1 && c.y >= y0 && c.y <= y1)
-      .map((c) => ({ id: c.id, x: c.x, y: c.y, level: c.level }));
+      .map((c) => ({ id: c.id, x: c.x, y: c.y, level: c.level, band: campBand(c.level) }));
     const wilderness = [...this.wilderness.values()]
       .filter((w) => w.x >= x0 && w.x <= x1 && w.y >= y0 && w.y <= y1)
       .map((w) => ({
@@ -3274,6 +3932,7 @@ export class World {
         y: w.y,
         level: w.level,
         resourceType: w.resourceType,
+        benefit: wildernessBenefit(w),
         ownerPlayerId: w.ownerPlayerId,
       }));
     return { x0, y0, x1, y1, mapW: MAP_W, mapH: MAP_H, cities, camps, wilderness };

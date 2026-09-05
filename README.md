@@ -2,6 +2,25 @@
 
 Multiplayer web MMORTS MVP beta (async city builder + map combat).
 
+## Alpha R2 status (2026-09-02)
+
+The Awakening closure work is active on PR #7. The final resource domain is
+Food, Wood, Stone, Ore, and Crownmarks; Chronite remains separate. Older
+aquatic and intermediate saves are canonicalized at the persistence/input
+boundary. See `docs/design/M2_FINAL_RESOURCE_CUTOVER.md` and
+`docs/design/PAST_WORK_PRESERVATION_LEDGER.md`.
+
+The current build includes a
+server-derived Dragon Presence lifecycle, Castle-first presentation, an
+authoritative Dragon campaign objective ladder, level-scaled wilderness
+benefits (production, logistics, scouting), and a player-accessible Forest
+Frontier Charter route through the existing settlement prerequisite chain.
+
+Verification is green for server tests, TypeScript, and the production web
+build. Exact-head CI also covers PostgreSQL persistence. Full browser journey
+certification and live Postgres evidence remain release gates until run in the
+CI/runtime environment.
+
 ## Design authority
 
 Read these before changing fiction, content IDs, or client presentation:
@@ -57,9 +76,11 @@ Highlights:
 - **Language**: no API URLs, raw ids, UUID fragments, or server prose in the
   player flow; internal codes stay in console diagnostics.
 
-Out of scope / prototype remains: shop UI, alliances depth, haul UX, and
-Postgres runtime verification in CI. The former Sovereign machinery has been
-removed from live product paths; only migration/history references remain.
+Out of scope / prototype remains: shop UI, alliances depth, and haul UX.
+CI runs the server suite with `REQUIRE_PG=1` against a PostgreSQL 16
+service, so persistence coverage is required there, not optional. The
+former Sovereign machinery has been removed from live product paths; only
+migration/history references remain.
 
 Do not start content-heavy mobile UI against the current aquatic / elemental
 content model.
@@ -71,7 +92,7 @@ content model.
 | Monorepo | pnpm workspaces + TypeScript |
 | Web | Vite + React |
 | Server | Hono (Node) + in-process sim |
-| DB | PostgreSQL 16 (optional; schema in `schema.sql`) |
+| DB | PostgreSQL 16 (required in CI via `REQUIRE_PG=1`; optional locally, in-memory fallback) |
 | Combat | `packages/combat` pure `resolveBattle` |
 
 ## Packages
@@ -94,7 +115,8 @@ docs/design       — Direction Freeze, canon authority, migration plan
 ## Setup
 
 ```powershell
-cd C:\Workspace\TideforgeEmpires
+git clone https://github.com/gthgomez/DragonWake.git
+cd DragonWake
 copy .env.example .env
 pnpm install
 ```

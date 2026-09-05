@@ -14,11 +14,11 @@
   },
   {
     "camp_level": 2,
-    "def_power_approx": 120,
+    "def_power_approx": 150,
     "example_comp": "80 Levy + 20 Pikeman",
     "comps": [
       "80 Levy + 20 Pikeman",
-      "70 Levy + 30 Bowman",
+      "60 Levy + 40 Pikeman",
       "90 Levy + 15 Pikeman"
     ],
     "recommended_player_power": 200,

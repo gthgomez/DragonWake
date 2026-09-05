@@ -47,12 +47,14 @@ export function useGame() {
   const [reports, setReports] = useState<BattleReport[]>([]);
   const [alliance, setAlliance] = useState<AllianceInfo | null>(null);
   const [chat, setChat] = useState<ChatMessage[]>([]);
+  const [sharedIntel, setSharedIntel] = useState<WorldEventDto[]>([]);
   const [formulas, setFormulas] = useState<unknown>(null);
   const [researchDefs, setResearchDefs] = useState<ResearchDef[]>([]);
   const [readinessStatus, setReadinessStatus] = useState<any>(null);
   const [bestiaryEntries, setBestiaryEntries] = useState<any[]>([]);
   const [expeditionStatus, setExpeditionStatus] = useState<any>(null);
   const [clueData, setClueData] = useState<any>(null);
+  const [dragonObjectives, setDragonObjectives] = useState<Array<{ id: string; title: string; description: string; complete: boolean }>>([]);
   const [units, setUnits] = useState<UnitDef[]>([]);
   const [buildingDefs, setBuildingDefs] = useState<BuildingDef[]>([]);
   const [unlockDefs, setUnlockDefs] = useState<ResearchUnlock[]>([]);
@@ -128,7 +130,8 @@ export function useGame() {
         (m) =>
           m.status === "en_route" ||
           m.status === "returning" ||
-          m.status === "resolving",
+          m.status === "resolving" ||
+          m.status === "stationed",
       ),
     );
   }, []);
@@ -200,16 +203,18 @@ export function useGame() {
   async function refreshKnowledge() {
     if (!token) return;
     try {
-      const [readyResp, bestResp, expResp, clueResp] = await Promise.all([
+      const [readyResp, bestResp, expResp, clueResp, objectiveResp] = await Promise.all([
         api<any>("/api/v1/dragon/readiness", token),
         api<any>("/api/v1/dragon/bestiary", token),
         api<any>("/api/v1/dragon/expedition", token),
         api<any>("/api/v1/dragon/clues", token),
+        api<any>("/api/v1/dragon/objectives", token),
       ]);
       setReadinessStatus(readyResp);
       setBestiaryEntries(bestResp.entries ?? []);
       setExpeditionStatus(expResp);
       setClueData(clueResp);
+      setDragonObjectives(objectiveResp.objectives ?? []);
     } catch {
       // silently fail — knowledge is non-critical
     }
@@ -222,6 +227,13 @@ export function useGame() {
       token,
     );
     setAllianceList(data.alliances);
+    if (alliance) {
+      const detail = await api<{
+        alliance: AllianceInfo;
+        members: Array<{ playerId: string; rank: "leader" | "officer" | "member"; displayName?: string }>;
+      }>(`/api/v1/alliances/${alliance.id}`, token);
+      setAlliance({ ...detail.alliance, members: detail.members });
+    }
   }
 
   useEffect(() => {
@@ -320,6 +332,9 @@ export function useGame() {
                 ? "ok"
                 : "info";
           pushToast(e.message, kind);
+          if (e.data?.kind === "shared_scout_intel") {
+            setSharedIntel((items) => [...items.slice(-7), e]);
+          }
           if (e.type === "report" || e.type === "march_land") {
             setUnreadReports((n) => n + 1);
             void loadReports().catch(() => undefined);
@@ -355,6 +370,7 @@ export function useGame() {
   const actions = useGameActions({
     token,
     city,
+    loadMap,
     setError,
     setStatus,
     pushToast,
@@ -406,6 +422,7 @@ export function useGame() {
     setSelectedTile,
     reports,
     alliance,
+    sharedIntel,
     chat,
     formulas,
     researchDefs,
@@ -413,6 +430,7 @@ export function useGame() {
     bestiaryEntries,
     expeditionStatus,
     clueData,
+    dragonObjectives,
     units,
     buildingDefs,
     unlockDefs,

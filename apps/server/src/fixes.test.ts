@@ -42,9 +42,9 @@ describe("economy: fractional resource accumulation", () => {
     expect(gainedFood).toBeGreaterThanOrEqual(foodRate - 2);
     expect(gainedFood).toBeLessThanOrEqual(foodRate + 2);
 
-    // Slow coin stream (20/h) also lands its ~20 units over the hour.
-    expect(c.resources.coin - start.coin).toBeGreaterThanOrEqual(18);
-    expect(c.resources.coin - start.coin).toBeLessThanOrEqual(22);
+    // Slow crownmark stream (20/h) also lands its ~20 units over the hour.
+    expect(c.resources.crownmark - start.crownmark).toBeGreaterThanOrEqual(18);
+    expect(c.resources.crownmark - start.crownmark).toBeLessThanOrEqual(22);
   });
 
   it("population grows proportionally with habitation, not +1 per tick", () => {
@@ -139,7 +139,8 @@ describe("marches: reinforce failure must not destroy troops", () => {
     world.landMarch(march, world.now());
     expect(cityB.stacks.levy).toBe(60);
     expect(march.composition["levy"]).toBeUndefined();
-    expect(march.status).toBe("returning");
+    expect(march.status).toBe("stationed");
+    expect(march.reinforcement?.targetCityId).toBe(cityB.id);
   });
 });
 

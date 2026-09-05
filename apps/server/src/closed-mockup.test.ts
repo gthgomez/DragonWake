@@ -31,7 +31,7 @@ describe("authoritative building construction + upgrade", () => {
     const before = { ...city.resources };
     world.startBuild(city.id, player.id, 2, "barracks");
     expect(city.resources.food).toBe(before.food - 100);
-    expect(city.resources.timber).toBe(before.timber - 100);
+    expect(city.resources.wood).toBe(before.wood - 100);
     finishAllBuilds(world, city.id);
     const b = city.buildings.find((x) => x.slotIndex === 2)!;
     expect(b.buildingType).toBe("barracks");
@@ -42,7 +42,7 @@ describe("authoritative building construction + upgrade", () => {
     const world = new World({ devFastTime: true });
     const { player, city } = world.createGuest("BuildB", "northern_kingdom");
     world.adminGrant(player.id, {
-      resources: { food: 20000, timber: 20000, stone: 20000 },
+      resources: { food: 20000, wood: 20000, stone: 20000 },
     });
     const slot = city.buildings.find((b) => b.buildingType === "habitation")!
       .slotIndex;
@@ -118,7 +118,7 @@ describe("authoritative building construction + upgrade", () => {
     const world = new World({ devFastTime: true });
     const { player, city } = world.createGuest("CampA", "northern_kingdom");
     world.adminGrant(player.id, {
-      resources: { food: 50000, timber: 50000, stone: 50000, iron: 50000 },
+      resources: { food: 50000, wood: 50000, stone: 50000, ore: 50000 },
     });
     // Base cap is 5
     for (let i = 0; i < 5; i++) world.startTrain(city.id, player.id, "levy", 1);
@@ -215,7 +215,7 @@ describe("authoritative building construction + upgrade", () => {
 
     // Build a Watchtower L1 and scout again
     world.adminGrant(a.body.player.id, {
-      resources: { food: 5000, timber: 5000, stone: 5000 },
+      resources: { food: 5000, wood: 5000, stone: 5000 },
     });
     world.startBuild(cityId, a.body.player.id, 8, "lookout");
     finishAllBuilds(world, cityId);

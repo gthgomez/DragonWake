@@ -81,6 +81,11 @@ function publicCity(c: City, world: World) {
     research: c.research,
     productionPerHour: world.effectiveProduction(c),
     ownedWilderness: world.ownedWildernessCount(c.playerId),
+    wildernessCapacity: world.wildernessCapacity(c.playerId),
+    activeOperations: world.activeOperations(c.playerId),
+    operationCapacity: world.musterOperationCapacity(c.playerId),
+    troopsPerMarchCapacity: world.troopsPerMarchCapacity(c.playerId),
+    keepLevel: c.buildings.find((b) => b.buildingType === "forge_heart")?.level ?? 1,
     population: c.population,
     maxPopulation: c.maxPopulation,
     usedManpower: c.usedManpower,
@@ -383,6 +388,16 @@ export function createApp(world: World) {
     }
   });
 
+  api.post("/cities/:id/keep/upgrade", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      return c.json({ job: world.startKeepUpgrade(c.req.param("id"), player.id) });
+    } catch (e) {
+      return err(c, (e as { code?: string }).code ?? "KEEP_FAIL", e instanceof Error ? e.message : String(e));
+    }
+  });
+
   api.post("/cities/:id/research", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
@@ -452,8 +467,8 @@ export function createApp(world: World) {
           .map((w) => w[0]!.toUpperCase() + w.slice(1))
           .join(" "),
       })),
-      assignCost: { food: 80, timber: 40 },
-      upgradeCostPerLevel: { food: 50, timber: 50 },
+      assignCost: { food: 80, wood: 40 },
+      upgradeCostPerLevel: { food: 50, wood: 50 },
       maxLevel: 5,
     }),
   );
@@ -564,6 +579,26 @@ export function createApp(world: World) {
         (e as { code?: string }).code ?? "MARCH_FAIL",
         e instanceof Error ? e.message : String(e),
       );
+    }
+  });
+
+  api.post("/marches/:id/recall", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      return c.json({ march: world.recallReinforcement(player.id, c.req.param("id")) });
+    } catch (e) {
+      return err(c, (e as { code?: string }).code ?? "RECALL_FAIL", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  api.post("/wilderness/:id/abandon", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      return c.json({ wilderness: world.abandonWilderness(player.id, c.req.param("id")) });
+    } catch (e) {
+      return err(c, (e as { code?: string }).code ?? "WILDERNESS_FAIL", e instanceof Error ? e.message : String(e));
     }
   });
 
@@ -793,6 +828,37 @@ export function createApp(world: World) {
     }
   });
 
+  api.post("/alliances/:id/leave", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      world.leaveAlliance(player.id, c.req.param("id"));
+      return c.json({ ok: true });
+    } catch (e) {
+      return err(c, (e as { code?: string }).code ?? "LEAVE_FAIL", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  api.post("/alliances/:id/members/:playerId/rank", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = (await c.req.json().catch(() => ({}))) as { rank?: string };
+    if (body.rank !== "leader" && body.rank !== "officer" && body.rank !== "member") {
+      return err(c, "BAD_RANK", "rank must be leader, officer, or member");
+    }
+    try {
+      const member = world.setAllianceRank(
+        player.id,
+        c.req.param("id"),
+        c.req.param("playerId"),
+        body.rank,
+      );
+      return c.json({ member });
+    } catch (e) {
+      return err(c, (e as { code?: string }).code ?? "RANK_FAIL", e instanceof Error ? e.message : String(e));
+    }
+  });
+
   api.get("/alliances/:id", (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
@@ -952,6 +1018,26 @@ export function createApp(world: World) {
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
     const status = world.checkDragonReadiness(player.id);
     return c.json(status);
+  });
+
+  api.get("/dragon/objectives", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    return c.json({ objectives: world.dragonObjectives(player.id) });
+  });
+
+  api.post("/dragon/war-council", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      return c.json(world.startDragonWarCouncil(player.id));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "DRAGON_COUNCIL_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
   });
 
   api.get("/dragon/bestiary", (c) => {

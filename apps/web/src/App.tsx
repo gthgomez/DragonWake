@@ -74,13 +74,17 @@ export function App() {
           unlockDefs={g.unlockDefs}
           dailyQuests={g.dailyQuests}
           jobs={g.jobs}
+          marches={g.marches}
           now={g.now}
+          dragonPresence={g.readinessStatus?.presence ?? null}
           expeditionStatus={g.expeditionStatus}
           doBuild={g.doBuild}
           doResearch={g.doResearch}
           doTrain={g.doTrain}
+          upgradeKeep={g.upgradeKeep}
           foundMarcherKeep={g.foundMarcherKeep}
           claimQuest={g.claimQuest}
+          recallReinforcement={g.recallReinforcement}
         />
       )}
 
@@ -113,6 +117,7 @@ export function App() {
           loadMap={g.loadMap}
           setError={g.setError}
           recruitCommander={g.recruitCommander}
+          onAbandonWild={g.abandonWild}
           sendMarch={g.sendMarch}
         />
       )}
@@ -160,6 +165,7 @@ export function App() {
           loadAlliances={g.loadAlliances}
           setError={g.setError}
           allianceList={g.allianceList}
+          sharedIntel={g.sharedIntel}
         />
       )}
 
@@ -170,9 +176,11 @@ export function App() {
           bestiaryDefs={g.bestiaryDefs}
           expeditionStatus={g.expeditionStatus}
           clueData={g.clueData}
+          dragonObjectives={g.dragonObjectives}
           formulas={g.formulas}
           startDragonExpedition={g.startDragonExpedition}
           completeDragonStage={g.completeDragonStage}
+          startDragonWarCouncil={g.startDragonWarCouncil}
           loadCodex={g.loadCodex}
         />
       )}
@@ -187,6 +195,7 @@ export function App() {
           grantDev={g.grantDev}
           foundBrine={g.foundBrine}
           foundStone={g.foundStone}
+          foundHolding={g.foundHolding}
           logout={g.logout}
         />
       )}

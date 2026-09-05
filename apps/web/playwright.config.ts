@@ -16,4 +16,20 @@ export default defineConfig({
     video: "off",
     actionTimeout: 10_000,
   },
+  webServer: [
+    {
+      command: "pnpm --filter @dragonwake/server start",
+      url: "http://localhost:3001/health",
+      timeout: 120_000,
+      reuseExistingServer: false,
+      env: { DEV_FAST_TIME: "1", DEV_SKIP_TUTORIAL: "0", PORT: "3001" },
+    },
+    {
+      command: "pnpm --filter @dragonwake/web dev",
+      url: "http://localhost:5173",
+      timeout: 120_000,
+      reuseExistingServer: false,
+      env: { DEV_FAST_TIME: "1" },
+    },
+  ],
 });

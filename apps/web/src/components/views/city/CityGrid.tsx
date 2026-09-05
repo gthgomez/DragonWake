@@ -24,7 +24,7 @@ const MIN_SLOTS = 12;
 
 function costOf(def: BuildingLite, level: number): Record<string, number> {
   const out: Record<string, number> = {};
-  for (const [k, v] of Object.entries(def.build_cost ?? { food: 100, timber: 100 })) {
+  for (const [k, v] of Object.entries(def.build_cost ?? { food: 100, wood: 100 })) {
     out[k] = Math.floor((v ?? 0) * level);
   }
   return out;
@@ -46,6 +46,8 @@ function effectLine(id: string, level: number): string {
       return level >= 3
         ? "Scouts report exact garrison counts"
         : "Scouts report camp defenders";
+    case "skyreost":
+      return `Records dragon signs · readiness ${Math.min(2, level)}/2`;
     case "saltvault":
       return `Shields about ${Math.min(90, 50 + 5 * level)}% of stores from raiders`;
     case "training_camp":
@@ -154,7 +156,7 @@ function HabitationGlyph({ level }: { level: number }) {
   );
 }
 
-/** Saltvault (Storehouse) — strongbox with vault dial and coin accent. */
+/** Saltvault (Storehouse) — strongbox with vault dial and crownmark accent. */
 function SaltvaultGlyph({ level }: { level: number }) {
   return (
     <GlyphFrame level={level}>
@@ -300,11 +302,13 @@ function CostRow({
 export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 
-  // Switching cities resets the selection so the card never describes
-  // a plot from the previous city.
   useEffect(() => {
-    setSelectedSlot(null);
-  }, [city.id]);
+    if (selectedSlot !== null) return;
+    const dragonWatch = city.buildings.find(
+      (building) => building.buildingType === "skyreost",
+    );
+    if (dragonWatch) setSelectedSlot(dragonWatch.slotIndex);
+  }, [city.buildings, selectedSlot]);
 
   const bySlot = useMemo(() => {
     const m = new Map<number, Building>();
@@ -331,6 +335,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
         "rally_quay",
         "command_gallery",
         "lookout",
+        "skyreost",
         "training_camp",
         "saltvault",
       ]
@@ -352,6 +357,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
   const selectedJob =
     selectedSlot !== null ? (jobsBySlot.get(selectedSlot) ?? null) : null;
   const selectedDef = selected ? buildingDef(selected.buildingType) : null;
+  const buildSlot = selectedSlot ?? slots.find((slot) => !bySlot.has(slot) && !jobsBySlot.has(slot)) ?? 0;
 
   return (
     <div className="city-layout">
@@ -393,7 +399,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                         : `Empty plot ${slot}`
                   }
                   aria-pressed={isSel}
-                  onClick={() => setSelectedSlot(isSel ? null : slot)}
+                  onClick={() => setSelectedSlot(slot)}
                 >
                   <span className="city-ground" aria-hidden="true" />
                   {b && (
@@ -566,7 +572,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
               />
             </div>
           </div>
-        ) : selectedSlot !== null ? (
+        ) : selectedSlot !== null || buildableDefs.length > 0 ? (
           <div className="city-detail-body">
             <header className="city-detail-head">
               <span className="city-detail-glyph city-empty-glyph" aria-hidden="true">
@@ -591,7 +597,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                     type="button"
                     className="city-pick"
                     disabled={!affordable}
-                    onClick={() => void doBuild(def.id, selectedSlot)}
+                    onClick={() => void doBuild(def.id, buildSlot)}
                     title={def.purpose}
                   >
                     <span className="city-pick-name">{def.name}</span>

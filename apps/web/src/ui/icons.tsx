@@ -6,10 +6,10 @@ import type { ReactNode } from "react";
  */
 export type IconName =
   | "food"
-  | "timber"
+  | "wood"
   | "stone"
-  | "iron"
-  | "coin"
+  | "ore"
+  | "crownmark"
   | "sword"
   | "shield"
   | "scroll"
@@ -47,7 +47,7 @@ const GLYPHS: Record<IconName, ReactNode> = {
       <path d="M12 21c3-.1 5-1.7 5.5-4.5-2.9.4-4.9 2-5.5 4.5Z" />
     </>
   ),
-  timber: (
+  wood: (
     <>
       <circle cx="6" cy="17" r="2.5" />
       <circle cx="6" cy="10.5" r="2.5" />
@@ -62,13 +62,13 @@ const GLYPHS: Record<IconName, ReactNode> = {
       <path d="M12 12.5v7" />
     </>
   ),
-  iron: (
+  ore: (
     <>
       <path d="M4.5 16.5 6.3 11.6a1.6 1.6 0 0 1 1.5-1.1h8.4a1.6 1.6 0 0 1 1.5 1.1l1.8 4.9z" />
       <path d="M9.5 13.5h5" />
     </>
   ),
-  coin: (
+  crownmark: (
     <>
       <circle cx="12" cy="12" r="7.5" />
       <circle cx="12" cy="12" r="4.8" />
@@ -219,9 +219,9 @@ export function IconFood(props: IconProps) {
   return <IconSvg {...props}>{GLYPHS.food}</IconSvg>;
 }
 
-/** Stacked logs (timber resource). */
+/** Stacked logs (wood resource). */
 export function IconTimber(props: IconProps) {
-  return <IconSvg {...props}>{GLYPHS.timber}</IconSvg>;
+  return <IconSvg {...props}>{GLYPHS.wood}</IconSvg>;
 }
 
 /** Isometric quarried block (stone resource). */
@@ -229,14 +229,14 @@ export function IconStone(props: IconProps) {
   return <IconSvg {...props}>{GLYPHS.stone}</IconSvg>;
 }
 
-/** Poured ingot (iron resource). */
+/** Poured ingot (ore resource). */
 export function IconIron(props: IconProps) {
-  return <IconSvg {...props}>{GLYPHS.iron}</IconSvg>;
+  return <IconSvg {...props}>{GLYPHS.ore}</IconSvg>;
 }
 
-/** Stamped coin (gold resource). */
+/** Stamped crownmark (gold resource). */
 export function IconCoin(props: IconProps) {
-  return <IconSvg {...props}>{GLYPHS.coin}</IconSvg>;
+  return <IconSvg {...props}>{GLYPHS.crownmark}</IconSvg>;
 }
 
 /** Upright arming sword (combat/military). */

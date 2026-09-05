@@ -39,10 +39,10 @@ export function canAfford(res: Resources, cost: Partial<Resources>): boolean {
 export function unitTrainCost(u: UnitDef, count: number): Partial<Resources> {
   return {
     food: (u.cost_food ?? 0) * count,
-    timber: (u.cost_timber ?? 0) * count,
+    wood: (u.cost_wood ?? 0) * count,
     stone: (u.cost_stone ?? 0) * count,
-    iron: (u.cost_iron ?? 0) * count,
-    coin: (u.cost_coin ?? 0) * count,
+    ore: (u.cost_ore ?? 0) * count,
+    crownmark: (u.cost_crownmark ?? 0) * count,
   };
 }
 

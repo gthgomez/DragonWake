@@ -3,6 +3,18 @@
  * Zod schemas for critical POST bodies → 400 with code VALIDATION.
  */
 import { z } from "zod";
+import { canonResourceBag, isKnownResourceId } from "@dragonwake/content";
+
+const inboundResourceBagSchema = z
+  .record(z.string(), z.number().finite().min(0).max(Number.MAX_SAFE_INTEGER))
+  .superRefine((bag, ctx) => {
+    for (const key of Object.keys(bag)) {
+      if (!isKnownResourceId(key)) {
+        ctx.addIssue({ code: "custom", path: [key], message: "unknown resource id" });
+      }
+    }
+  })
+  .transform((bag) => canonResourceBag(bag));
 
 export const guestBodySchema = z.object({
   displayName: z.string().trim().min(1).max(32).optional(),
@@ -39,15 +51,7 @@ export const marchBodySchema = z.object({
     y: z.number().int().min(0).max(1000),
   }),
   composition: z.record(z.string(), z.number().int().min(0).max(1_000_000)).default({}),
-  cargo: z
-    .object({
-      food: z.number().int().min(0).optional(),
-      timber: z.number().int().min(0).optional(),
-      stone: z.number().int().min(0).optional(),
-      iron: z.number().int().min(0).optional(),
-      coin: z.number().int().min(0).optional(),
-    })
-    .optional(),
+  cargo: inboundResourceBagSchema.optional(),
   commanderId: z.string().uuid().optional(),
 });
 
@@ -70,7 +74,7 @@ export const allianceJoinSchema = z
   });
 
 export const adminGrantSchema = z.object({
-  resources: z.record(z.string(), z.number().min(0)).optional(),
+  resources: inboundResourceBagSchema.optional(),
   units: z.record(z.string(), z.number().int().min(0)).optional(),
   chronite: z.number().int().min(0).optional(),
   skipProtection: z.boolean().optional(),

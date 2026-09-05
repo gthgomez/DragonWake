@@ -15,6 +15,7 @@ import type {
   ChatMessage,
   City,
   Commander,
+  MapFocus,
   March,
   Player,
   QueueJob,
@@ -25,6 +26,7 @@ import type {
 export type UseGameActionsDeps = {
   token: string | null;
   city: City | null;
+  loadMap: (focus?: MapFocus) => Promise<void>;
   setError: Dispatch<SetStateAction<string | null>>;
   setStatus: Dispatch<SetStateAction<string>>;
   pushToast: (message: string, kind?: Toast["kind"]) => void;
@@ -71,6 +73,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
   const {
     token,
     city,
+    loadMap,
     setError,
     setStatus,
     pushToast,
@@ -137,7 +140,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
   async function doBuild(buildingType: string, slotIndex?: number) {
     if (!token || !city) return;
     const def = buildingDef(buildingType);
-    const baseCost = def?.build_cost ?? { food: 100, timber: 100 };
+    const baseCost = def?.build_cost ?? { food: 100, wood: 100 };
     const slot =
       slotIndex ?? Math.max(0, ...city.buildings.map((b) => b.slotIndex), -1) + 1;
     const existing = city.buildings.find((b) => b.slotIndex === slot);
@@ -189,6 +192,21 @@ export function useGameActions(deps: UseGameActionsDeps) {
         await refreshQueues(token, city.id);
       },
     );
+  }
+
+  async function upgradeKeep() {
+    if (!token || !city) return;
+    const next = (city.keepLevel ?? 1) + 1;
+    const cost = { food: 500 * next, wood: 500 * next, stone: 300 * next, crownmark: 100 * next };
+    if (!canAfford(city.resources, cost)) {
+      setError(`Keep upgrade needs ${cost.food} Food, ${cost.wood} Wood, ${cost.stone} Stone, and ${cost.crownmark} Crownmarks.`);
+      return;
+    }
+    await run(`Forge-Heart upgrade queued (L${next})`, async () => {
+      await api(`/api/v1/cities/${city.id}/keep/upgrade`, token, { method: "POST" });
+      await refreshMe(token);
+      await refreshQueues(token, city.id);
+    });
   }
 
   async function doTrain(unitId: string, count: number) {
@@ -266,6 +284,15 @@ export function useGameActions(deps: UseGameActionsDeps) {
     );
   }
 
+  async function recallReinforcement(marchId: string) {
+    if (!token) return;
+    await run("Reinforcement recalled", async () => {
+      await api(`/api/v1/marches/${marchId}/recall`, token, { method: "POST" });
+      await refreshMe(token);
+      await refreshMarches(token);
+    });
+  }
+
   async function recruitCommander() {
     if (!token) return;
     await run("Commander recruited", async () => {
@@ -341,6 +368,15 @@ export function useGameActions(deps: UseGameActionsDeps) {
     });
   }
 
+  async function startDragonWarCouncil() {
+    if (!token) return;
+    await run("Dragon War Council convened", async () => {
+      await api("/api/v1/dragon/war-council", token, { method: "POST" });
+      await refreshMe(token);
+      await refreshKnowledge();
+    });
+  }
+
   async function claimQuest(questId: string) {
     if (!token) return;
     await run("Daily deed claimed", async () => {
@@ -410,6 +446,17 @@ export function useGameActions(deps: UseGameActionsDeps) {
     });
   }
 
+  async function foundHolding(kind: string) {
+    if (!token) return;
+    await run(`${kind.replace(/_/g, " ")} founded`, async () => {
+      await api("/api/v1/citadels/found", token, {
+        method: "POST",
+        body: JSON.stringify({ kind, unlock: false }),
+      });
+      await refreshMe(token);
+    });
+  }
+
   async function setPosture(posture: string) {
     if (!token || !city) return;
     await run("Defense posture updated", async () => {
@@ -425,7 +472,7 @@ export function useGameActions(deps: UseGameActionsDeps) {
     if (!token || !city) return;
     if (!canAfford(city.resources, PLOT_ASSIGN_COST)) {
       setError(
-        `Not enough resources — staking ground costs ${PLOT_ASSIGN_COST.food} food and ${PLOT_ASSIGN_COST.timber} timber.`,
+        `Not enough resources — staking ground costs ${PLOT_ASSIGN_COST.food} food and ${PLOT_ASSIGN_COST.wood} wood.`,
       );
       return;
     }
@@ -440,9 +487,9 @@ export function useGameActions(deps: UseGameActionsDeps) {
 
   async function upgradePlot(slotIndex: number, level: number) {
     if (!token || !city) return;
-    const cost = { food: 50 * level, timber: 50 * level };
+    const cost = { food: 50 * level, wood: 50 * level };
     if (!canAfford(city.resources, cost)) {
-      setError(`Need ${cost.food} food + ${cost.timber} timber`);
+      setError(`Need ${cost.food} food + ${cost.wood} wood`);
       return;
     }
     await run(`Plot improved to level ${level + 1}`, async () => {
@@ -466,24 +513,40 @@ export function useGameActions(deps: UseGameActionsDeps) {
     setMarchLeaderId("");
   }
 
+  async function abandonWild(wildId: string) {
+    if (!token) return;
+    await run("Wildland abandoned — the frontier is open again", async () => {
+      await api(`/api/v1/wilderness/${wildId}/abandon`, token, {
+        method: "POST",
+      });
+      await refreshMe(token);
+      await loadMap();
+    });
+  }
+
   return {
     loginGuest,
     doBuild,
     doResearch,
+    upgradeKeep,
     doTrain,
     sendMarch,
+    recallReinforcement,
     recruitCommander,
+    abandonWild,
     createAlly,
     joinAlly,
     advanceTutorial,
     startDragonExpedition,
     completeDragonStage,
+    startDragonWarCouncil,
     claimQuest,
     sendChat,
     grantDev,
     foundMarcherKeep,
     foundBrine,
     foundStone,
+    foundHolding,
     setPosture,
     assignPlot,
     upgradePlot,

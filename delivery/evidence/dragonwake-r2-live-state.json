@@ -1,0 +1,28 @@
+{
+  "observedAt": "2026-09-02T07:31:10Z",
+  "repository": "gthgomez/DragonWake",
+  "mainSha": "25c68b633ee5874d244da704de5bcbb8d1f0bb0b",
+  "pr7": {
+    "state": "open",
+    "merged": false,
+    "mergeable": true,
+    "head": "7feba552eb3b9d4f22c03b751476bf9ad506c530",
+    "base": "25c68b633ee5874d244da704de5bcbb8d1f0bb0b",
+    "reviews": 0,
+    "inlineComments": 0,
+    "exactHeadCi": {
+      "runId": 33603644078,
+      "status": "completed",
+      "conclusion": "success"
+    }
+  },
+  "pr6": {
+    "state": "open",
+    "merged": false,
+    "mergeable": true,
+    "head": "411cf008d624962fbd85eaaea0f9ef65f2275c1b",
+    "base": "25c68b633ee5874d244da704de5bcbb8d1f0bb0b"
+  },
+  "source": "connected GitHub read API",
+  "mutationPerformed": false
+}

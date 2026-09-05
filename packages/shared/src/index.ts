@@ -21,24 +21,27 @@ export type HealthResponse = {
 
 export type ResourceBag = {
   food: number;
-  timber: number;
+  wood: number;
   stone: number;
-  iron: number;
-  coin: number;
+  ore: number;
+  crownmark: number;
 };
 
-/** Canonical resource order (M2 medieval set). */
-export const RESOURCES = ["food", "timber", "stone", "iron", "coin"] as const;
+/** Canonical resource order for the final Dragon Wake domain. */
+export const RESOURCES = ["food", "wood", "stone", "ore", "crownmark"] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
-/** Legacy aquatic resource ids → medieval successors (M2 transition window). */
+/** All historical resource ids → final canonical ids. */
 export const LEGACY_RESOURCE_ALIASES = {
   kelp: "food",
-  driftwood: "timber",
+  driftwood: "wood",
+  timber: "wood",
   basalt: "stone",
-  slagiron: "iron",
-  tidegilt: "coin",
+  slagiron: "ore",
+  iron: "ore",
+  tidegilt: "crownmark",
+  coin: "crownmark",
 } as const satisfies Record<string, ResourceId>;
 
 export type DefensePosture = "withdraw" | "garrison" | "full";
@@ -96,7 +99,14 @@ export type CityPublic = {
   research: Record<string, number>;
 };
 
-export const SALTVAULT_PROTECT_RATIO = 0.5; // 50% of non-coin protected at L1 baseline
+export type WildernessBenefitPublic = {
+  kind: "production" | "logistics" | "scouting" | "dragon_evidence";
+  label: string;
+  description: string;
+  amount: number;
+};
+
+export const SALTVAULT_PROTECT_RATIO = 0.5; // 50% of non-currency resources protected at L1 baseline
 export const NEW_PLAYER_PROTECTION_MS = 72 * 60 * 60 * 1000;
 export const MAP_W = 40;
 export const MAP_H = 40;

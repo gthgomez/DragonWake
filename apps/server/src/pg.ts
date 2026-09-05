@@ -96,41 +96,50 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     $$;
   `);
 
-  // 4. M2 resource rename: cities columns + field_plots plot types.
-  //    Column renames are data-preserving; each guarded by existence check.
+  // 4. Final resource-domain cutover. Rename either aquatic or intermediate
+  // columns to the final names. If a partial migration left both columns,
+  // retain the final value when present and use the legacy value only when the
+  // final column is still its empty/default representation; never sum aliases.
   await client.query(`
     DO $$
     DECLARE
       r RECORD;
+      final_exists BOOLEAN;
+      old_exists BOOLEAN;
     BEGIN
       FOR r IN
         SELECT * FROM (VALUES
-          ('kelp','food'),
-          ('driftwood','timber'),
-          ('basalt','stone'),
-          ('slagiron','iron'),
-          ('tidegilt','coin')
+          ('kelp','food'), ('driftwood','wood'), ('timber','wood'),
+          ('basalt','stone'), ('slagiron','ore'), ('iron','ore'),
+          ('tidegilt','crownmark'), ('coin','crownmark')
         ) AS m(old_name,new_name)
       LOOP
-        IF EXISTS (
-          SELECT 1 FROM information_schema.columns
-          WHERE table_name = 'cities' AND column_name = r.old_name
-        ) AND NOT EXISTS (
-          SELECT 1 FROM information_schema.columns
-          WHERE table_name = 'cities' AND column_name = r.new_name
-        ) THEN
+        SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cities' AND column_name=r.old_name) INTO old_exists;
+        SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cities' AND column_name=r.new_name) INTO final_exists;
+        IF old_exists AND NOT final_exists THEN
           EXECUTE format('ALTER TABLE cities RENAME COLUMN %I TO %I', r.old_name, r.new_name);
+        ELSIF old_exists AND final_exists AND r.old_name <> r.new_name THEN
+          EXECUTE format('UPDATE cities SET %I = CASE WHEN %I = 0 THEN %I ELSE %I END', r.new_name, r.new_name, r.old_name, r.new_name);
+          EXECUTE format('ALTER TABLE cities DROP COLUMN %I', r.old_name);
         END IF;
       END LOOP;
 
       UPDATE field_plots SET plot_type = CASE plot_type
-        WHEN 'kelp_farm'   THEN 'farm'
-        WHEN 'drift_dock'  THEN 'lumber_yard'
-        WHEN 'basalt_cut'  THEN 'quarry'
-        WHEN 'slag_pit'    THEN 'mine'
+        WHEN 'kelp_farm' THEN 'farm'
+        WHEN 'drift_dock' THEN 'lumber_yard'
+        WHEN 'basalt_cut' THEN 'quarry'
+        WHEN 'slag_pit' THEN 'mine'
         ELSE plot_type
       END
       WHERE plot_type IN ('kelp_farm','drift_dock','basalt_cut','slag_pit');
+
+      UPDATE cities SET res_fraction = jsonb_build_object(
+        'food', COALESCE((res_fraction->>'food')::double precision, (res_fraction->>'kelp')::double precision, 0),
+        'wood', COALESCE((res_fraction->>'wood')::double precision, (res_fraction->>'timber')::double precision, (res_fraction->>'driftwood')::double precision, 0),
+        'stone', COALESCE((res_fraction->>'stone')::double precision, (res_fraction->>'basalt')::double precision, 0),
+        'ore', COALESCE((res_fraction->>'ore')::double precision, (res_fraction->>'iron')::double precision, (res_fraction->>'slagiron')::double precision, 0),
+        'crownmark', COALESCE((res_fraction->>'crownmark')::double precision, (res_fraction->>'coin')::double precision, (res_fraction->>'tidegilt')::double precision, 0)
+      ) WHERE res_fraction IS NOT NULL;
     END
     $$;
   `);
@@ -210,6 +219,16 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
   await client.query(`
     ALTER TABLE marches DROP COLUMN IF EXISTS sovereign_id;
     DROP TABLE IF EXISTS sovereigns;
+  `);
+
+  // 12. Reinforcements may remain stationed and attributable to their sender
+  // until an explicit recall. The composition metadata lives in the existing
+  // JSONB march payload, while this status constraint permits restart-safe
+  // stationed records.
+  await client.query(`
+    ALTER TABLE marches DROP CONSTRAINT IF EXISTS marches_status_check;
+    ALTER TABLE marches ADD CONSTRAINT marches_status_check
+      CHECK (status IN ('en_route','resolving','returning','stationed','completed','cancelled'));
   `);
 }
 

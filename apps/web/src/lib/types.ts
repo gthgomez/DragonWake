@@ -6,10 +6,10 @@
 
 export type Resources = {
   food: number;
-  timber: number;
+  wood: number;
   stone: number;
-  iron: number;
-  coin: number;
+  ore: number;
+  crownmark: number;
 };
 
 export type City = {
@@ -26,6 +26,11 @@ export type City = {
   research: Record<string, number>;
   productionPerHour?: Resources;
   ownedWilderness?: number;
+  wildernessCapacity?: number;
+  activeOperations?: number;
+  operationCapacity?: number;
+  troopsPerMarchCapacity?: number;
+  keepLevel?: number;
   population?: number;
   maxPopulation?: number;
   usedManpower?: number;
@@ -64,6 +69,11 @@ export type March = {
   returnAt: number | null;
   status: string;
   battleReportId: string | null;
+  reinforcement?: {
+    targetCityId: string;
+    stationedAt: number;
+    composition: Record<string, number>;
+  } | null;
 };
 
 export type BattleReport = {
@@ -101,16 +111,17 @@ export type WorldEventDto = {
   type: string;
   message: string;
   at: number;
+  data?: Record<string, unknown>;
 };
 
 export type UnitDef = {
   id: string;
   name: string;
   cost_food?: number;
-  cost_timber?: number;
+  cost_wood?: number;
   cost_stone?: number;
-  cost_iron?: number;
-  cost_coin?: number;
+  cost_ore?: number;
+  cost_crownmark?: number;
   train_sec_L1?: number;
   unlock?: string;
   role?: string;
@@ -137,13 +148,14 @@ export type Commander = {
 export type MapData = {
   mapW?: number;
   mapH?: number;
-  camps: { id: string; x: number; y: number; level: number }[];
+  camps: { id: string; x: number; y: number; level: number; band?: string }[];
   wilderness: {
     id: string;
     x: number;
     y: number;
     level: number;
     resourceType: string;
+    benefit?: { kind: string; label: string; description: string; amount: number };
     ownerPlayerId: string | null;
   }[];
   cities: {
@@ -203,7 +215,12 @@ export type BestiaryEntryDef = {
   lore_notes?: string;
 };
 
-export type AllianceInfo = { id: string; name: string; tag: string };
+export type AllianceInfo = {
+  id: string;
+  name: string;
+  tag: string;
+  members?: Array<{ playerId: string; rank: "leader" | "officer" | "member"; displayName?: string }>;
+};
 
 export type ChatMessage = {
   id?: string;

@@ -6,6 +6,7 @@ import { Icon, type IconName } from "../../ui/icons";
 import type {
   City,
   DailyQuest,
+  March,
   QueueJob,
   ResearchDef,
   ResearchUnlock,
@@ -23,7 +24,14 @@ type CastleViewProps = {
   unlockDefs: ResearchUnlock[];
   dailyQuests: DailyQuest[];
   jobs: QueueJob[];
+  marches: March[];
   now: number;
+  dragonPresence: {
+    state?: string;
+    title?: string;
+    summary?: string;
+    nextMilestone?: string;
+  } | null;
   expeditionStatus: {
     charterEarned?: boolean;
     currentStage?: number;
@@ -32,16 +40,18 @@ type CastleViewProps = {
   doBuild: (buildingType: string, slotIndex?: number) => Promise<void>;
   doResearch: (techId: string) => Promise<void>;
   doTrain: (unitId: string, count: number) => Promise<void>;
+  upgradeKeep: () => Promise<void>;
   foundMarcherKeep: () => Promise<void>;
   claimQuest: (questId: string) => Promise<void>;
+  recallReinforcement: (marchId: string) => Promise<void>;
 };
 
 const RES_LABELS: Record<string, string> = {
   food: "Food",
-  timber: "Timber",
+  wood: "Wood",
   stone: "Stone",
-  iron: "Iron",
-  coin: "Coin",
+  ore: "Ore",
+  crownmark: "Crownmarks",
 };
 
 /** Mirror of content isUnitUnlocked for client-side display only. */
@@ -74,19 +84,28 @@ export function CastleView({
   unlockDefs,
   dailyQuests,
   jobs,
+  marches,
   now,
+  dragonPresence,
   expeditionStatus,
   doBuild,
   doResearch,
   doTrain,
+  upgradeKeep,
   foundMarcherKeep,
   claimQuest,
+  recallReinforcement,
 }: CastleViewProps) {
   const rates = city.productionPerHour;
   const [confirmFound, setConfirmFound] = useState(false);
 
   const charterEarned = Boolean(expeditionStatus?.charterEarned);
   const hasMarcherKeep = cities.some((c) => c.kind === "marcher_keep");
+  const dragonWatchLevel =
+    city.buildings.find((b) => b.buildingType === "skyreost")?.level ?? 0;
+  const stationed = marches.filter(
+    (m) => m.status === "stationed" && m.reinforcement,
+  );
 
   const trainable = useMemo(
     () =>
@@ -141,6 +160,16 @@ export function CastleView({
         )}
       </header>
 
+      <section className="dragon-presence" data-testid="dragon-presence" aria-label="Dragon Presence">
+        <div className="dragon-presence-glyph"><Icon name="dragon" size={32} /></div>
+        <div className="dragon-presence-copy">
+          <div className="eyebrow">Dragon Presence</div>
+          <h3>{dragonPresence?.title ?? "Dormant"}</h3>
+          <p>{dragonPresence?.summary ?? "A vast, sleeping presence lies beneath the kingdom's oldest foundations."}</p>
+          <p className="muted tiny"><strong>Next:</strong> {dragonPresence?.nextMilestone ?? "Build the Dragon Watch and bring back your first sign from the realm."}</p>
+        </div>
+      </section>
+
       {city.kind === "marcher_keep" && (
         <div className="marcher-banner" role="note">
           <strong>Forward march.</strong> This keep stands where the realm ends
@@ -165,7 +194,46 @@ export function CastleView({
       </ul>
 
       <h3>The Settlement</h3>
-      <CityGrid city={city} jobs={jobs} now={now} doBuild={doBuild} />
+      <section className="keep-progression" aria-label="Keep progression">
+        <div>
+          <strong>Forge-Heart · Keep level {city.keepLevel ?? 1}</strong>
+          <p className="muted tiny">
+            The Keep governs how far buildings, operations, and frontier holdings can grow.
+            Upgrade it when your next scale requirement is the blocker.
+          </p>
+          {(city.keepLevel ?? 1) < 10 && (
+            <p className="muted tiny" data-testid="keep-upgrade-costs">
+              Next level costs:{" "}
+              <span><Icon name="food" size={12} /> {fmtNum(500 * ((city.keepLevel ?? 1) + 1))}</span>{" "}
+              <span><Icon name="wood" size={12} /> {fmtNum(500 * ((city.keepLevel ?? 1) + 1))}</span>{" "}
+              <span><Icon name="stone" size={12} /> {fmtNum(300 * ((city.keepLevel ?? 1) + 1))}</span>{" "}
+              <span><Icon name="crownmark" size={12} /> {fmtNum(100 * ((city.keepLevel ?? 1) + 1))}</span>
+              {" "}· about {90 * ((city.keepLevel ?? 1) + 1)}s
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          disabled={(city.keepLevel ?? 1) >= 10}
+          onClick={() => void upgradeKeep()}
+        >
+          {(city.keepLevel ?? 1) >= 10 ? "Keep mastered" : `Upgrade to L${(city.keepLevel ?? 1) + 1}`}
+        </button>
+      </section>
+      <div className="dragon-watch-panel" data-testid="dragon-watch-panel">
+        <div className="dragon-watch-mark" aria-hidden="true">
+          <Icon name="dragon" size={28} />
+        </div>
+        <div>
+          <strong>Dragon Watch</strong>
+          <p className="muted tiny">
+            {dragonWatchLevel > 0
+              ? `Level ${dragonWatchLevel} · the watch records every sign brought home.`
+              : "Raise this tower from an empty plot to turn rumors into evidence."}
+          </p>
+        </div>
+      </div>
+      <CityGrid key={city.id} city={city} jobs={jobs} now={now} doBuild={doBuild} />
 
       <div className="castle-columns">
         <div>
@@ -244,8 +312,14 @@ export function CastleView({
         <div>
           <h3>Muster</h3>
           <p className="muted tiny">
-            Available manpower: {fmtNum(city.availableManpower ?? 0)} — training
+            Available manpower: {fmtNum(city.availableManpower ?? 0)} - training
             reserves people as well as supplies.
+          </p>
+          <p className="muted tiny">
+            Operations: {city.activeOperations ?? 0} / {city.operationCapacity ?? 4}
+            . Troop capacity per march: {fmtNum(city.troopsPerMarchCapacity ?? 500)}.
+            Muster Yard raises both limits; Commanders remain a separate leadership
+            constraint.
           </p>
           <ul className="muster-list">
             {trainable.map((u) => {
@@ -305,6 +379,31 @@ export function CastleView({
           </ul>
         </div>
       </div>
+
+      {stationed.length > 0 && (
+        <section className="keep-progression" aria-label="Stationed reinforcements">
+          <div>
+            <strong>Stationed reinforcements</strong>
+            <p className="muted tiny">
+              These troops remain owned by their sending settlement until recalled.
+            </p>
+          </div>
+          <ul className="muster-list">
+            {stationed.map((m) => (
+              <li key={m.id} className="muster-row">
+                <span className="muted tiny">
+                  {Object.entries(m.reinforcement?.composition ?? {})
+                    .map(([id, count]) => `${fmtNum(count)}× ${unitName(id)}`)
+                    .join(", ")}
+                </span>
+                <button type="button" onClick={() => void recallReinforcement(m.id)}>
+                  Recall
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <h3>The Wider March</h3>
       {hasMarcherKeep ? (
@@ -373,7 +472,9 @@ export function CastleView({
       )}
       {typeof city.ownedWilderness === "number" && (
         <p className="muted tiny">
-          Held wildlands: {city.ownedWilderness} — each adds to your production
+          Wilderness holdings: {city.ownedWilderness} / {city.wildernessCapacity ?? 2} —
+          each adds a strategic production, logistics, or scouting benefit. Release
+          a lower-value holding in the Realm before claiming another.
           (see Lands).
         </p>
       )}
