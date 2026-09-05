@@ -64,22 +64,32 @@ test("cert desktop: wilderness replacement — claim, abandon, re-claim", async 
   await enterRealm(page, `wild-${Date.now() % 100000}`);
 
   // Grow enough settlers-at-arms for two claims (capacity 2 at Keep 1).
+  // Unclaimed wilds are garrisoned (20xlevel levy + 5xlevel pikemen), so a
+  // settlers-only march is a lost battle: train bowmen too.
   await page.getByRole("button", { name: /Agriculture/ }).click();
   await expect(page.getByText(/Agriculture: level 1/)).toBeVisible({ timeout: 20_000 });
-  const musterRow = page.locator("li.muster-row", { hasText: "Levy Spearman" });
-  await expect
-    .poll(async () => {
-      const text = (await musterRow.textContent()) ?? "";
-      if (Number(/owned (\d+)/.exec(text)?.[1] ?? 0) >= 80) return true;
-      await musterRow.locator("input[type=number]").fill("30");
-      try {
-        await musterRow.getByRole("button", { name: "Train" }).click({ timeout: 2_000 });
-      } catch {
+  const trainUpTo = async (unit: string, minOwned: number, batch: number) => {
+    const row = page.locator("li.muster-row", { hasText: unit });
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    await expect
+      .poll(async () => {
+        const text = (await row.textContent()) ?? "";
+        if (Number(/owned (\d+)/.exec(text)?.[1] ?? 0) >= minOwned) return true;
+        await row.locator("input[type=number]").fill(String(batch));
+        try {
+          await row.getByRole("button", { name: "Train" }).click({ timeout: 2_000 });
+        } catch {
+          return false;
+        }
         return false;
-      }
-      return false;
-    }, { timeout: 90_000, intervals: [1_000, 2_000] })
-    .toBe(true);
+      }, { timeout: 90_000, intervals: [1_000, 2_000] })
+      .toBe(true);
+  };
+  await trainUpTo("Levy Spearman", 45, 25);
+  // bowmen need Archery 1 before their muster row will train
+  await page.getByRole("button", { name: /^Archery/ }).click();
+  await expect(page.getByText(/Archery: level 1/)).toBeVisible({ timeout: 20_000 });
+  await trainUpTo("Bowman", 45, 25);
 
   // track the exact tile we claim — other actors' claimed wilds share the
   // "claimed" label, and only the player's own wild offers Abandon
@@ -94,12 +104,20 @@ test("cert desktop: wilderness replacement — claim, abandon, re-claim", async 
         ", claimed,",
       );
     await wildTile.click();
-    await page.getByLabel("Levy Spearman count to send").fill("20");
+    await page.getByLabel("Levy Spearman count to send").fill("25");
+    await page.getByLabel("Bowman count to send").fill("20");
     await page.getByRole("button", { name: "Claim for the realm (occupy)" }).click();
     await page.getByRole("button", { name: /Confirm — send the settlers-at-arms/ }).click();
     await page.getByRole("button", { name: /^War/ }).click();
     await expect(page.getByText(/Occupy wilderness/).first()).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("No active marches")).toBeVisible({ timeout: 30_000 });
+    // the headline alone also fits a lost battle — demand the victory
+    await expect(page.getByText("Victory").first()).toBeVisible({ timeout: 30_000 });
+    // and demand the honest postcondition: the tile really is ours now
+    await page.getByRole("button", { name: "Realm", exact: true }).click();
+    await expect(page.locator(`button[aria-label="${claimedLabel}"]`)).toBeVisible({
+      timeout: 30_000,
+    });
   };
 
   await claimWild();
