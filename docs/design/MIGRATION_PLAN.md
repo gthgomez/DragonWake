@@ -1,7 +1,14 @@
 # Dragon Wake migration plan
 
-Status: **PLAN** — revised after Direction Freeze v1.0 review.
+Status: **PLAN** — revised after Direction Freeze v1.0 review;
+direction law is now [`DIRECTION_FREEZE_V1_1.md`](./DIRECTION_FREEZE_V1_1.md).
 Not a rewrite. Not a skin swap.
+
+Next *implementation* campaign is
+[`DRAGON_ALPHA_PROOF_SLICE.md`](./DRAGON_ALPHA_PROOF_SLICE.md), not a
+six-dragon build. Lore Bible v1 remains required for starting-region
+fiction and must not reopen v1.1. Agent entry:
+[`../CURRENT_STATE.md`](../CURRENT_STATE.md).
 
 > It is a **domain-preserving migration**, not a rewrite. Preserve the
 > asynchronous MMORTS mechanics and deterministic simulation, but expect

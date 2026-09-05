@@ -36,16 +36,23 @@ unrecoverable gamble for a fresh realm.
 
 ## Design authority
 
+Start at [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) for direction vs
+implemented vs next campaign.
+
 Read these before changing fiction, content IDs, or client presentation:
 
-1. [`docs/design/DIRECTION_FREEZE_V1.md`](docs/design/DIRECTION_FREEZE_V1.md) — **FROZEN** product + lore direction
-2. [`docs/design/CANON_AUTHORITY.md`](docs/design/CANON_AUTHORITY.md) — authority stack
-3. [`docs/design/CLOSED_MOCKUP_V1.md`](docs/design/CLOSED_MOCKUP_V1.md) — **ACTIVE** presentation contract for the closed vertical slice (player-facing language, surface contracts, terminology inventory)
-4. [`docs/design/LORE_BIBLE_V1_BRIEF.md`](docs/design/LORE_BIBLE_V1_BRIEF.md) — scope only; full Lore Bible v1 not written yet
-5. [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md) — Phase 0–7 sequence
+1. [`docs/design/DIRECTION_FREEZE_V1_1.md`](docs/design/DIRECTION_FREEZE_V1_1.md) — **FROZEN** current product-direction law (amends v1.0)
+2. [`docs/design/DRAGON_DRIVEN_EMPIRE_CANON.md`](docs/design/DRAGON_DRIVEN_EMPIRE_CANON.md) — primary product design (dragon-driven empire)
+3. [`docs/design/CANON_AUTHORITY.md`](docs/design/CANON_AUTHORITY.md) — authority stack
+4. [`docs/design/DIRECTION_FREEZE_V1.md`](docs/design/DIRECTION_FREEZE_V1.md) — original freeze text; binding where v1.1 is silent
+5. [`docs/design/CLOSED_MOCKUP_V1.md`](docs/design/CLOSED_MOCKUP_V1.md) — **ACTIVE** presentation contract for the closed vertical slice (player-facing language, surface contracts, terminology inventory)
+6. [`docs/design/LORE_BIBLE_V1_BRIEF.md`](docs/design/LORE_BIBLE_V1_BRIEF.md) — scope only; full Lore Bible v1 not written yet
+7. [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md) — Phase 0–7 sequence
 
 Current implementation is authoritative **only** where those documents do
-not contradict it.
+not contradict it. The Alpha is a certified MMORTS spine; it does **not**
+yet contain a living named dragon. Presence `BONDED` currently means the
+expedition charter is earned.
 
 Historical Dragons of Atlantis research
 (`C:\Workspace\research\dragons-of-atlantis\pre-implementation\`) is
@@ -116,7 +123,7 @@ apps/server       — API + sim loop (queues, marches, combat, alliances)
 packages/shared   — shared types
 packages/combat   — resolveBattle (deterministic)
 packages/content  — JSON game data
-docs/design       — Direction Freeze, canon authority, migration plan
+docs/design       — Direction Freeze v1.1, dragon-driven empire canon, authority, migration plan
 ```
 
 ## Prerequisites
@@ -276,12 +283,20 @@ records of that era and no longer describe the default player flow.
 
 ## Next campaign
 
-This is a **domain-preserving migration**, not a rewrite and not a skin swap.
-See [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md).
+**Approved next implementation:** the
+[Dragon Alpha Proof Slice](docs/design/DRAGON_ALPHA_PROOF_SLICE.md) —
+named hatchling + one adult domain dragon (Mirecrown) + one harness path
++ scoutable absence + one real encounter. Do not build six dragons.
+
+This remains a **domain-preserving migration**, not a rewrite and not a
+skin swap. See [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md).
+Lore Bible v1 is still required for starting-region fiction and may run
+in parallel; it must not reopen Direction Freeze v1.1.
 
 | Phase | Focus | Status |
 |-------|--------|--------|
 | **0** | Authority freeze | **Done** (PR #1) |
+| — | **Dragon-driven empire design canon** (Direction Freeze v1.1) | **Done** (docs; this campaign) |
 | — | **CLOSED_MOCKUP_V1 presentation closure** | **Done (2026-08-30)** |
 | **1** | Lore Bible v1 (one region) | Not started |
 | **2** | Mechanical translation design (incl. Sovereign decision) | Blocked on 1; Sovereign deletion is complete and preserved compatibility paths are audited |
@@ -289,14 +304,14 @@ See [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md).
 | **4** | Content conversion | Blocked on 2–3 |
 | **5** | Web vertical slice (castle → Codex → lesser dragon) | Partially proven by CLOSED_MOCKUP_V1 |
 | **6** | Mobile client against stabilized semantics | After 5 |
-| **7** | Dragon systems (expeditions, anatomy, bonding) | After 5 |
+| **7** | Dragon systems (Alpha Proof Slice: hatchling + Mirecrown) | **Next implementation** — [`DRAGON_ALPHA_PROOF_SLICE.md`](docs/design/DRAGON_ALPHA_PROOF_SLICE.md) |
 | **B0** | Residual closeout | **Done** |
 | **P0** | Playable polish | **Done** |
 | **S1.0–S1.1** | Freeze + **Stonekeel** citadel | **Done** |
 | **Phase 2.1** | Medieval retheme slice 1A (population/manpower, research gates, dragon foundation, camp variation) | **Landed** (`docs/VERTICAL_SLICE_1A_RESULTS.md`) |
 | **M4** | **Sovereign deletion** (army-leadership → Commanders; harness → dragon readiness) | **Done** (2026-08-27) |
 | **S1.2–S1.3** | **Forest Citadel** (cinderreach) + **Dragon Watch** (galeari) citadels | **Done** — medieval exclusive units (forest_ranger/warhound, dragon_slayer/ballista); demo-unlock walks the prereq chain |
-| **S1.4+** | Mnemolith (deferred), Arena, Tidebeast, Market… | Next |
+| **S1.4+** | Mnemolith **deprecated from the dragon-driven spine**; Arena, market, live-ops wait | Not next |
 
 P0 notes: `docs/P0_M1_M11_EVIDENCE.md` · events poll `GET /api/v1/events?since=` · SSE `/api/v1/events/stream` · CI `.github/workflows/ci.yml`
 
