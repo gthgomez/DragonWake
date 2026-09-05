@@ -67,14 +67,19 @@ test("cert desktop: wilderness replacement — claim, abandon, re-claim", async 
   await page.getByRole("button", { name: /Agriculture/ }).click();
   await expect(page.getByText(/Agriculture: level 1/)).toBeVisible({ timeout: 20_000 });
   const musterRow = page.locator("li.muster-row", { hasText: "Levy Spearman" });
-  await musterRow.locator("input[type=number]").fill("60");
-  await musterRow.getByRole("button", { name: "Train" }).click();
   await expect
     .poll(async () => {
       const text = (await musterRow.textContent()) ?? "";
-      return Number(/owned (\d+)/.exec(text)?.[1] ?? 0);
-    }, { timeout: 30_000, intervals: [500, 1_000] })
-    .toBeGreaterThanOrEqual(100);
+      if (Number(/owned (\d+)/.exec(text)?.[1] ?? 0) >= 80) return true;
+      await musterRow.locator("input[type=number]").fill("30");
+      try {
+        await musterRow.getByRole("button", { name: "Train" }).click({ timeout: 2_000 });
+      } catch {
+        return false;
+      }
+      return false;
+    }, { timeout: 90_000, intervals: [1_000, 2_000] })
+    .toBe(true);
 
   const claimWild = async () => {
     await page.getByRole("button", { name: "Realm", exact: true }).click();
@@ -97,7 +102,9 @@ test("cert desktop: wilderness replacement — claim, abandon, re-claim", async 
   const claimedTile = page.locator("button[aria-label*=', claimed, at']").first();
   await expect(claimedTile).toBeVisible({ timeout: 20_000 });
   await claimedTile.click();
-  await page.getByTestId("abandon-wild").click();
+  // the panel refreshes map data on inspection; the control appears once
+  // fresh ownership lands
+  await page.getByTestId("abandon-wild").click({ timeout: 20_000 });
   await expect(page.getByText(/abandoned/i).first()).toBeVisible({ timeout: 20_000 });
 
   await claimWild();

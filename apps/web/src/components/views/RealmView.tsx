@@ -81,6 +81,14 @@ export function RealmView({
 
   useEffect(() => setConfirmIntent(null), [selectedTile?.x, selectedTile?.y]);
 
+  // ownership and camp state change while this view is closed (marches
+  // resolving in the background); refresh on entry so tile panels and the
+  // map never describe a realm that no longer exists
+  useEffect(() => {
+    void loadMap().catch((err) => setError(String(err.message ?? err)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Keep the composition consistent with owned stacks — companies lost in
   // battle or away on march must not leave the composer stuck in an
   // over-selected state.
@@ -236,6 +244,9 @@ export function RealmView({
           onSelectTile={(tile) => {
             setSelectedTile(tile);
             setConfirmIntent(null);
+            // marches resolve while other tabs are open; refresh so the
+            // inspected tile's ownership/camp state is never stale
+            void loadMap().catch((err) => setError(String(err.message ?? err)));
           }}
         />
       ) : (

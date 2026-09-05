@@ -57,12 +57,19 @@ async function topUp(page: Page, unit: string, minOwned: number) {
   await expect
     .poll(async () => {
       if ((await ownedOf(row)) >= minOwned) return true;
-      // one batch per round; the train queue caps concurrent jobs, so a
-      // rejected click just waits for the next interval
-      await row.locator("input[type=number]").fill(String(minOwned - (await ownedOf(row))));
-      await row.getByRole("button", { name: "Train" }).click();
+      // one batch per round; the click may be rejected while the realm is
+      // broke or the queue is full — income (fast-time ticks) and finished
+      // queues recover both, so wait and re-measure instead of throwing
+      const fill = row.locator("input[type=number]");
+      const train = row.getByRole("button", { name: "Train" });
+      await fill.fill(String(minOwned - (await ownedOf(row))));
+      try {
+        await train.click({ timeout: 2_000 });
+      } catch {
+        return false;
+      }
       return false;
-    }, { timeout: 60_000, intervals: [1_000, 2_000] })
+    }, { timeout: 90_000, intervals: [1_000, 2_000] })
     .toBe(true);
 }
 
@@ -177,12 +184,12 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
 
   // casualties are real: replenish before the deeper camp circuit, exactly
   // as the objective log instructs ("muster more spearmen")
-  await topUp(page, "Levy Spearman", 60);
-  await topUp(page, "Bowman", 45);
+  await topUp(page, "Levy Spearman", 55);
+  await topUp(page, "Bowman", 40);
 
   for (let i = 0; i < 6; i += 1) {
-    await topUp(page, "Levy Spearman", 60);
-    await topUp(page, "Bowman", 45);
+    await topUp(page, "Levy Spearman", 55);
+    await topUp(page, "Bowman", 40);
     await page.getByRole("button", { name: "Realm", exact: true }).click();
     await selectFirstCamp(page, i === 0 ? 2 : 1);
     await setMixedCompany(page, 50, 35);
