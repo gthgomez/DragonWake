@@ -282,18 +282,12 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
     .click({ force: true });
   await expect(page.getByText(/Stage 1 of 4/)).toBeVisible();
   await shot("12-expedition-begins");
-  for (const stage of [1, 2, 3, 4]) {
-    await page
-      .getByRole("button", { name: "Accomplish this stage" })
-      .click({ force: true });
-    if (stage < 4) {
-      await expect(
-        page.getByText(new RegExp(`Stage ${stage + 1} of 4`)),
-      ).toBeVisible({ timeout: 30_000 });
-    } else {
-      await expect(page.getByText(/The charter is earned/)).toBeVisible();
-    }
+  for (const name of ["Investigate Tracks", "Clear the Raiders", "Reach the Scarred Site"]) {
+    await page.getByRole("button", { name }).click({ force: true });
   }
+  await expect(page.getByText(/Stage 4 of 4/)).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId("face-the-scar").click({ force: true });
+  await expect(page.getByText(/The charter is earned/)).toBeVisible();
   await shot("12b-charter-earned");
 
   // 13. found the Marcher Keep from the Castle
@@ -316,4 +310,27 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
   // 15. the objective ladder closed itself out
   await expect(page.getByText("All objectives complete").first()).toBeVisible();
   await shot("15-journey-complete");
+
+  // 16. name the surviving hatchling at the Capital roost
+  await page.getByLabel("Settlements").selectOption({ index: 0 });
+  await expect(page.getByTestId("capital-roost")).toBeVisible();
+  await page.getByLabel("Name").fill("Ashwake");
+  await page.getByRole("button", { name: "Name the hatchling" }).click();
+  await expect(page.getByTestId("roost-name")).toContainText("Ashwake");
+  await page.getByRole("button", { name: "Watch the roost" }).click();
+  await expect(page.getByTestId("dragon-chronicle")).toBeVisible();
+  await shot("16-hatchling-named");
+
+  // 17. Fen Wyrm pact reshapes Brinehold; hatchling remains
+  await page.getByRole("button", { name: "Seek the coils" }).click();
+  await page.getByRole("button", { name: "Observe the Fen Wyrm" }).click();
+  await page.getByRole("button", { name: "Offer the pact" }).click();
+  await expect(page.getByText(/territorial pact/i).first()).toBeVisible({ timeout: 30_000 });
+  await page.getByLabel("Settlements").selectOption({ label: /Brinehold/ });
+  await expect(page.getByTestId("fen-pact")).toBeVisible();
+  await page.getByRole("button", { name: "Station at the ford" }).click();
+  await expect(page.getByText(/unguarded/i).first()).toBeVisible();
+  await page.getByLabel("Settlements").selectOption({ index: 0 });
+  await expect(page.getByTestId("roost-name")).toContainText("Ashwake");
+  await shot("17-fen-pact-hatchling-remains");
 });

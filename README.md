@@ -283,10 +283,10 @@ records of that era and no longer describe the default player flow.
 
 ## Next campaign
 
-**Approved next implementation:** the
-[Dragon Alpha Proof Slice](docs/design/DRAGON_ALPHA_PROOF_SLICE.md) —
-named hatchling + one adult domain dragon (Mirecrown) + one harness path
-+ scoutable absence + one real encounter. Do not build six dragons.
+**Approved next campaign (after Alpha Closure lands):** DragonWake Visual
+Identity + Sprite/UI Polish. Living-dragon Alpha systems are implemented
+on `feat/dragon-driven-alpha-closure` (Scar encounter, named hatchling,
+roost/Chronicle, Fen Wyrm pact, Ford/Blockade). Do not build six dragons.
 
 This remains a **domain-preserving migration**, not a rewrite and not a
 skin swap. See [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md).

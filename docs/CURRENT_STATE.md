@@ -28,7 +28,17 @@ Authority stack: [`design/CANON_AUTHORITY.md`](design/CANON_AUTHORITY.md).
 
 ---
 
-## CURRENT IMPLEMENTED STATE
+## IMPLEMENTED AND PROVEN (Dragon Alpha Closure)
+
+- Signature hatchling: named, roost, Chronicle, Home/Away/Wounded, Yard vs Home Guard, Hatchling→Wyrmling
+- Real Scar encounter (not a stage button)
+- Vane Reading + Fen silt knowledge states
+- Local Fen Wyrm individual (not a global unique), pact, Brinehold transform
+- Ford/Blockade world verb, scoutable absence
+- PostgreSQL persistence of living dragons
+- Player-honest journey extended through hatchling + pact
+
+## CURRENT IMPLEMENTED STATE (MMORTS spine)
 
 Player-honest Alpha on `main` (README, PR #7 era):
 
@@ -50,9 +60,10 @@ Player-honest Alpha on `main` (README, PR #7 era):
   scout → camps → dragon evidence → expedition → charter → Marcher
   Keep.
 
-Honest limitation: **there is no living, named, player-raised dragon
-yet.** Presence `BONDED` means the expedition charter is earned, not
-that a dragon lives in the keep.
+Living dragons now exist as **DragonIndividual** records, separate from
+Dragon Presence. Presence `BONDED` still means the expedition charter
+is earned; player-facing copy says **Frontier charter earned**. The
+named hatchling and local Fen Wyrm pact are the living-dragon proofs.
 
 ---
 
@@ -71,7 +82,13 @@ The dragon-driven empire direction in `docs/design/`:
 | `DRAGON_DISCOVERY_AND_GROWTH.md` | Pattern library, growth, wounds |
 | `DRAGON_HARNESS_PHILOSOPHY.md` | Role-changing equipment |
 | `DRAGON_ENGAGEMENT_MODEL.md` | Daily / weekly / seasonal / named wilds |
-| `DRAGON_ALPHA_PROOF_SLICE.md` | Next implementation campaign |
+| `DRAGON_ALPHA_PROOF_SLICE.md` | Alpha implementation spec (now implemented) |
+| `DRAGON_ALPHA_CLOSURE_AMENDMENTS.md` | Phase 0 corrections |
+| `DRAGON_WORLD_VERB_CONTRACT.md` | Ford/Blockade contract |
+
+Still designed / not implemented: Ironspine, Pale Passage, Old Karth,
+seasonal ecology, mature harnesses, advanced dragon war, named-wild
+system, Lore Bible v1.
 
 Lore Bible v1 is still **not written** (brief only). It must follow
 this direction, not reopen it.
@@ -80,15 +97,13 @@ this direction, not reopen it.
 
 ## NEXT APPROVED CAMPAIGN
 
-**Dragon Alpha Closure** (implements the Proof Slice, with Phase 0
-amendments in
+**DragonWake Visual Identity + Sprite/UI Polish** — production sprites,
+settlement/terrain art, animation, polished UX, mobile/tablet
+presentation, and audio. Do not reopen living-dragon systems unless
+Alpha certification is incomplete.
+
+Alpha Closure implements the Proof Slice (Phase 0 amendments in
 [`design/DRAGON_ALPHA_CLOSURE_AMENDMENTS.md`](design/DRAGON_ALPHA_CLOSURE_AMENDMENTS.md)).
-
-Prove A: named hatchling after a real Scar encounter, roost, growth,
-Chronicle, Vane Reading, Home Guard.
-Prove B: local Fen Wyrm pact, Brinehold, Ford/Blockade, scoutable absence.
-
-Do not implement the full roster. PACT only. Escort cut. Slayer branch cut.
 
 ---
 

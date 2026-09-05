@@ -230,13 +230,13 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
   await page.getByRole("button", { name: "Castle", exact: true }).click();
   await expect(page.getByTestId("dragon-presence")).toContainText("Awakened");
   await page.getByRole("button", { name: "Knowledge", exact: true }).click();
-  await page.getByRole("button", { name: "Accomplish this stage" }).click();
+  await page.getByRole("button", { name: "Investigate Tracks" }).click();
   await expect(page.getByText(/Stage 2 of/)).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("button", { name: "Accomplish this stage" }).click();
+  await page.getByRole("button", { name: "Clear the Raiders" }).click();
   await expect(page.getByText(/Stage 3 of/)).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("button", { name: "Accomplish this stage" }).click();
+  await page.getByRole("button", { name: "Reach the Scarred Site" }).click();
   await expect(page.getByText(/Stage 4 of/)).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("button", { name: "Accomplish this stage" }).click();
+  await page.getByTestId("face-the-scar").click();
   await expect(page.getByText(/charter is earned/i)).toBeVisible({ timeout: 20_000 });
   await shot(page, "13-expedition-charter");
 
@@ -244,7 +244,7 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
   await page.getByRole("button", { name: "Review the founding" }).click();
   await page.getByRole("button", { name: "Found the Marcher Keep" }).click();
   await expect(page.getByText(/Marcher Keep stands/i)).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByTestId("dragon-presence")).toContainText("Bonded");
+  await expect(page.getByTestId("dragon-presence")).toContainText("Frontier charter");
   await shot(page, "14-marcher-keep-founded");
   const settlementPicker = page.locator(".castle-city-picker select");
   await expect(settlementPicker).toBeVisible();

@@ -358,12 +358,107 @@ export function useGameActions(deps: UseGameActionsDeps) {
 
   async function completeDragonStage(stageNumber: number) {
     if (!token) return;
-    await run("Stage of the expedition accomplished", async () => {
+    await run("The expedition advances", async () => {
       await api("/api/v1/dragon/expedition/complete-stage", token, {
         method: "POST",
         body: JSON.stringify({ stageNumber }),
       });
       await refreshMe(token);
+      await refreshKnowledge();
+    });
+  }
+
+  async function faceScarEncounter(composition: Record<string, number>) {
+    if (!token) return;
+    await run("The Scar is faced", async () => {
+      await api("/api/v1/dragon/scar-encounter", token, {
+        method: "POST",
+        body: JSON.stringify({ composition }),
+      });
+      await refreshMe(token);
+      await refreshKnowledge();
+    });
+  }
+
+  async function nameHatchling(name: string) {
+    if (!token) return;
+    await run("The hatchling is named", async () => {
+      await api("/api/v1/dragon/hatchling/name", token, {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+      await refreshKnowledge();
+    });
+  }
+
+  async function observeLivingDragon(dragonId: string) {
+    if (!token) return;
+    await run("You watch the living dragon", async () => {
+      await api("/api/v1/dragon/observe", token, {
+        method: "POST",
+        body: JSON.stringify({ dragonId }),
+      });
+      await refreshKnowledge();
+    });
+  }
+
+  async function setDragonHarness(dragonId: string, role: "yard" | "home_guard") {
+    if (!token) return;
+    await run("Harness changed", async () => {
+      await api("/api/v1/dragon/harness", token, {
+        method: "POST",
+        body: JSON.stringify({ dragonId, role }),
+      });
+      await refreshKnowledge();
+    });
+  }
+
+  async function growLivingDragon(dragonId: string) {
+    if (!token) return;
+    await run("The hatchling grows", async () => {
+      await api("/api/v1/dragon/grow", token, {
+        method: "POST",
+        body: JSON.stringify({ dragonId }),
+      });
+      await refreshKnowledge();
+    });
+  }
+
+  async function codifyDragonKnowledge(questionId: string) {
+    if (!token) return;
+    await run("Knowledge is codified", async () => {
+      await api("/api/v1/dragon/knowledge/codify", token, {
+        method: "POST",
+        body: JSON.stringify({ questionId }),
+      });
+      await refreshKnowledge();
+    });
+  }
+
+  async function beginFenRivalry() {
+    if (!token) return;
+    await run("The river answers", async () => {
+      await api("/api/v1/dragon/fen/begin", token, { method: "POST" });
+      await refreshKnowledge();
+    });
+  }
+
+  async function pactFenWyrm() {
+    if (!token) return;
+    await run("A territorial pact is struck", async () => {
+      await api("/api/v1/dragon/fen/pact", token, { method: "POST" });
+      await refreshMe(token);
+      await refreshKnowledge();
+    });
+  }
+
+  async function stationFenWyrm(where: "ford" | "home") {
+    if (!token) return;
+    await run(where === "ford" ? "The Fen Wyrm leaves for the ford" : "The Fen Wyrm returns home", async () => {
+      await api("/api/v1/dragon/fen/station", token, {
+        method: "POST",
+        body: JSON.stringify({ where }),
+      });
       await refreshKnowledge();
     });
   }
@@ -539,6 +634,15 @@ export function useGameActions(deps: UseGameActionsDeps) {
     advanceTutorial,
     startDragonExpedition,
     completeDragonStage,
+    faceScarEncounter,
+    nameHatchling,
+    observeLivingDragon,
+    setDragonHarness,
+    growLivingDragon,
+    codifyDragonKnowledge,
+    beginFenRivalry,
+    pactFenWyrm,
+    stationFenWyrm,
     startDragonWarCouncil,
     claimQuest,
     sendChat,

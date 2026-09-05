@@ -15,6 +15,10 @@ type KnowledgeViewProps = {
   completeDragonStage: (stageNumber: number) => Promise<void>;
   startDragonWarCouncil: () => Promise<void>;
   loadCodex: () => Promise<void>;
+  livingDragons?: any;
+  faceScarEncounter?: (composition: Record<string, number>) => Promise<void>;
+  cityStacks?: Record<string, number>;
+  codifyDragonKnowledge?: (questionId: string) => Promise<void>;
 };
 
 /** Encounter thresholds at which observation deepens (server rule). */
@@ -74,6 +78,10 @@ export function KnowledgeView({
   completeDragonStage,
   startDragonWarCouncil,
   loadCodex,
+  livingDragons,
+  faceScarEncounter,
+  cityStacks = {},
+  codifyDragonKnowledge,
 }: KnowledgeViewProps) {
   const formulaRows = formulaEntries(formulas);
   const studiedCount = bestiaryEntries.filter(
@@ -319,7 +327,21 @@ export function KnowledgeView({
                         </span>
                       ) : null}
                     </span>
-                    {current && (
+                    {current && stage.type === "encounter" && (
+                      <button
+                        type="button"
+                        data-testid="face-the-scar"
+                        onClick={() =>
+                          void faceScarEncounter?.({
+                            levy: Math.min(40, cityStacks.levy ?? 0),
+                            scout: Math.min(5, cityStacks.scout ?? 0),
+                          })
+                        }
+                      >
+                        Face the Scar
+                      </button>
+                    )}
+                    {current && stage.type !== "encounter" && (
                       <button
                         type="button"
                         disabled={!(scoutsDone && campsDone)}
@@ -327,7 +349,7 @@ export function KnowledgeView({
                           void completeDragonStage(stage.stage)
                         }
                       >
-                        Accomplish this stage
+                        {stage.name}
                       </button>
                     )}
                   </div>
@@ -354,6 +376,24 @@ export function KnowledgeView({
         </div>
       ) : (
         <p className="muted">The expedition's banners are being counted…</p>
+      )}
+
+      {livingDragons?.knowledge?.length > 0 && (
+        <section data-testid="dragon-knowledge">
+          <h3 className="codex-heading">Dragon knowledge</h3>
+          {livingDragons.knowledge.map((k: any) => (
+            <div key={k.questionId} className="readiness-req">
+              <span>
+                {k.questionId === "vane_reading" ? "Vane Reading" : "Wet silt-pack"} — {k.state}
+              </span>
+              {k.state === "supported" && (
+                <button type="button" onClick={() => void codifyDragonKnowledge?.(k.questionId)}>
+                  Codify
+                </button>
+              )}
+            </div>
+          ))}
+        </section>
       )}
 
       <h3 className="codex-heading">Dragon Evidence</h3>
