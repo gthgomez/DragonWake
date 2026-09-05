@@ -123,6 +123,8 @@ async function sendSelected(page: Page, first: string | RegExp, confirm: string 
 test.describe.configure({ mode: "serial" });
 
 test("alpha r1: complete the first kingdom-to-marcher-keep journey with player UI only", async ({ page }) => {
+  // full journey including battle-loss retraining funded by in-game income
+  test.setTimeout(300_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await enterRealm(page, `${Date.now() % 100000}`);
   await expect(page.getByTestId("dragon-presence")).toContainText("Dormant");
