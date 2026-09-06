@@ -823,6 +823,62 @@ button:disabled {
 }
 .dragon-presence-copy h3 { margin: 0.05rem 0 0.2rem; color: #f0d58c; }
 .dragon-presence-copy p { margin: 0.2rem 0; }
+.dragon-status-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+  align-items: center;
+  margin-top: 0.65rem;
+  color: #c7b99b;
+  font-size: 0.76rem;
+  letter-spacing: 0.01em;
+}
+.dragon-status-rail > span:not(.dragon-state-pill) {
+  padding-left: 0.7rem;
+  border-left: 1px solid rgba(232, 199, 119, 0.22);
+}
+.dragon-state-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid rgba(232, 199, 119, 0.35);
+  border-radius: 999px;
+  color: #f0d58c;
+  background: rgba(0, 0, 0, 0.2);
+  text-transform: capitalize;
+}
+.dragon-state-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: #d09b4c;
+  box-shadow: 0 0 0 3px rgba(208, 155, 76, 0.12);
+}
+.dragon-state-bonded .dragon-state-dot,
+.dragon-state-bonded + .dragon-presence-copy .dragon-state-dot { background: #8ed59f; box-shadow: 0 0 0 3px rgba(142, 213, 159, 0.14); }
+.dragon-state-wounded .dragon-state-dot { background: #d77969; box-shadow: 0 0 0 3px rgba(215, 121, 105, 0.14); }
+.dragon-state-glyph { border-color: rgba(142, 213, 159, 0.55); color: #9ee5ab; }
+.dragon-state-wounded { border-color: rgba(215, 121, 105, 0.55); color: #ed9a87; }
+
+.roost-panel {
+  margin: 0.75rem 0 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  background: #231a12;
+}
+.roost-panel h3 { margin: 0.15rem 0 0.3rem; color: #f0d58c; }
+.roost-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0; }
+.chronicle ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+.chronicle li { font-size: 0.85rem; color: var(--muted); }
+.field-notes { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+.field-notes li { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.15rem; }
+.field-notes em { font-style: normal; font-weight: 600; }
+.roost-panel input {
+  display: block;
+  margin: 0.3rem 0 0.5rem;
+  width: min(100%, 16rem);
+}
 .r2-objectives { margin: 0.8rem 0 1rem; padding: 0.8rem; border: 1px solid var(--border); border-radius: 10px; background: rgba(0,0,0,0.12); }
 .r2-objectives h3 { margin: 0.15rem 0 0.55rem; }
 .r2-objective-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
@@ -833,4 +889,5 @@ button:disabled {
 @media (max-width: 480px) {
   .dragon-presence { align-items: flex-start; }
   .dragon-presence-glyph { width: 46px; height: 46px; }
+  .dragon-status-rail > span:not(.dragon-state-pill) { border-left: 0; padding-left: 0; }
 }

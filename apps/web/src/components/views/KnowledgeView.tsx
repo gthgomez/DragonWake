@@ -15,10 +15,25 @@ type KnowledgeViewProps = {
   completeDragonStage: (stageNumber: number) => Promise<void>;
   startDragonWarCouncil: () => Promise<void>;
   loadCodex: () => Promise<void>;
+  livingDragons?: any;
+  faceScarEncounter?: (composition: Record<string, number>) => Promise<void>;
+  cityStacks?: Record<string, number>;
+  codifyDragonKnowledge?: (questionId: string) => Promise<void>;
 };
 
 /** Encounter thresholds at which observation deepens (server rule). */
 const OBS_THRESHOLDS = [3, 7, 15, 30];
+
+const QUESTION_TITLES: Record<string, string> = {
+  vane_reading: "Vane Reading",
+  fen_silt: "Wet silt-pack",
+};
+
+/** Codified knowledge names a capability, never a percentage. */
+const CAPABILITY_TEXT: Record<string, string> = {
+  vane_reading: "keepers can read temperament tells",
+  fen_silt: "ford signaling — terms can be offered at the crossing",
+};
 
 const READINESS_HINTS: Record<string, string> = {
   bestiary_threshold:
@@ -74,6 +89,10 @@ export function KnowledgeView({
   completeDragonStage,
   startDragonWarCouncil,
   loadCodex,
+  livingDragons,
+  faceScarEncounter,
+  cityStacks = {},
+  codifyDragonKnowledge,
 }: KnowledgeViewProps) {
   const formulaRows = formulaEntries(formulas);
   const studiedCount = bestiaryEntries.filter(
@@ -319,7 +338,44 @@ export function KnowledgeView({
                         </span>
                       ) : null}
                     </span>
-                    {current && (
+                    {current && stage.type === "encounter" && (
+                      <>
+                        <button
+                          type="button"
+                          data-testid="face-the-scar"
+                          onClick={() => {
+                            // March the marshalled company: anchors hold the
+                            // line, bowmen ride behind it. The dragon is not
+                            // fought — it is survived.
+                            const composition: Record<string, number> = {};
+                            for (const id of [
+                              "levy",
+                              "pikeman",
+                              "shieldman",
+                              "halberdier",
+                              "dragon_slayer",
+                              "bowman",
+                              "longbowman",
+                              "crossbowman",
+                              "heavy_crossbowman",
+                            ]) {
+                              const n = cityStacks[id] ?? 0;
+                              if (n > 0) composition[id] = n;
+                            }
+                            const scouts = Math.min(5, cityStacks.scout ?? 0);
+                            if (scouts > 0) composition.scout = scouts;
+                            void faceScarEncounter?.(composition);
+                          }}
+                        >
+                          Face the Scar
+                        </button>
+                        <p className="muted tiny">
+                          Spears anchor the line; bowmen need spear cover; loose
+                          horses scatter. Survive, and the clutch is found.
+                        </p>
+                      </>
+                    )}
+                    {current && stage.type !== "encounter" && (
                       <button
                         type="button"
                         disabled={!(scoutsDone && campsDone)}
@@ -327,7 +383,7 @@ export function KnowledgeView({
                           void completeDragonStage(stage.stage)
                         }
                       >
-                        Accomplish this stage
+                        {stage.name}
                       </button>
                     )}
                   </div>
@@ -354,6 +410,42 @@ export function KnowledgeView({
         </div>
       ) : (
         <p className="muted">The expedition's banners are being counted…</p>
+      )}
+
+      {livingDragons?.knowledge?.length > 0 && (
+        <section data-testid="dragon-knowledge">
+          <h3 className="codex-heading">Dragon knowledge</h3>
+          {livingDragons.knowledge.map((k: any) => (
+            <div key={k.questionId} className="readiness-req">
+              <span>
+                {QUESTION_TITLES[k.questionId] ?? k.questionId} — {k.state}
+                {k.state === "proven" && CAPABILITY_TEXT[k.questionId] ? (
+                  <span className="muted tiny"> · {CAPABILITY_TEXT[k.questionId]}</span>
+                ) : null}
+              </span>
+              {k.state === "supported" && (
+                <button type="button" onClick={() => void codifyDragonKnowledge?.(k.questionId)}>
+                  Codify
+                </button>
+              )}
+              {k.state === "observed" && (
+                <p className="muted tiny">
+                  Repeating the same kind of watching adds notes, not
+                  certainty — this needs a different kind of evidence.
+                </p>
+              )}
+              {k.notes?.length > 0 && (
+                <ul className="field-notes" data-testid={`field-notes-${k.questionId}`}>
+                  {k.notes.slice().reverse().map((n: any, i: number) => (
+                    <li key={i}>
+                      <em>{n.source}</em> ({String(n.kind).replace(/_/g, " ")}): {n.summary}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </section>
       )}
 
       <h3 className="codex-heading">Dragon Evidence</h3>

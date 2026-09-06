@@ -73,6 +73,31 @@ export const allianceJoinSchema = z
     message: "allianceId or tag required",
   });
 
+export const hatchlingNameSchema = z.object({
+  name: z.string().trim().min(2).max(24),
+});
+
+export const dragonIdSchema = z.object({
+  dragonId: z.string().uuid(),
+});
+
+export const harnessSchema = z.object({
+  dragonId: z.string().uuid(),
+  role: z.enum(["yard", "home_guard"]),
+});
+
+export const scarEncounterSchema = z.object({
+  composition: z.record(z.string(), z.number().int().min(0).max(1_000_000)).default({}),
+});
+
+export const knowledgeCodifySchema = z.object({
+  questionId: z.enum(["vane_reading", "fen_silt"]),
+});
+
+export const stationSchema = z.object({
+  where: z.enum(["ford", "home"]),
+});
+
 export const adminGrantSchema = z.object({
   resources: inboundResourceBagSchema.optional(),
   units: z.record(z.string(), z.number().int().min(0)).optional(),

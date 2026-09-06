@@ -49,9 +49,14 @@ describe("differentiated holding capabilities", () => {
 
     expect(world.checkDragonReadiness(player.id).ready).toBe(true);
     expect(world.startExpedition(player.id, "first_dragon_expedition")).not.toBeNull();
-    for (let stage = 1; stage <= 4; stage += 1) {
-      expect(world.completeExpeditionStage(player.id, "first_dragon_expedition", stage)?.completed).toBe(stage === 4);
+    for (let stage = 1; stage <= 3; stage += 1) {
+      expect(world.completeExpeditionStage(player.id, "first_dragon_expedition", stage)?.completed).toBe(false);
     }
+    expect(() =>
+      world.completeExpeditionStage(player.id, "first_dragon_expedition", 4),
+    ).toThrow(/real encounter/);
+    const scar = world.faceScarEncounter(player.id, { levy: 40 });
+    expect(scar.charterEarned).toBe(true);
 
     expect(world.foundMarcherKeep(player.id, "Earned Keep").kind).toBe("marcher_keep");
     const wild = [...world.wilderness.values()][0]!;

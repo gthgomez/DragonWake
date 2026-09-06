@@ -666,7 +666,6 @@ describe("Expedition System", () => {
   it("completing all stages grants settlement charter", () => {
     const world = freshWorld();
     const { player } = world.createGuest("ExpD", "forest_people");
-    // 4 stages in first_dragon_expedition — final completion has no next-stage gate
     world.dragonProgress.set(player.id, {
       bestiaryStudied: 3,
       researchLevel: 2,
@@ -677,13 +676,11 @@ describe("Expedition System", () => {
       campsDefeated: 10,
       scoutsSent: 4,
     });
-    const result = world.completeExpeditionStage(
-      player.id,
-      "first_dragon_expedition",
-      4,
-    );
-    expect(result).not.toBeNull();
-    expect(result!.completed).toBe(true);
+    expect(() =>
+      world.completeExpeditionStage(player.id, "first_dragon_expedition", 4),
+    ).toThrow(/real encounter/);
+    const result = world.faceScarEncounter(player.id, { levy: 40 });
+    expect(result.charterEarned).toBe(true);
     expect(world.dragonProgress.get(player.id)!.charterEarned).toBe(true);
   });
 
@@ -1409,7 +1406,7 @@ describe("Slice 1A Progression Path", () => {
 
     // Step 11: Complete all 4 expedition stages, performing the real gameplay
     // actions (scout marches / camp wins) each next stage's gates demand.
-    for (let s = 1; s <= 4; s++) {
+    for (let s = 1; s <= 3; s++) {
       driveGameplayCounters(world, player.id, city.id, 4, 10);
       const stageResult = world.completeExpeditionStage(
         player.id,
@@ -1418,6 +1415,8 @@ describe("Slice 1A Progression Path", () => {
       );
       expect(stageResult).not.toBeNull();
     }
+    driveGameplayCounters(world, player.id, city.id, 4, 10);
+    expect(world.faceScarEncounter(player.id, { levy: 40 }).charterEarned).toBe(true);
 
     // Step 12: Verify charter earned
     expect(world.dragonProgress.get(player.id)!.charterEarned).toBe(true);

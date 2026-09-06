@@ -3,7 +3,9 @@
 Status: **CURRENT AUTHORITY** for "what should I believe today?"
 
 Audited against `main` at **`1331ab961a15296c720f392f06d64810b2b9d5de`**
-(2026-09-05). Update the SHA when this file is next reconciled.
+(2026-09-05). Reconciled 2026-09-05 against the Alpha Closure branch
+(`feat/dragon-driven-alpha-closure` @ `80991c3`) to admit the Vision
+Council outcome. Update the SHA when this file is next reconciled.
 
 This file exists so future agents do not reconstruct product intent
 from ten campaigns, parity matrices, or chat.
@@ -24,11 +26,24 @@ Law: [`design/DIRECTION_FREEZE_V1_1.md`](design/DIRECTION_FREEZE_V1_1.md)
 Primary design:
 [`design/DRAGON_DRIVEN_EMPIRE_CANON.md`](design/DRAGON_DRIVEN_EMPIRE_CANON.md).
 
+Product vision + Alpha Closure design law:
+[`design/DRAGON_VISION_COUNCIL_V1.md`](design/DRAGON_VISION_COUNCIL_V1.md).
+
 Authority stack: [`design/CANON_AUTHORITY.md`](design/CANON_AUTHORITY.md).
 
 ---
 
-## CURRENT IMPLEMENTED STATE
+## IMPLEMENTED AND PROVEN (Dragon Alpha Closure)
+
+- Signature hatchling: named, roost, Chronicle, Home/Away/Wounded, Yard vs Home Guard, Hatchling→Wyrmling
+- Real Scar encounter (not a stage button)
+- Vane Reading + Fen silt knowledge states
+- Local Fen Wyrm individual (not a global unique), pact, Brinehold transform
+- Ford/Blockade world verb, scoutable absence
+- PostgreSQL persistence of living dragons
+- Player-honest journey extended through hatchling + pact
+
+## CURRENT IMPLEMENTED STATE (MMORTS spine)
 
 Player-honest Alpha on `main` (README, PR #7 era):
 
@@ -50,9 +65,10 @@ Player-honest Alpha on `main` (README, PR #7 era):
   scout → camps → dragon evidence → expedition → charter → Marcher
   Keep.
 
-Honest limitation: **there is no living, named, player-raised dragon
-yet.** Presence `BONDED` means the expedition charter is earned, not
-that a dragon lives in the keep.
+Living dragons now exist as **DragonIndividual** records, separate from
+Dragon Presence. Presence `BONDED` still means the expedition charter
+is earned; player-facing copy says **Frontier charter earned**. The
+named hatchling and local Fen Wyrm pact are the living-dragon proofs.
 
 ---
 
@@ -71,7 +87,13 @@ The dragon-driven empire direction in `docs/design/`:
 | `DRAGON_DISCOVERY_AND_GROWTH.md` | Pattern library, growth, wounds |
 | `DRAGON_HARNESS_PHILOSOPHY.md` | Role-changing equipment |
 | `DRAGON_ENGAGEMENT_MODEL.md` | Daily / weekly / seasonal / named wilds |
-| `DRAGON_ALPHA_PROOF_SLICE.md` | Next implementation campaign |
+| `DRAGON_ALPHA_PROOF_SLICE.md` | Alpha implementation spec (now implemented) |
+| `DRAGON_ALPHA_CLOSURE_AMENDMENTS.md` | Phase 0 corrections |
+| `DRAGON_WORLD_VERB_CONTRACT.md` | Ford/Blockade contract |
+
+Still designed / not implemented: Ironspine, Pale Passage, Old Karth,
+seasonal ecology, mature harnesses, advanced dragon war, named-wild
+system, Lore Bible v1.
 
 Lore Bible v1 is still **not written** (brief only). It must follow
 this direction, not reopen it.
@@ -80,25 +102,49 @@ this direction, not reopen it.
 
 ## NEXT APPROVED CAMPAIGN
 
-**Dragon Alpha Closure** (implements the Proof Slice, with Phase 0
-amendments in
-[`design/DRAGON_ALPHA_CLOSURE_AMENDMENTS.md`](design/DRAGON_ALPHA_CLOSURE_AMENDMENTS.md)).
+**1. Dragon Alpha Closure — Truthful Loop (current campaign).** Land the
+Vision Council Round 4 binding deltas — authored Scar encounter,
+distinct evidence records, Guard Harness gating, Fen Crossing +
+spawning-bank yield, crossing-bound Ford/Blockade — then certify per
+[`design/DRAGON_VISION_COUNCIL_V1.md`](design/DRAGON_VISION_COUNCIL_V1.md)
+Round 10.D including the human
+[`design/ALPHA_GAME_FEEL_GATE.md`](design/ALPHA_GAME_FEEL_GATE.md)
+co-gate. Nothing else enters this campaign.
 
-Prove A: named hatchling after a real Scar encounter, roost, growth,
-Chronicle, Vane Reading, Home Guard.
-Prove B: local Fen Wyrm pact, Brinehold, Ford/Blockade, scoutable absence.
+**2. DragonWake Visual Identity + Sprite/UI Polish** — production
+sprites, settlement/terrain art, animation, polished UX, mobile/tablet
+presentation, and audio. No new foundational dragon mechanics.
 
-Do not implement the full roster. PACT only. Escort cut. Slayer branch cut.
+**3. First Watch — Alpha Playtest & Game-Feel.** Human pacing,
+comprehension, balance, and retention observation (Council Round 10.I).
+
+Alpha Closure implements the Proof Slice (Phase 0 amendments in
+[`design/DRAGON_ALPHA_CLOSURE_AMENDMENTS.md`](design/DRAGON_ALPHA_CLOSURE_AMENDMENTS.md))
+as amended by the Vision Council.
 
 ---
 
 ## AUTHORITY MAP (documents)
 
+Authority chain for product vision:
+
+```text
+CURRENT_STATE.md → DIRECTION_FREEZE_V1_1.md → DRAGON_VISION_COUNCIL_V1.md → subsystem specs
+```
+
+Direction Freeze decides what DragonWake must **never** become; the
+Vision Council decides what it is **trying to become** and what Alpha
+must **prove**; subsystem specs decide how particular mechanics satisfy
+the vision.
+
 | Document | Class |
 | --- | --- |
 | `DIRECTION_FREEZE_V1_1.md` | **CURRENT AUTHORITY** — product-direction law |
+| `DRAGON_VISION_COUNCIL_V1.md` | **CURRENT AUTHORITY** — product vision + Alpha Closure design law; interprets the Freeze, never replaces it; Rounds 4 and 10 bind Alpha Closure |
+| `ALPHA_GAME_FEEL_GATE.md` | **CURRENT AUTHORITY** — human game-feel certification protocol (co-gate for `DRAGON_DRIVEN_ALPHA_CERTIFIED`) |
 | `DRAGON_DRIVEN_EMPIRE_CANON.md` + sibling design specs | **CURRENT AUTHORITY** — product design |
 | `CANON_AUTHORITY.md` | **CURRENT AUTHORITY** — how to resolve conflicts |
+| `../product/COMPETITIVE_PRODUCT_LAB.md` + `../competitive/` | **CURRENT AUTHORITY** — player-experience evaluation workflow (black-box/white-box tests, root-cause classes, four-dimension model, vertical-slice gate, before/after evidence; competitor evidence corpus). Process only: cannot change direction or canon |
 | This file | **CURRENT AUTHORITY** — direction vs implemented vs next |
 | `CLOSED_MOCKUP_V1.md` | **CURRENT AUTHORITY** for closed-slice presentation language until a later presentation freeze |
 | Current implementation / content JSON / schema | **CURRENT AUTHORITY** for what the software does |

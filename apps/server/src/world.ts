@@ -40,6 +40,35 @@ import {
   type MarchIntent,
   type ResourceBag,
 } from "@dragonwake/shared";
+import type {
+  ChronicleEvent,
+  DragonIndividual,
+  KnowledgeEntry,
+  MapFeature,
+  WorldVerb,
+} from "./dragons/types.js";
+import {
+  clutchAvailable,
+  codifyKnowledge,
+  craftGuardHarness,
+  crossingAt,
+  ensureFenRivalry,
+  floodedAttackerGroups,
+  growHatchling,
+  livingPublic,
+  marchTravelFactor,
+  nameHatchling,
+  observeDragon,
+  pactFenWyrm,
+  processDragonWounds,
+  recordScarScoutingEvidence,
+  resolveDragonTerritoryEncounter,
+  scoutDragonIntel,
+  setHarness,
+  stationFenWyrm,
+  surveyFenCrossing,
+  yieldSpawningBank,
+} from "./dragons/living.js";
 
 export type Building = {
   slotIndex: number;
@@ -825,6 +854,14 @@ export class World {
   bestiary = new Map<string, { entryId: string; observationLevel: number; encounterCount: number }>();
   /** Dragon expedition readiness progress — keyed by playerId. */
   dragonProgress = new Map<string, DragonProgress>();
+  /** Living dragons — not Presence. Keyed by dragon id. */
+  dragonIndividuals = new Map<string, DragonIndividual>();
+  dragonChronicle = new Map<string, ChronicleEvent[]>();
+  /** Keyed by playerId:questionId */
+  dragonKnowledge = new Map<string, KnowledgeEntry>();
+  worldVerbs = new Map<string, WorldVerb>();
+  /** Pre-existing world features dragons change (Alpha: the Fen Crossing). */
+  mapFeatures = new Map<string, MapFeature>();
   usedTiles = new Set<string>();
   devFastTime: boolean;
   skipTutorial: boolean;
@@ -856,6 +893,10 @@ export class World {
     tutorials: new Set<string>(),
     bestiary: new Set<string>(),
     dragonProgress: new Set<string>(),
+    dragons: new Set<string>(),
+    dragonKnowledge: new Set<string>(),
+    worldVerbs: new Set<string>(),
+    mapFeatures: new Set<string>(),
     daily: new Set<string>(),
     alliances: new Set<string>(),
     /** Alliance ids whose membership rows changed (rewritten on save). */
@@ -924,6 +965,29 @@ export class World {
   private putDragonProgress(key: string, progress: DragonProgress): void {
     this.dragonProgress.set(key, progress);
     this.dirty.dragonProgress.add(key);
+  }
+  touchCity(city: City): City {
+    return this.putCity(city.id, city);
+  }
+  touchDragonProgress(playerId: string, progress: DragonProgress): void {
+    this.putDragonProgress(playerId, progress);
+  }
+  recordStandaloneReport(playerId: string, result: Record<string, unknown>): BattleReport {
+    const report: BattleReport = {
+      id: randomUUID(),
+      realmId: this.realmId,
+      marchId: null,
+      attackerPlayerId: playerId,
+      defenderPlayerId: null,
+      result,
+      createdAt: this.now(),
+    };
+    this.putReport(report.id, report);
+    this.pushEvent(playerId, "report", "A dragon encounter was recorded.", {
+      reportId: report.id,
+      kind: String(result.kind ?? "dragon_encounter"),
+    });
+    return report;
   }
   private putDailyQuests(key: string, d: DailyProgress): void {
     this.dailyQuests.set(key, d);
@@ -1234,6 +1298,7 @@ export class World {
       }
     }
     this.processQueues(now);
+    processDragonWounds(this, now);
     this.processMarches(now);
     // Objective ladder auto-advances from authoritative state only.
     for (const t of this.tutorials.values()) {
@@ -2127,9 +2192,9 @@ export class World {
     if (progress.charterEarned) {
       return {
         state: "BONDED",
-        title: "Bonded",
-        summary: "The expedition returned with a living bond between your kingdom and the scarred wilds.",
-        nextMilestone: "Found a Marcher Keep, then pursue a specialized frontier holding.",
+        title: "Frontier charter earned",
+        summary: "The Scar expedition returned with a settlement charter — not a dragon. The wilds still hold living creatures.",
+        nextMilestone: "Found a Marcher Keep, then search the abandoned clutch if you survived the Scar.",
       };
     }
     if (readiness?.expeditionStage && readiness.expeditionStage > 0) {
@@ -2285,6 +2350,13 @@ export class World {
     const stageDef = expedition.stages.find((s) => s.stage === stageNumber);
     if (!stageDef) return null;
 
+    if (stageDef.type === "encounter") {
+      throw Object.assign(
+        new Error("the Scar must be faced as a real encounter, not a stage button"),
+        { code: "ENCOUNTER_REQUIRED" },
+      );
+    }
+
     const isLast = stageNumber >= expedition.stages.length;
     // Entering the next stage is gated on persistent gameplay counters.
     if (!isLast) {
@@ -2295,6 +2367,13 @@ export class World {
     progress.expeditionStage = isLast ? 0 : stageNumber + 1;
     if (isLast) progress.charterEarned = true;
     this.putDragonProgress(playerId, progress);
+
+    // Reaching the Scar ridge (stage 3 → the encounter stage) yields the
+    // vane tell observed from safety — world-sourced field notes, not a
+    // quest counter (Vision Council Round 4, Question B).
+    if (progress.expeditionStage === 4) {
+      recordScarScoutingEvidence(this, playerId);
+    }
 
     // Grant reward items
     const reward = stageDef.completion_reward;
@@ -2434,6 +2513,17 @@ export class World {
       if (wild?.ownerPlayerId === playerId) {
         throw Object.assign(new Error("wilderness already held"), { code: "ALREADY_OWNED" });
       }
+      const crossing = wild ? crossingAt(this, wild.x, wild.y) : undefined;
+      if (crossing) {
+        throw Object.assign(
+          new Error(
+            crossing.state === "sanctuary"
+              ? "sanctuary terms forbid working the bank at the Fen Crossing"
+              : "the Fen Crossing is contested — the wyrm denies the bank to every claim",
+          ),
+          { code: "CROSSING_FORBIDDEN" },
+        );
+      }
       if (this.ownedWildernessCount(playerId) >= this.wildernessCapacity(playerId)) {
         throw Object.assign(
           new Error(`wilderness capacity reached (${this.wildernessCapacity(playerId)}); abandon a holding before claiming another`),
@@ -2559,7 +2649,17 @@ export class World {
       0.7,
       1 - 0.03 * this.wildernessLogisticsLevel(playerId),
     );
-    const travelSec = Math.max(5, dist * 8 * musterFactor * crossroadsFactor);
+    const targetCity =
+      opts.targetType === "city" && opts.targetId
+        ? this.cities.get(opts.targetId)
+        : [...this.cities.values()].find((c) => c.mapX === opts.targetX && c.mapY === opts.targetY);
+    const verbFactor = marchTravelFactor(this, playerId, city, {
+      type: opts.targetType,
+      kind: targetCity?.kind,
+      x: opts.targetX,
+      y: opts.targetY,
+    }, opts.intent);
+    const travelSec = Math.max(5, dist * 8 * musterFactor * crossroadsFactor * verbFactor);
     const now = this.now();
     const march: March = {
       id: randomUUID(),
@@ -2901,7 +3001,7 @@ export class World {
             rulesVersion: COMBAT_RULES_VERSION,
             seed,
             attacker: {
-              groups: atkGroups,
+              groups: floodedAttackerGroups(atkGroups, defCity?.kind === "brinehold"),
               commander: marchCommander
                 ? {
                     leadership: marchCommander.leadership,
@@ -3017,7 +3117,12 @@ export class World {
         // Re-check at resolution time. Two legal departures can arrive after
         // another claim or after the owner fills their capacity; departure
         // validation alone cannot protect this persistent ownership boundary.
-        if (
+        const landingCrossing = crossingAt(this, wild.x, wild.y);
+        if (landingCrossing) {
+          // The crossing appeared (or was always) under the wyrm; no claim
+          // may land on its tile in either state.
+          wildernessClaimBlocked = true;
+        } else if (
           wild.ownerPlayerId !== march.playerId &&
           this.ownedWildernessCount(march.playerId) >=
             this.wildernessCapacity(march.playerId)
@@ -3306,6 +3411,9 @@ export class World {
           : {}),
         protected:
           !!owner?.protectionUntil && owner.protectionUntil > this.now(),
+        dragon: owner
+          ? scoutDragonIntel(this, owner.id, city.kind)
+          : null,
       };
     }
     return {
@@ -3478,6 +3586,73 @@ export class World {
         this.updateBestiary(playerId, entryId, Number(count) || 0);
       }
     }
+  }
+
+  livingState(playerId: string) {
+    return livingPublic(this, playerId);
+  }
+  nameHatchling(playerId: string, name: string) {
+    const d = nameHatchling(this, playerId, name);
+    void this.persist();
+    return d;
+  }
+  observeLivingDragon(playerId: string, dragonId: string) {
+    const d = observeDragon(this, playerId, dragonId);
+    void this.persist();
+    return d;
+  }
+  setDragonHarness(playerId: string, dragonId: string, role: "yard" | "home_guard") {
+    const d = setHarness(this, playerId, dragonId, role);
+    void this.persist();
+    return d;
+  }
+  growLivingDragon(playerId: string, dragonId: string) {
+    const d = growHatchling(this, playerId, dragonId);
+    void this.persist();
+    return d;
+  }
+  codifyDragonKnowledge(playerId: string, questionId: string) {
+    const k = codifyKnowledge(this, playerId, questionId);
+    void this.persist();
+    return k;
+  }
+  faceScarEncounter(playerId: string, composition: Record<string, number>) {
+    const r = resolveDragonTerritoryEncounter(this, playerId, composition);
+    void this.persist();
+    return r;
+  }
+  craftGuardHarness(playerId: string) {
+    const d = craftGuardHarness(this, playerId);
+    void this.persist();
+    return d;
+  }
+  beginFenRivalry(playerId: string) {
+    const d = ensureFenRivalry(this, playerId);
+    void this.persist();
+    return d;
+  }
+  surveyFenCrossing(playerId: string) {
+    const r = surveyFenCrossing(this, playerId);
+    void this.persist();
+    return r;
+  }
+  yieldSpawningBank(playerId: string) {
+    const f = yieldSpawningBank(this, playerId);
+    void this.persist();
+    return f;
+  }
+  pactLocalFenWyrm(playerId: string) {
+    const r = pactFenWyrm(this, playerId);
+    void this.persist();
+    return r;
+  }
+  stationLocalFenWyrm(playerId: string, where: "ford" | "home") {
+    const d = stationFenWyrm(this, playerId, where);
+    void this.persist();
+    return d;
+  }
+  clutchIsAvailable(playerId: string) {
+    return clutchAvailable(this, playerId);
   }
 
   foundMarcherKeep(playerId: string, name?: string): City {

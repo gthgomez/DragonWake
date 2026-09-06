@@ -166,6 +166,33 @@ export function WarView({
                   </div>
                 )}
 
+                {r.result?.type === "dragon_encounter" && (
+                  <div className="rpt-intel" data-testid="dragon-encounter-report">
+                    <span className="rpt-intel-label">
+                      Dragon encounter — {String(r.result.outcome ?? "recorded").replace(/_/g, " ")}
+                    </span>
+                    <ul className="field-notes">
+                      {(r.result.behaviors ?? []).map((beat: any, i: number) => (
+                        <li key={i}>
+                          {beat.summary}
+                          {Object.values(beat.losses ?? {}).some((n: any) => n > 0) && (
+                            <span className="muted tiny">
+                              {" "}— lost {Object.entries(beat.losses ?? {})
+                                .filter(([, n]) => (n as number) > 0)
+                                .map(([id, n]) => `${n} ${id}`)
+                                .join(", ")}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="muted tiny">
+                      The dragon was never in the line. It always breaks off —
+                      the ground decided who held.
+                    </p>
+                  </div>
+                )}
+
                 {b && (
                   <div className="rpt-battle">
                     <p className="rpt-battle-meta">
