@@ -1245,6 +1245,48 @@ export function createApp(world: World) {
     }
   });
 
+  api.post("/dragon/harness/craft", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      return c.json(world.craftGuardHarness(player.id));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "HARNESS_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/dragon/fen/crossing/survey", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      return c.json(world.surveyFenCrossing(player.id));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "SURVEY_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/dragon/fen/yield", (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    try {
+      return c.json(world.yieldSpawningBank(player.id));
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "YIELD_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
   api.post("/dragon/fen/station", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);

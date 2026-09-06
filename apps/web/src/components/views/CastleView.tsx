@@ -51,6 +51,9 @@ type CastleViewProps = {
   growLivingDragon?: (dragonId: string) => Promise<void>;
   stationFenWyrm?: (where: "ford" | "home") => Promise<void>;
   beginFenRivalry?: () => Promise<void>;
+  surveyFenCrossing?: () => Promise<void>;
+  yieldSpawningBank?: () => Promise<void>;
+  craftGuardHarness?: () => Promise<void>;
   pactFenWyrm?: () => Promise<void>;
 };
 
@@ -118,6 +121,9 @@ export function CastleView({
   growLivingDragon,
   stationFenWyrm,
   beginFenRivalry,
+  surveyFenCrossing,
+  yieldSpawningBank,
+  craftGuardHarness,
   pactFenWyrm,
 }: CastleViewProps) {
   const rates = city.productionPerHour;
@@ -125,6 +131,15 @@ export function CastleView({
   const [hatchName, setHatchName] = useState("");
   const signature = livingDragons?.dragons?.find((d: any) => d.kind === "signature");
   const fen = livingDragons?.dragons?.find((d: any) => d.archetypeId === "fen_wyrm");
+  const crossing = livingDragons?.crossings?.[0] ?? null;
+  const siltKnowledge = livingDragons?.knowledge?.find(
+    (k: any) => k.questionId === "fen_silt",
+  );
+  const homeGuardReady =
+    signature != null &&
+    signature.lifeStage !== "hatchling" &&
+    signature.harness === "guard_harness" &&
+    signature.physicalState === "healthy";
 
   const charterEarned = Boolean(expeditionStatus?.charterEarned);
   const hasMarcherKeep = cities.some((c) => c.kind === "marcher_keep");
@@ -188,12 +203,26 @@ export function CastleView({
       </header>
 
       <section className="dragon-presence" data-testid="dragon-presence" aria-label="Dragon Presence">
-        <div className="dragon-presence-glyph"><Icon name="dragon" size={32} /></div>
+        <div className={`dragon-presence-glyph dragon-state-${dragonPresence?.state ?? "dormant"}`}>
+          <Icon name="dragon" size={32} />
+        </div>
         <div className="dragon-presence-copy">
           <div className="eyebrow">Realm awareness</div>
           <h3>{dragonPresence?.title ?? "Dormant"}</h3>
           <p>{dragonPresence?.summary ?? "A vast, sleeping presence lies beneath the kingdom's oldest foundations."}</p>
           <p className="muted tiny"><strong>Next:</strong> {dragonPresence?.nextMilestone ?? "Build the Dragon Watch and bring back your first sign from the realm."}</p>
+          <div className="dragon-status-rail" data-testid="dragon-status-rail" aria-label="Dragon status">
+            <span className="dragon-state-pill"><span className="dragon-state-dot" />{dragonPresence?.state ?? "dormant"}</span>
+            {signature ? (
+              <>
+                <span><strong>{signature.lifeStage}</strong> · life stage</span>
+                <span><strong>{signature.roostEmpty ? "On the approaches" : "In the roost"}</strong></span>
+                <span><strong>{signature.chronicle?.length ?? 0}</strong> Chronicle entries</span>
+              </>
+            ) : (
+              <span>Awaiting a living dragon sign</span>
+            )}
+          </div>
         </div>
       </section>
 
@@ -212,11 +241,37 @@ export function CastleView({
                   {signature.vaneTells ? ` · ${signature.vaneTells}` : ""}
                 </p>
               )}
-              <p className="muted tiny">Harness: {signature.harnessRole === "home_guard" ? "Home Guard" : "Yard"}</p>
+              <p className="muted tiny">
+                Harness:{" "}
+                {signature.harness === "guard_harness"
+                  ? `Guard Harness (${signature.harnessRole === "home_guard" ? "Home Guard" : "Yard"})`
+                  : "none"}
+                {signature.lifeStage === "hatchling" ? " — a hatchling is too small for any harness" : ""}
+              </p>
               <div className="roost-actions">
                 <button type="button" onClick={() => void observeLivingDragon?.(signature.id)}>Watch the roost</button>
                 <button type="button" onClick={() => void setDragonHarness?.(signature.id, "yard")}>Yard</button>
-                <button type="button" onClick={() => void setDragonHarness?.(signature.id, "home_guard")}>Home Guard</button>
+                <button
+                  type="button"
+                  disabled={!homeGuardReady}
+                  title={
+                    signature.lifeStage === "hatchling"
+                      ? "A hatchling guards nothing — it cannot leave the yard."
+                      : signature.harness !== "guard_harness"
+                        ? "Craft the guard harness first."
+                        : signature.physicalState !== "healthy"
+                          ? "A wounded dragon cannot take Home Guard."
+                          : undefined
+                  }
+                  onClick={() => void setDragonHarness?.(signature.id, "home_guard")}
+                >
+                  Home Guard
+                </button>
+                {signature.lifeStage !== "hatchling" && signature.harness === "none" && (
+                  <button type="button" data-testid="craft-guard-harness" onClick={() => void craftGuardHarness?.()}>
+                    Craft guard harness (120 wood · 80 ore · 30 crownmarks)
+                  </button>
+                )}
                 {signature.lifeStage === "hatchling" && (
                   <button type="button" onClick={() => void growLivingDragon?.(signature.id)}>Mark first growth</button>
                 )}
@@ -286,11 +341,42 @@ export function CastleView({
       )}
 
       {fen && fen.relationship !== "pacted" && city.kind === "capital" && (
-        <section className="roost-panel">
+        <section className="roost-panel" data-testid="fen-negotiation">
           <div className="eyebrow">Negotiation</div>
-          <p className="muted tiny">{fen.epithet} — observe, then offer a territorial pact. The spawning ground stays unworked.</p>
-          <button type="button" onClick={() => void observeLivingDragon?.(fen.id)}>Observe the Fen Wyrm</button>
-          <button type="button" onClick={() => void pactFenWyrm?.()}>Offer the pact</button>
+          <p className="muted tiny">
+            {fen.epithet} — this is not another hatchling. Treat with it in
+            order: watch it, read its crossing, yield the bank, then offer
+            terms.
+          </p>
+          <div className="roost-actions">
+            <button type="button" onClick={() => void observeLivingDragon?.(fen.id)}>Observe the Fen Wyrm</button>
+            {crossing && crossing.state === "contested" && (
+              <button type="button" data-testid="survey-crossing" onClick={() => void surveyFenCrossing?.()}>
+                Survey the Fen Crossing
+              </button>
+            )}
+            {crossing && crossing.state === "contested" && (
+              <button type="button" data-testid="yield-spawning-bank" onClick={() => void yieldSpawningBank?.()}>
+                Yield the spawning bank
+              </button>
+            )}
+            {crossing && crossing.state === "sanctuary" && (
+              <button type="button" data-testid="offer-pact" onClick={() => void pactFenWyrm?.()}>
+                Offer the pact
+              </button>
+            )}
+          </div>
+          <p className="muted tiny">
+            {crossing == null
+              ? "The crossing is not yet known to your keepers."
+              : crossing.state === "contested"
+                ? siltKnowledge == null || siltKnowledge.state === "rumored"
+                  ? "The crossing is contested. Survey it, and codify why the wyrm holds the bank before yielding it."
+                  : siltKnowledge.state === "supported"
+                    ? "The silt is understood. Codify ford signaling, then yield the spawning bank — permanently."
+                    : "The bank can be yielded — a permanent surrender, marked on the map."
+                : "The crossing is sanctuary ground. The wyrm may now accept terms."}
+          </p>
         </section>
       )}
 

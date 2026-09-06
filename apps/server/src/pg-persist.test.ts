@@ -9,6 +9,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { PgStore } from "./pg-store.js";
 import { World } from "./world.js";
+import { FEN_SILT } from "./dragons/types.js";
 import { getBestiaryEntries, getShop } from "@dragonwake/content";
 
 const DATABASE_URL =
@@ -493,6 +494,17 @@ describe("PG persistence (shipped PgStore + World)", () => {
       .citiesForPlayer(player.id)
       .find((c) => c.kind === "galeari")!.stacks;
 
+    // Vision Council Round 4 state: crossing terms, pact, stationing, and
+    // evidence field notes must all survive a restart.
+    const fen = world1.beginFenRivalry(player.id);
+    world1.observeLivingDragon(player.id, fen.id);
+    world1.surveyFenCrossing(player.id);
+    world1.yieldSpawningBank(player.id);
+    world1.codifyDragonKnowledge(player.id, FEN_SILT);
+    world1.pactLocalFenWyrm(player.id);
+    world1.stationLocalFenWyrm(player.id, "ford");
+    const expectedCrossing = world1.livingState(player.id).crossings[0]!;
+
     await world1.flush();
     await store1!.close();
 
@@ -522,6 +534,20 @@ describe("PG persistence (shipped PgStore + World)", () => {
     expect(world2.dragonPresence(player.id).state).toBe("BATTLE_READY");
     expect(world2.livingState(player.id).dragons[0]?.givenName).toBe("Ashwake");
     expect(world2.livingState(player.id).dragons[0]?.lifeStage).toBe("hatchling");
+
+    // Round 4 state survives: sanctuary crossing, Away-at-ford wyrm,
+    // stationed verb, and field-note evidence (distinct kinds, not counters).
+    const reloadedLiving = world2.livingState(player.id);
+    expect(reloadedLiving.crossings[0]?.id).toBe(expectedCrossing.id);
+    expect(reloadedLiving.crossings[0]?.state).toBe("sanctuary");
+    const reloadedWyrm = reloadedLiving.dragons.find((d) => d.archetypeId === "fen_wyrm")!;
+    expect(reloadedWyrm.locationKind).toBe("ford");
+    expect(reloadedLiving.verbs[0]?.stationed).toBe(true);
+    expect(reloadedLiving.verbs[0]?.terms).toBe("spawning_bank_yielded");
+    const reloadedSilt = reloadedLiving.knowledge.find((k) => k.questionId === FEN_SILT)!;
+    expect(reloadedSilt.state).toBe("proven");
+    expect(reloadedSilt.notes.length).toBeGreaterThanOrEqual(2);
+    expect(reloadedSilt.notes.some((n) => n.kind === "scouting")).toBe(true);
 
     // Holding-specific starter stacks survived (differentiated garrisons).
     const loadedGaleari = world2

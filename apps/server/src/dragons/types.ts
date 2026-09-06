@@ -20,6 +20,8 @@ export type LocationKind =
 export type PhysicalState = "healthy" | "wounded" | "recovering";
 export type Temperament = "wary" | "curious" | "loyal" | "irritable";
 export type HarnessRole = "yard" | "home_guard";
+/** Role-changing equipment only (Harness Philosophy): one harness in Alpha. */
+export type Harness = "none" | "guard_harness";
 export type Relationship =
   | "clutch"
   | "bonded"
@@ -28,6 +30,25 @@ export type Relationship =
   | "hostile"
   | "pacted";
 export type KnowledgeState = "rumored" | "observed" | "supported" | "proven";
+
+/** Distinct observation kinds — knowledge advances on kinds, not counts. */
+export type EvidenceKind =
+  | "encounter"
+  | "roost_behavior"
+  | "scouting"
+  | "battle_report"
+  | "exploration"
+  | "controlled_test";
+
+export type EvidenceRecord = {
+  at: number;
+  kind: EvidenceKind;
+  /** Where it was seen (roost, the Scar, the crossing, …). */
+  source: string;
+  summary: string;
+  /** World-sourced = seen outside the player's own holding. */
+  worldSourced: boolean;
+};
 
 export type DragonIndividual = {
   id: string;
@@ -47,6 +68,7 @@ export type DragonIndividual = {
   woundId: string | null;
   woundUntil: number | null;
   temperament: Temperament;
+  harness: Harness;
   harnessRole: HarnessRole;
   relationship: Relationship;
   namedAt: number | null;
@@ -67,8 +89,8 @@ export type KnowledgeEntry = {
   playerId: string;
   questionId: string;
   state: KnowledgeState;
-  evidenceCount: number;
-  lastSource: string;
+  /** Field notes. SUPPORTED needs distinct kinds incl. one world-sourced. */
+  evidence: EvidenceRecord[];
   provenAt: number | null;
 };
 
@@ -81,6 +103,21 @@ export type WorldVerb = {
   tileY: number;
   brineholdCityId: string;
   stationed: boolean;
+  /** The pact terms the crossing now lives under. */
+  terms?: "spawning_bank_yielded";
+};
+
+/** Pre-existing world features dragons change — Alpha: the Fen Crossing. */
+export type CrossingState = "contested" | "sanctuary";
+export type MapFeature = {
+  id: string;
+  kind: "fen_crossing";
+  ownerPlayerId: string;
+  x: number;
+  y: number;
+  state: CrossingState;
+  surveyedAt: number | null;
+  yieldedAt: number | null;
 };
 
 export const VANE_READING = "vane_reading";

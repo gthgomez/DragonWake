@@ -23,7 +23,7 @@ import type {
   Wilderness,
   World,
 } from "./world.js";
-import type { ChronicleEvent, DragonIndividual, KnowledgeEntry, WorldVerb } from "./dragons/types.js";
+import type { ChronicleEvent, DragonIndividual, KnowledgeEntry, MapFeature, WorldVerb } from "./dragons/types.js";
 
 const { Pool } = pg;
 
@@ -434,6 +434,14 @@ export class PgStore {
       for (const row of verbRows.rows) {
         const verb = row.payload as WorldVerb;
         world.worldVerbs.set(verb.id, verb);
+      }
+      const featureRows = await client.query(
+        `SELECT * FROM map_features WHERE realm_id = $1`,
+        [world.realmId],
+      );
+      for (const row of featureRows.rows) {
+        const feature = row.payload as MapFeature;
+        world.mapFeatures.set(feature.id, feature);
       }
 
       // Daily quest + clue-cap state. Clear first (stale rows must never
@@ -941,6 +949,15 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
     );
   }
 
+  private async upsertMapFeature(client: pg.PoolClient, feature: MapFeature, realmId: number): Promise<void> {
+    await client.query(
+      `INSERT INTO map_features (id, realm_id, payload)
+       VALUES ($1, $2, $3::jsonb)
+       ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload`,
+      [feature.id, realmId, JSON.stringify(feature)],
+    );
+  }
+
   /** One row per player across quest/clue state (upsert keeps current day). */
   private async upsertDailyState(
     client: pg.PoolClient,
@@ -1031,6 +1048,7 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
       d.dragons.size > 0 ||
       d.dragonKnowledge.size > 0 ||
       d.worldVerbs.size > 0 ||
+      d.mapFeatures.size > 0 ||
       d.daily.size > 0 ||
       d.alliances.size > 0 ||
       d.allianceMembers.size > 0 ||
@@ -1054,6 +1072,7 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
       dragons: [...d.dragons],
       dragonKnowledge: [...d.dragonKnowledge],
       worldVerbs: [...d.worldVerbs],
+      mapFeatures: [...d.mapFeatures],
       daily: [...d.daily],
       alliances: [...d.alliances],
       allianceMembers: [...d.allianceMembers],
@@ -1133,6 +1152,10 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
         const v = world.worldVerbs.get(id);
         if (v) await this.upsertWorldVerb(client, v, world.realmId);
       }
+      for (const id of snap.mapFeatures) {
+        const f = world.mapFeatures.get(id);
+        if (f) await this.upsertMapFeature(client, f, world.realmId);
+      }
       for (const pid of snap.daily) {
         await this.upsertDailyState(client, world, pid);
       }
@@ -1169,6 +1192,7 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
       for (const id of snap.dragons) d.dragons.delete(id);
       for (const key of snap.dragonKnowledge) d.dragonKnowledge.delete(key);
       for (const id of snap.worldVerbs) d.worldVerbs.delete(id);
+      for (const id of snap.mapFeatures) d.mapFeatures.delete(id);
       for (const pid of snap.daily) d.daily.delete(pid);
       for (const id of snap.alliances) d.alliances.delete(id);
       for (const aid of snap.allianceMembers) d.allianceMembers.delete(aid);
@@ -1246,6 +1270,9 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
       }
       for (const v of world.worldVerbs.values()) {
         await this.upsertWorldVerb(client, v, world.realmId);
+      }
+      for (const f of world.mapFeatures.values()) {
+        await this.upsertMapFeature(client, f, world.realmId);
       }
       const dailyPlayers = new Set<string>([
         ...world.dailyQuests.keys(),

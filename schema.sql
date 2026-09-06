@@ -282,6 +282,13 @@ CREATE TABLE IF NOT EXISTS dragon_world_verbs (
   payload  JSONB NOT NULL
 );
 
+-- Pre-existing world features dragons change (Alpha: the Fen Crossing).
+CREATE TABLE IF NOT EXISTS map_features (
+  id       UUID PRIMARY KEY,
+  realm_id SMALLINT NOT NULL REFERENCES realms(id),
+  payload  JSONB NOT NULL
+);
+
 CREATE TABLE quest_progress (
   player_id       UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
   quest_id        TEXT NOT NULL,

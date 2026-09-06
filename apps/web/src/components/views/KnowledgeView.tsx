@@ -24,6 +24,17 @@ type KnowledgeViewProps = {
 /** Encounter thresholds at which observation deepens (server rule). */
 const OBS_THRESHOLDS = [3, 7, 15, 30];
 
+const QUESTION_TITLES: Record<string, string> = {
+  vane_reading: "Vane Reading",
+  fen_silt: "Wet silt-pack",
+};
+
+/** Codified knowledge names a capability, never a percentage. */
+const CAPABILITY_TEXT: Record<string, string> = {
+  vane_reading: "keepers can read temperament tells",
+  fen_silt: "ford signaling — terms can be offered at the crossing",
+};
+
 const READINESS_HINTS: Record<string, string> = {
   bestiary_threshold:
     "Break camps and record what your company finds — every creature observed is a page in the Bestiary.",
@@ -328,18 +339,41 @@ export function KnowledgeView({
                       ) : null}
                     </span>
                     {current && stage.type === "encounter" && (
-                      <button
-                        type="button"
-                        data-testid="face-the-scar"
-                        onClick={() =>
-                          void faceScarEncounter?.({
-                            levy: Math.min(40, cityStacks.levy ?? 0),
-                            scout: Math.min(5, cityStacks.scout ?? 0),
-                          })
-                        }
-                      >
-                        Face the Scar
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          data-testid="face-the-scar"
+                          onClick={() => {
+                            // March the marshalled company: anchors hold the
+                            // line, bowmen ride behind it. The dragon is not
+                            // fought — it is survived.
+                            const composition: Record<string, number> = {};
+                            for (const id of [
+                              "levy",
+                              "pikeman",
+                              "shieldman",
+                              "halberdier",
+                              "dragon_slayer",
+                              "bowman",
+                              "longbowman",
+                              "crossbowman",
+                              "heavy_crossbowman",
+                            ]) {
+                              const n = cityStacks[id] ?? 0;
+                              if (n > 0) composition[id] = n;
+                            }
+                            const scouts = Math.min(5, cityStacks.scout ?? 0);
+                            if (scouts > 0) composition.scout = scouts;
+                            void faceScarEncounter?.(composition);
+                          }}
+                        >
+                          Face the Scar
+                        </button>
+                        <p className="muted tiny">
+                          Spears anchor the line; bowmen need spear cover; loose
+                          horses scatter. Survive, and the clutch is found.
+                        </p>
+                      </>
                     )}
                     {current && stage.type !== "encounter" && (
                       <button
@@ -384,12 +418,30 @@ export function KnowledgeView({
           {livingDragons.knowledge.map((k: any) => (
             <div key={k.questionId} className="readiness-req">
               <span>
-                {k.questionId === "vane_reading" ? "Vane Reading" : "Wet silt-pack"} — {k.state}
+                {QUESTION_TITLES[k.questionId] ?? k.questionId} — {k.state}
+                {k.state === "proven" && CAPABILITY_TEXT[k.questionId] ? (
+                  <span className="muted tiny"> · {CAPABILITY_TEXT[k.questionId]}</span>
+                ) : null}
               </span>
               {k.state === "supported" && (
                 <button type="button" onClick={() => void codifyDragonKnowledge?.(k.questionId)}>
                   Codify
                 </button>
+              )}
+              {k.state === "observed" && (
+                <p className="muted tiny">
+                  Repeating the same kind of watching adds notes, not
+                  certainty — this needs a different kind of evidence.
+                </p>
+              )}
+              {k.notes?.length > 0 && (
+                <ul className="field-notes" data-testid={`field-notes-${k.questionId}`}>
+                  {k.notes.slice().reverse().map((n: any, i: number) => (
+                    <li key={i}>
+                      <em>{n.source}</em> ({String(n.kind).replace(/_/g, " ")}): {n.summary}
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           ))}

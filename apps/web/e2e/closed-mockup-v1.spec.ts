@@ -321,12 +321,33 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
   await expect(page.getByTestId("dragon-chronicle")).toBeVisible();
   await shot("16-hatchling-named");
 
-  // 17. Fen Wyrm pact reshapes Brinehold; hatchling remains
+  // 17. the river terms: observe → survey → yield → codify → pact.
+  // The wyrm is not a second hatchling: the crossing is read, the spawning
+  // bank is yielded permanently, and only then are terms struck.
   await page.getByRole("button", { name: "Seek the coils" }).click();
   await page.getByRole("button", { name: "Observe the Fen Wyrm" }).click();
-  await page.getByRole("button", { name: "Offer the pact" }).click();
-  await expect(page.getByText(/territorial pact/i).first()).toBeVisible({ timeout: 30_000 });
-  await page.getByLabel("Settlements").selectOption({ label: /Brinehold/ });
+  await page.getByTestId("survey-crossing").click();
+  await page.getByTestId("yield-spawning-bank").click();
+  await expect(
+    page.getByText(/spawning bank stays unworked/i).first(),
+  ).toBeVisible({ timeout: 30_000 });
+  // Ford signaling is codified in the Knowledge tab — the capability that
+  // lets humans offer terms at the crossing at all.
+  await page.getByRole("button", { name: "Knowledge", exact: true }).click();
+  const fenNotes = page.locator("div.readiness-req", {
+    has: page.getByTestId("field-notes-fen_silt"),
+  });
+  await fenNotes.getByRole("button", { name: "Codify" }).click();
+  await expect(page.getByText(/ford signaling/i).first()).toBeVisible({
+    timeout: 30_000,
+  });
+  await page.getByRole("button", { name: "Castle", exact: true }).click();
+  await page.getByTestId("offer-pact").click();
+  await expect(
+    page.getByText(/accepted the pact under sanctuary terms/i).first(),
+  ).toBeVisible({ timeout: 30_000 });
+  // Settlements: capital, Marcher Keep, then the pact-founded Brinehold.
+  await page.getByLabel("Settlements").selectOption({ index: 2 });
   await expect(page.getByTestId("fen-pact")).toBeVisible();
   await page.getByRole("button", { name: "Station at the ford" }).click();
   await expect(page.getByText(/unguarded/i).first()).toBeVisible();

@@ -253,6 +253,16 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     ALTER TABLE marches ADD CONSTRAINT marches_status_check
       CHECK (status IN ('en_route','resolving','returning','stationed','completed','cancelled'));
   `);
+
+  // 13. Vision Council Round 4 — pre-existing world features dragons change
+  //     (Alpha: the Fen Crossing). JSON payload stays evolvable.
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS map_features (
+      id       UUID PRIMARY KEY,
+      realm_id SMALLINT NOT NULL REFERENCES realms(id),
+      payload  JSONB NOT NULL
+    );
+  `);
 }
 
 export function findSchemaPath(): string | null {

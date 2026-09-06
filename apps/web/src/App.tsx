@@ -92,6 +92,9 @@ export function App() {
           growLivingDragon={g.growLivingDragon}
           stationFenWyrm={g.stationFenWyrm}
           beginFenRivalry={g.beginFenRivalry}
+          surveyFenCrossing={g.surveyFenCrossing}
+          yieldSpawningBank={g.yieldSpawningBank}
+          craftGuardHarness={g.craftGuardHarness}
           pactFenWyrm={g.pactFenWyrm}
         />
       )}

@@ -44,11 +44,14 @@ import type {
   ChronicleEvent,
   DragonIndividual,
   KnowledgeEntry,
+  MapFeature,
   WorldVerb,
 } from "./dragons/types.js";
 import {
   clutchAvailable,
   codifyKnowledge,
+  craftGuardHarness,
+  crossingAt,
   ensureFenRivalry,
   floodedAttackerGroups,
   growHatchling,
@@ -58,10 +61,13 @@ import {
   observeDragon,
   pactFenWyrm,
   processDragonWounds,
-  resolveScarEncounter,
+  recordScarScoutingEvidence,
+  resolveDragonTerritoryEncounter,
   scoutDragonIntel,
   setHarness,
   stationFenWyrm,
+  surveyFenCrossing,
+  yieldSpawningBank,
 } from "./dragons/living.js";
 
 export type Building = {
@@ -854,6 +860,8 @@ export class World {
   /** Keyed by playerId:questionId */
   dragonKnowledge = new Map<string, KnowledgeEntry>();
   worldVerbs = new Map<string, WorldVerb>();
+  /** Pre-existing world features dragons change (Alpha: the Fen Crossing). */
+  mapFeatures = new Map<string, MapFeature>();
   usedTiles = new Set<string>();
   devFastTime: boolean;
   skipTutorial: boolean;
@@ -888,6 +896,7 @@ export class World {
     dragons: new Set<string>(),
     dragonKnowledge: new Set<string>(),
     worldVerbs: new Set<string>(),
+    mapFeatures: new Set<string>(),
     daily: new Set<string>(),
     alliances: new Set<string>(),
     /** Alliance ids whose membership rows changed (rewritten on save). */
@@ -2359,6 +2368,13 @@ export class World {
     if (isLast) progress.charterEarned = true;
     this.putDragonProgress(playerId, progress);
 
+    // Reaching the Scar ridge (stage 3 → the encounter stage) yields the
+    // vane tell observed from safety — world-sourced field notes, not a
+    // quest counter (Vision Council Round 4, Question B).
+    if (progress.expeditionStage === 4) {
+      recordScarScoutingEvidence(this, playerId);
+    }
+
     // Grant reward items
     const reward = stageDef.completion_reward;
     if (reward.item && typeof reward.item === "string") {
@@ -2496,6 +2512,17 @@ export class World {
       const wild = opts.targetId ? this.wilderness.get(opts.targetId) : undefined;
       if (wild?.ownerPlayerId === playerId) {
         throw Object.assign(new Error("wilderness already held"), { code: "ALREADY_OWNED" });
+      }
+      const crossing = wild ? crossingAt(this, wild.x, wild.y) : undefined;
+      if (crossing) {
+        throw Object.assign(
+          new Error(
+            crossing.state === "sanctuary"
+              ? "sanctuary terms forbid working the bank at the Fen Crossing"
+              : "the Fen Crossing is contested — the wyrm denies the bank to every claim",
+          ),
+          { code: "CROSSING_FORBIDDEN" },
+        );
       }
       if (this.ownedWildernessCount(playerId) >= this.wildernessCapacity(playerId)) {
         throw Object.assign(
@@ -3090,7 +3117,12 @@ export class World {
         // Re-check at resolution time. Two legal departures can arrive after
         // another claim or after the owner fills their capacity; departure
         // validation alone cannot protect this persistent ownership boundary.
-        if (
+        const landingCrossing = crossingAt(this, wild.x, wild.y);
+        if (landingCrossing) {
+          // The crossing appeared (or was always) under the wyrm; no claim
+          // may land on its tile in either state.
+          wildernessClaimBlocked = true;
+        } else if (
           wild.ownerPlayerId !== march.playerId &&
           this.ownedWildernessCount(march.playerId) >=
             this.wildernessCapacity(march.playerId)
@@ -3585,14 +3617,29 @@ export class World {
     return k;
   }
   faceScarEncounter(playerId: string, composition: Record<string, number>) {
-    const r = resolveScarEncounter(this, playerId, composition);
+    const r = resolveDragonTerritoryEncounter(this, playerId, composition);
     void this.persist();
     return r;
+  }
+  craftGuardHarness(playerId: string) {
+    const d = craftGuardHarness(this, playerId);
+    void this.persist();
+    return d;
   }
   beginFenRivalry(playerId: string) {
     const d = ensureFenRivalry(this, playerId);
     void this.persist();
     return d;
+  }
+  surveyFenCrossing(playerId: string) {
+    const r = surveyFenCrossing(this, playerId);
+    void this.persist();
+    return r;
+  }
+  yieldSpawningBank(playerId: string) {
+    const f = yieldSpawningBank(this, playerId);
+    void this.persist();
+    return f;
   }
   pactLocalFenWyrm(playerId: string) {
     const r = pactFenWyrm(this, playerId);

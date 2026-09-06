@@ -39,6 +39,15 @@ unrecoverable gamble for a fresh realm.
 Start at [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) for direction vs
 implemented vs next campaign.
 
+**Player-facing rule:** rendered player experience is an independent source
+of truth — implementation, tests, and reachable routes cannot certify
+product completeness. Player-facing gameplay/UX/visual/progression/
+competitor-parity work requires the
+[`docs/product/COMPETITIVE_PRODUCT_LAB.md`](docs/product/COMPETITIVE_PRODUCT_LAB.md)
+workflow (blind playtest → white-box audit → root-cause classification →
+one vertical slice → replay & before/after evidence). Competitor research
+persists under [`docs/competitive/`](docs/competitive/README.md).
+
 Read these before changing fiction, content IDs, or client presentation:
 
 1. [`docs/design/DIRECTION_FREEZE_V1_1.md`](docs/design/DIRECTION_FREEZE_V1_1.md) — **FROZEN** current product-direction law (amends v1.0)

@@ -20,6 +20,8 @@ different questions.
 | Authority | Authoritative about | Not authoritative about |
 | --- | --- | --- |
 | [`DIRECTION_FREEZE_V1_1.md`](./DIRECTION_FREEZE_V1_1.md) | Current product-direction law, including v1.0 protections it preserves and the dragon-driven empire amendments | Exact balance numbers, unresolved lore names, historical DoA facts |
+| [`DRAGON_VISION_COUNCIL_V1.md`](./DRAGON_VISION_COUNCIL_V1.md) | Product vision (North Star, pillars, non-negotiable rules), the Alpha Experience Contract, and what Alpha Closure must prove (Round 4 + Round 10). Interprets the Direction Freeze; does not replace it | Reopening frozen Direction rules; overriding subsystem specs' bounded detail; post-Alpha claims beyond its language-discipline rule |
+| [`ALPHA_GAME_FEEL_GATE.md`](./ALPHA_GAME_FEEL_GATE.md) | The human game-feel certification protocol (co-gate for `DRAGON_DRIVEN_ALPHA_CERTIFIED`) | Function certification, balance, retention — those are other gates/campaigns |
 | [`DIRECTION_FREEZE_V1.md`](./DIRECTION_FREEZE_V1.md) | Original freeze text. Historical where v1.1 amends it; still binding where v1.1 is silent | Overriding v1.1; exact future dragon roster |
 | [`DRAGON_DRIVEN_EMPIRE_CANON.md`](./DRAGON_DRIVEN_EMPIRE_CANON.md) | Current approved product design: hierarchy, loop, settlement relationship, long-term game | Reopening frozen Direction rules; claiming implementation already matches |
 | Dragon design specs (identity contract, roster, holdings matrix, research, discovery, harness, engagement, alpha proof slice) | Bounded design contracts future implementation must satisfy | Inventing six playable dragons; numeric balance |
@@ -59,6 +61,7 @@ This prevents both failure modes:
 | Layer | May decide | May not casually change |
 | --- | --- | --- |
 | Direction Freeze v1.1 | Current product-direction law (includes preserved v1.0 rules plus dragon-driven empire amendments) | Itself, without an explicit reopen |
+| Vision Council V1 | What DragonWake is trying to become; the Alpha Experience Contract; Alpha Closure scope, binding deltas, and certification gates | Frozen direction rules; subsystem spec detail |
 | Direction Freeze v1.0 | Original freeze text; binding where v1.1 is silent | Overriding v1.1 |
 | Dragon-Driven Empire Canon + design specs | Hierarchy, identity contract, roster architecture, holdings matrix, research/discovery/harness/engagement contracts, alpha proof slice | Frozen direction rules; a six-dragon implementation |
 | Product Bible v1 | Approved progression topology, core economy, expansion structure, system contracts | Frozen direction rules |
@@ -134,6 +137,8 @@ Current direction and product design:
 - [`DIRECTION_FREEZE_V1_1.md`](./DIRECTION_FREEZE_V1_1.md) — current freeze law
 - [`DIRECTION_FREEZE_V1.md`](./DIRECTION_FREEZE_V1.md) — original freeze text
 - [`DRAGON_DRIVEN_EMPIRE_CANON.md`](./DRAGON_DRIVEN_EMPIRE_CANON.md)
+- [`DRAGON_VISION_COUNCIL_V1.md`](./DRAGON_VISION_COUNCIL_V1.md) — product vision + Alpha Closure design law
+- [`ALPHA_GAME_FEEL_GATE.md`](./ALPHA_GAME_FEEL_GATE.md) — human game-feel certification protocol
 - [`DRAGON_IDENTITY_CONTRACT.md`](./DRAGON_IDENTITY_CONTRACT.md)
 - [`DRAGON_ROSTER_ARCHITECTURE.md`](./DRAGON_ROSTER_ARCHITECTURE.md)
 - [`DRAGON_DOMAIN_HOLDINGS_MATRIX.md`](./DRAGON_DOMAIN_HOLDINGS_MATRIX.md)

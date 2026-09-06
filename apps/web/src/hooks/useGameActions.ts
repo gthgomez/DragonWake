@@ -435,10 +435,35 @@ export function useGameActions(deps: UseGameActionsDeps) {
     });
   }
 
+  async function craftGuardHarness() {
+    if (!token) return;
+    await run("The guard harness is fitted", async () => {
+      await api("/api/v1/dragon/harness/craft", token, { method: "POST" });
+      await refreshMe(token);
+      await refreshKnowledge();
+    });
+  }
+
   async function beginFenRivalry() {
     if (!token) return;
     await run("The river answers", async () => {
       await api("/api/v1/dragon/fen/begin", token, { method: "POST" });
+      await refreshKnowledge();
+    });
+  }
+
+  async function surveyFenCrossing() {
+    if (!token) return;
+    await run("The crossing is surveyed", async () => {
+      await api("/api/v1/dragon/fen/crossing/survey", token, { method: "POST" });
+      await refreshKnowledge();
+    });
+  }
+
+  async function yieldSpawningBank() {
+    if (!token) return;
+    await run("The spawning bank is yielded", async () => {
+      await api("/api/v1/dragon/fen/yield", token, { method: "POST" });
       await refreshKnowledge();
     });
   }
@@ -640,7 +665,10 @@ export function useGameActions(deps: UseGameActionsDeps) {
     setDragonHarness,
     growLivingDragon,
     codifyDragonKnowledge,
+    craftGuardHarness,
     beginFenRivalry,
+    surveyFenCrossing,
+    yieldSpawningBank,
     pactFenWyrm,
     stationFenWyrm,
     startDragonWarCouncil,

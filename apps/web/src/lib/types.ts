@@ -85,6 +85,13 @@ export type BattleReport = {
     type?: string;
     reason?: string;
     note?: string;
+    /** Authored dragon territory encounter (Vision Council Round 4). */
+    outcome?: string;
+    behaviors?: Array<{
+      behavior: string;
+      summary: string;
+      losses?: Record<string, number>;
+    }>;
     intel?: string | Record<string, unknown>;
     harborLoot?: boolean;
     delivered?: boolean;
