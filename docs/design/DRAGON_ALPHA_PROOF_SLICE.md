@@ -66,22 +66,22 @@ Chosen because it is the strongest difference from the starter:
 - own research: wet silt-pack or ford signaling
 - own progression axis: pact depth, not XP
 - limitation: cannot leave water; absence returns fords to ordinary
-- **PACT is the only implemented Alpha outcome.** Slayer-delay is later
-  design, not a fake worse-city branch.
+- **PACT is the only implemented Alpha outcome.** The Slayer alternative is
+  later design, not a fake worse-city branch.
 - Fen Wyrm is the species; each player gets a **local individual**, not
   a globally unique "Mirecrown"
 
 ### 3. One harness path
 
-Signature Yard vs Escort. Visible. Crafted. Role-changing.
+Signature Yard vs Home Guard. Visible. Crafted. Role-changing.
 
 ### 4. One scoutable absence
 
 At least: Mirecrown coiled at a ford (Away) vs at the spawning ground
 (Home). Enemy or scout with sufficient intel can see it.
 
-Signature Away-on-escort should also be visible at Capital (roost
-empty).
+Signature Away/Home Guard state should also be visible at Capital (roost
+empty when the dragon is away).
 
 ### 5. One actual dragon encounter
 
@@ -132,8 +132,8 @@ Adapt:
   Living dragons are **DragonIndividual** records, not Presence values.
 - Expedition stage 4 becomes a real encounter.
 - Brinehold founding becomes the Mirecrown domain chapter, not a
-  leftover aquatic city. Founding without the pact (slayer-delay)
-  still possible, weaker.
+  leftover aquatic city. The Slayer alternative is not an Alpha route;
+  it remains later design until it has a genuinely competitive identity.
 
 Replace:
 
@@ -156,8 +156,8 @@ Do not delete:
    Capital roost appears. Chronicle opens.
 4. Roost play: Vane Reading, Yard harness, first wound-or-refusal
    possible.
-5. Limited Escort: home/away/wounded. Capital roost empty is
-   scoutable.
+5. Home Guard lifecycle: home/away/wounded. Capital roost empty is
+   scoutable when the signature dragon is away.
 6. River rivalry: flood / denied ford. Canonical route: **pact**.
 7. On pact: Brinehold transforms; Ford verb works on an old river
    tile; Reedwarden doctrine; Fen Wyrm absence is scoutable.

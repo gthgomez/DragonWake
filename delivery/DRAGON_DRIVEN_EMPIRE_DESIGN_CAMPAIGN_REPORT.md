@@ -234,10 +234,10 @@ Weak answers that changed the design during this campaign:
 | Hatchling + roost + Chronicle + home/away/wounded | ALPHA REQUIRED | HIGH |
 | Mirecrown pact + Ford verb + Brinehold transform | ALPHA REQUIRED | HIGH |
 | Real Scar encounter | ALPHA REQUIRED | HIGH |
-| Yard vs Escort harness | ALPHA REQUIRED | MEDIUM |
+| Yard vs Home Guard harness | ALPHA REQUIRED | MEDIUM |
 | Scoutable absence | ALPHA REQUIRED | MEDIUM |
 | One Observe→Codify chain each | ALPHA REQUIRED | MEDIUM |
-| Mirecrown slayer-delay branch | ALPHA REQUIRED (cuttable) | MEDIUM |
+| Mirecrown Slayer alternative | LATER / GATED | MEDIUM |
 | Full discipline tree | BETA REQUIRED | HIGH |
 | Named wild v1 | BETA REQUIRED | MEDIUM |
 | Ironspine / Pale Passage | BETA / later | HIGH |

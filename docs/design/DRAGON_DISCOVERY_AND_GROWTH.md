@@ -91,7 +91,7 @@ Used by: **Old Karth**.
 | Dragon | Combination | What the player actually does |
 | --- | --- | --- |
 | Wake-clutch | Raising + Disaster | Survive the Scar, found Marcher Keep, search the abandoned clutch, name and raise |
-| Mirecrown | Negotiation + Rivalry (+ Disaster first contact) | Survive a flood, map coils, choose pact vs slayer-delay |
+| Mirecrown | Negotiation + Rivalry (+ Disaster first contact) | Survive a flood, map coils, form the Alpha pact; a Slayer alternative is later/gated |
 | Pale Passage | Pursuit + Tracking | Chart thermals, miss it, wait, offer roost-rights without a stall |
 | Ironspine | Tracking + mine relationship | Follow collapses, coexist with the vein, optionally rescue from a sapper-caused cave-in |
 | Old Karth | Realm crisis + Negotiation | Survive a wake, compact for rare Breach, provision recovery |
@@ -190,7 +190,8 @@ are not giant troop stacks; they are commitments.
 2. **Meaningful alternatives** — persistent consequences without a
    second holding.
 
-Alpha authored alternative: **Mirecrown pact vs slayer-delay**.
+Alpha route: **Mirecrown pact**. The Slayer alternative is later/gated
+until it has a genuinely competitive strategic identity.
 
 Not authored as full branches: killing the hatchling (allowed as a
 dark failure with Chronicle and no signature dragon — Extreme cost,

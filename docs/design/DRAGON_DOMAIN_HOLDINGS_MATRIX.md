@@ -97,7 +97,7 @@ the control: a human city caused by dragon *danger*, not dragon
 
 | Dimension | Identity |
 | --- | --- |
-| Dragon | **Mirecrown**, Fen Wyrm, pacted adult. Home is the river, not a stall. Alternative: slayer-delay town without the Ford verb. |
+| Dragon | **Mirecrown**, Fen Wyrm, pacted adult. Home is the river, not a stall. A later Slayer alternative could remain a town without the Ford verb; it is not an Alpha route. |
 | Ecology | Slow river, reeds, seasonal flood, spawning ground that must stay unworked. |
 | Economy | Reed fiber, pitch, barge traffic, fish weirs *outside* the spawn. Historical `gillplate` becomes reed-laminate / wet hide — rename when migrating. |
 | Architecture | Pile dwellings, rope walks, pact-stone, open water toward the coils. Not an ocean harbor fantasy. |
@@ -211,8 +211,8 @@ Ask of every future holding:
 
 - Marcher Keep: yes (frontier logistics)
 - Cinderreach: yes (timber, hunt, wild threat)
-- Brinehold: yes as a poorer river town in the slayer-delay branch;
-  the *verb* is what the pact adds
+- Brinehold: yes as a river town even without a dragon relationship;
+  the *verb* is what the Alpha pact adds. A Slayer alternative is later/gated.
 - Stonekeel: yes as a mine; Ironspine adds entrenchment
 - Galeari: yes as a watch/slayer site; Pale Passage adds intercept
 

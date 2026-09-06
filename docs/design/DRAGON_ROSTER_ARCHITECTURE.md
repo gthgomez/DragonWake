@@ -101,7 +101,7 @@ treats it as partner or tool.
 
 - **Why choose it:** it is *yours*. It is the only dragon that will be
   home at the Capital when domain dragons are elsewhere. Adaptable: can
-  learn guard, short-range escort, or later limited skirmish.
+  learn guard now, with short-range escort or limited skirmish later.
 - **Unique:** Chronicle density; player-named; growth; emotional
   visibility in Castle. No other dragon lives in the player's keep as a
   member of the household.
@@ -118,9 +118,9 @@ could fly.
 This verb works on tiles that existed since founding. It is not "+15%
 defense."
 
-Alpha may ship a reduced verb: **Home Guard** (home / away / wounded
-only, with a limited escort-adjacent march). Full Patrol can wait for
-Broadwing.
+Alpha ships a reduced verb: **Home Guard** (home / away / wounded only).
+Full Patrol, Escort, and skirmish marches can wait for Broadwing and a
+later contract pass.
 
 ### Settlement
 
@@ -148,8 +148,8 @@ tells. Not +attack.
 
 ### Equipment
 
-Light training harness first. Role change: **Yard** (home, growth, no
-march) vs **Escort** (limited away). Heavy war harness is a late Mature
+Light training harness first. Alpha role change: **Yard** (home, growth,
+no march) vs **Home Guard** (limited away). Escort is a later Mature
 question and may be refused.
 
 No identical 4-slot relic matrix.
