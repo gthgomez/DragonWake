@@ -21,7 +21,7 @@ Possible:
 - roost state (temperament, injury treatment choice, not hunger-death)
 - rumors and incomplete sightings
 - wound treatment step
-- preparation (fitting Escort vs Yard, provisioning a later march)
+- preparation (fitting Home Guard vs Yard, provisioning a later march)
 - one short observation that can move a knowledge state
 - alliance mail about a dragon absence
 
@@ -38,7 +38,7 @@ enough.
 
 ## Weekly
 
-- one major dragon deployment (signature escort, or Mirecrown
+- one major dragon deployment (signature Home Guard operation, or Mirecrown
   blockade request)
 - a hunt or wild observation in Cinderreach woods
 - a doctrine decision (who guards the roost if the hatchling is Away)

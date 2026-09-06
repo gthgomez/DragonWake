@@ -83,14 +83,14 @@ A possible vocabulary where appropriate:
 
 Harness pieces are **made** from the empire network, then fitted.
 
-Alpha path (signature only):
+Alpha path (signature only; Home Guard, not Escort):
 
 1. Roost exists.
-2. Player chooses Yard vs Escort as a *role*, not a loot roll.
-3. Escort strap costs ordinary resources plus, when Brinehold exists,
+2. Player chooses Yard vs Home Guard as a *role*, not a loot roll.
+3. Home Guard strap costs ordinary resources plus, when Brinehold exists,
    reed-rope. Until Brinehold exists, a poorer Capital-only strap
    exists so Alpha is playable.
-4. The dragon can refuse Escort if wings are cracked or temperament
+4. The dragon can refuse Home Guard if wings are cracked or temperament
    is Wary.
 
 Visible: Castle roost silhouette changes. Realm march panel shows
@@ -133,7 +133,7 @@ intelligence. `POWER 8,423,572` is not.
 | Piece | Class | Burden |
 | --- | --- | --- |
 | Philosophy + species slot table | **ALPHA REQUIRED** (docs) | LOW |
-| Signature Yard vs Escort role | **ALPHA REQUIRED** | MEDIUM |
+| Signature Yard vs Home Guard role | **ALPHA REQUIRED** | MEDIUM |
 | Visible roost/march difference | **ALPHA REQUIRED** | MEDIUM |
 | Cross-settlement craft (rope + metal) | **BETA REQUIRED** | MEDIUM |
 | Ironspine joint braces | **BETA REQUIRED** | MEDIUM |
