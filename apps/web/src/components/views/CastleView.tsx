@@ -204,6 +204,17 @@ export function CastleView({
 
       <section className="dragon-presence" data-testid="dragon-presence" aria-label="Dragon Presence">
         <div className={`dragon-presence-glyph dragon-state-${dragonPresence?.state ?? "dormant"}`}>
+          <img
+            src="/art/dragons/vale_drake/vale_drake_icon.png"
+            alt="Vale Drake Icon"
+            className="dragon-presence-avatar"
+            data-testid="dragon-presence-icon"
+            width={48}
+            height={48}
+            onError={(e) => {
+              (e.currentTarget as HTMLElement).style.display = "none";
+            }}
+          />
           <Icon name="dragon" size={32} />
         </div>
         <div className="dragon-presence-copy">
@@ -230,63 +241,93 @@ export function CastleView({
         <section className="roost-panel" data-testid="capital-roost" aria-label="Capital roost">
           <div className="eyebrow">The roost</div>
           {signature ? (
-            <>
-              <h3 data-testid="roost-name">{signature.roostEmpty ? `${signature.givenName} is away` : signature.givenName}</h3>
-              {signature.roostEmpty ? (
-                <p className="muted tiny">The roost is empty. {signature.givenName} is on the approaches (Home Guard).</p>
-              ) : (
-                <p className="muted tiny">
-                  {signature.lifeStage} · {signature.physicalState}
-                  {signature.woundId ? ` · ${String(signature.woundId).replace(/_/g, " ")}` : ""} · {signature.temperament}
-                  {signature.vaneTells ? ` · ${signature.vaneTells}` : ""}
-                </p>
-              )}
-              <p className="muted tiny">
-                Harness:{" "}
-                {signature.harness === "guard_harness"
-                  ? `Guard Harness (${signature.harnessRole === "home_guard" ? "Home Guard" : "Yard"})`
-                  : "none"}
-                {signature.lifeStage === "hatchling" ? " — a hatchling is too small for any harness" : ""}
-              </p>
-              <div className="roost-actions">
-                <button type="button" onClick={() => void observeLivingDragon?.(signature.id)}>Watch the roost</button>
-                <button type="button" onClick={() => void setDragonHarness?.(signature.id, "yard")}>Yard</button>
-                <button
-                  type="button"
-                  disabled={!homeGuardReady}
-                  title={
-                    signature.lifeStage === "hatchling"
-                      ? "A hatchling guards nothing — it cannot leave the yard."
-                      : signature.harness !== "guard_harness"
-                        ? "Craft the guard harness first."
-                        : signature.physicalState !== "healthy"
-                          ? "A wounded dragon cannot take Home Guard."
-                          : undefined
-                  }
-                  onClick={() => void setDragonHarness?.(signature.id, "home_guard")}
-                >
-                  Home Guard
-                </button>
-                {signature.lifeStage !== "hatchling" && signature.harness === "none" && (
-                  <button type="button" data-testid="craft-guard-harness" onClick={() => void craftGuardHarness?.()}>
-                    Craft guard harness (120 wood · 80 ore · 30 crownmarks)
-                  </button>
+            <div className="roost-content-layout">
+              <div className="roost-visual-card" data-testid="roost-visual-card">
+                <div className="roost-art-wrapper">
+                  <img
+                    src={
+                      signature.physicalState === "wounded"
+                        ? "/art/dragons/vale_drake/vale_drake_injured.png"
+                        : "/art/dragons/vale_drake/vale_drake_roost.png"
+                    }
+                    alt={
+                      signature.physicalState === "wounded"
+                        ? `${signature.givenName} (Injured Vale Drake)`
+                        : `${signature.givenName} (Vale Drake in Roost)`
+                    }
+                    className="roost-dragon-art"
+                    data-testid="roost-dragon-art"
+                  />
+                </div>
+                <div className="roost-art-badge">
+                  <img
+                    src="/art/dragons/vale_drake/vale_drake_portrait.png"
+                    alt="Vale Drake Portrait"
+                    className="roost-portrait-thumbnail"
+                    data-testid="roost-portrait-thumbnail"
+                    title="Vale Drake Signature Archetype"
+                  />
+                  <span className="roost-archetype-label">Vale Drake</span>
+                </div>
+              </div>
+              <div className="roost-details">
+                <h3 data-testid="roost-name">{signature.roostEmpty ? `${signature.givenName} is away` : signature.givenName}</h3>
+                {signature.roostEmpty ? (
+                  <p className="muted tiny">The roost is empty. {signature.givenName} is on the approaches (Home Guard).</p>
+                ) : (
+                  <p className="muted tiny">
+                    {signature.lifeStage} · {signature.physicalState}
+                    {signature.woundId ? ` · ${String(signature.woundId).replace(/_/g, " ")}` : ""} · {signature.temperament}
+                    {signature.vaneTells ? ` · ${signature.vaneTells}` : ""}
+                  </p>
                 )}
-                {signature.lifeStage === "hatchling" && (
-                  <button type="button" onClick={() => void growLivingDragon?.(signature.id)}>Mark first growth</button>
+                <p className="muted tiny">
+                  Harness:{" "}
+                  {signature.harness === "guard_harness"
+                    ? `Guard Harness (${signature.harnessRole === "home_guard" ? "Home Guard" : "Yard"})`
+                    : "none"}
+                  {signature.lifeStage === "hatchling" ? " — a hatchling is too small for any harness" : ""}
+                </p>
+                <div className="roost-actions">
+                  <button type="button" onClick={() => void observeLivingDragon?.(signature.id)}>Watch the roost</button>
+                  <button type="button" onClick={() => void setDragonHarness?.(signature.id, "yard")}>Yard</button>
+                  <button
+                    type="button"
+                    disabled={!homeGuardReady}
+                    title={
+                      signature.lifeStage === "hatchling"
+                        ? "A hatchling guards nothing — it cannot leave the yard."
+                        : signature.harness !== "guard_harness"
+                          ? "Craft the guard harness first."
+                          : signature.physicalState !== "healthy"
+                            ? "A wounded dragon cannot take Home Guard."
+                            : undefined
+                    }
+                    onClick={() => void setDragonHarness?.(signature.id, "home_guard")}
+                  >
+                    Home Guard
+                  </button>
+                  {signature.lifeStage !== "hatchling" && signature.harness === "none" && (
+                    <button type="button" data-testid="craft-guard-harness" onClick={() => void craftGuardHarness?.()}>
+                      Craft guard harness (120 wood · 80 ore · 30 crownmarks)
+                    </button>
+                  )}
+                  {signature.lifeStage === "hatchling" && (
+                    <button type="button" onClick={() => void growLivingDragon?.(signature.id)}>Mark first growth</button>
+                  )}
+                </div>
+                {signature.chronicle?.length > 0 && (
+                  <div className="chronicle" data-testid="dragon-chronicle">
+                    <strong>Chronicle</strong>
+                    <ul>
+                      {signature.chronicle.slice(-8).reverse().map((ev: any) => (
+                        <li key={ev.id}>{ev.summary}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
-              {signature.chronicle?.length > 0 && (
-                <div className="chronicle" data-testid="dragon-chronicle">
-                  <strong>Chronicle</strong>
-                  <ul>
-                    {signature.chronicle.slice(-8).reverse().map((ev: any) => (
-                      <li key={ev.id}>{ev.summary}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
+            </div>
           ) : livingDragons?.clutchAvailable ? (
             <form
               onSubmit={(e) => {
