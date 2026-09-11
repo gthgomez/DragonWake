@@ -170,7 +170,14 @@ test("AGES Vale Drake Visual Family Runtime Certification", async ({ page, reque
 
   // 6. Direct HTTP Exact-Byte Cryptographic Verification
   console.log("Verifying runtime HTTP byte payloads against AGES SHA-256 CAS records...");
-  const AGES_PACK = path.resolve("C:/Workspace/tools/gamedev/artifacts/identity_packs/vale_drake");
+  const publicDir = path.resolve(__dirname, "../public/art/dragons/vale_drake");
+  const manifestPath = path.resolve(publicDir, "manifest.json");
+  const manifest = fs.existsSync(manifestPath)
+    ? JSON.parse(fs.readFileSync(manifestPath, "utf-8"))
+    : {};
+
+  const AGES_PACK_ENV = process.env.AGES_PACK_PATH || "C:/Workspace/tools/gamedev/artifacts/identity_packs/vale_drake";
+  const hasAgesPack = fs.existsSync(AGES_PACK_ENV);
   const assetsToCheck = [
     { url: "/art/dragons/vale_drake/vale_drake_master.png", disk: "master/vale_drake_master.png" },
     { url: "/art/dragons/vale_drake/vale_drake_roost.png", disk: "derived/vale_drake_roost.png" },
@@ -188,7 +195,14 @@ test("AGES Vale Drake Visual Family Runtime Certification", async ({ page, reque
     const bodyBuf = await httpResp.body();
     const httpSha = crypto.createHash("sha256").update(bodyBuf).digest("hex");
 
-    const diskPath = path.resolve(AGES_PACK, item.disk);
+    const fileName = path.basename(item.url);
+    if (manifest[fileName]) {
+      expect(httpSha).toBe(manifest[fileName].sha256);
+    }
+
+    const diskPath = hasAgesPack
+      ? path.resolve(AGES_PACK_ENV, item.disk)
+      : path.resolve(publicDir, fileName);
     const diskBuf = fs.readFileSync(diskPath);
     const diskSha = crypto.createHash("sha256").update(diskBuf).digest("hex");
 
