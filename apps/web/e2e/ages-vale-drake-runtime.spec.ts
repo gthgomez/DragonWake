@@ -170,7 +170,9 @@ test("AGES Vale Drake Visual Family Runtime Certification", async ({ page, reque
 
   // 6. Direct HTTP Exact-Byte Cryptographic Verification
   console.log("Verifying runtime HTTP byte payloads against AGES SHA-256 CAS records...");
-  const publicDir = path.resolve(__dirname, "../public/art/dragons/vale_drake");
+  const publicDir = fs.existsSync(path.resolve("public/art/dragons/vale_drake"))
+    ? path.resolve("public/art/dragons/vale_drake")
+    : path.resolve("apps/web/public/art/dragons/vale_drake");
   const manifestPath = path.resolve(publicDir, "manifest.json");
   const manifest = fs.existsSync(manifestPath)
     ? JSON.parse(fs.readFileSync(manifestPath, "utf-8"))
