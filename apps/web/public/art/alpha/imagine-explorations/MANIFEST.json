@@ -118,6 +118,71 @@
       "height": 594,
       "sha256": "6237f9ef380ac70905431475098d87863b1af9e1e1a451399c8dc7faff8899e6",
       "note": "Roost wyrm wounded"
+    },
+    {
+      "file": "dragons/rimehide-wyrm.png",
+      "source": "31.jpg",
+      "width": 1367,
+      "height": 747,
+      "sha256": "f98515b7802e256b240903bc0aecd7b7dcf35d66f53d989f3596ff702bb1cf0f",
+      "note": "Rimehide Wyrm \u2014 highland frost ecology"
+    },
+    {
+      "file": "dragons/sootmaw-drake.png",
+      "source": "30.jpg",
+      "width": 1366,
+      "height": 745,
+      "sha256": "f46de0995e525db2d91ad73dbc8751e97e5a36e765182407be611acb62c0a310",
+      "note": "Sootmaw Drake \u2014 night/ash hunter"
+    },
+    {
+      "file": "dragons/ash-drake.png",
+      "source": "33.jpg",
+      "width": 1366,
+      "height": 745,
+      "sha256": "aa91b57d5c9a4529fcb9082e63c2a238d9ccf46edf544abfc27d7dd425b6ec5c",
+      "note": "Ash Drake \u2014 cinder-scarred wild slot"
+    },
+    {
+      "file": "dragons/ironback-wyrm.png",
+      "source": "32.jpg",
+      "width": 1369,
+      "height": 748,
+      "sha256": "b785a2b0c2eaea44d0537cc8f8c826277552f3fe187b262d53e7021a467451f2",
+      "note": "Ironback Wyrm \u2014 armored highland"
+    },
+    {
+      "file": "dragons/ridgeback-wyvern.png",
+      "source": "35.jpg",
+      "width": 1367,
+      "height": 748,
+      "sha256": "eedee6a1f7e13d84ffd2548860ea83d399b44e14aef34f4c22cedd12aa402631",
+      "note": "Ridgeback Wyvern \u2014 storm-slate ridge hunter"
+    },
+    {
+      "file": "dragons/mirecrown-wyrm.png",
+      "source": "37.jpg",
+      "width": 1366,
+      "height": 744,
+      "sha256": "d62a0fb5dc663f9ec12ad161ace75d5ed952d246b937ac8b1304c7c256cb4cb5",
+      "note": "Mirecrown \u2014 fen/silt domain study"
+    },
+    {
+      "file": "dragons/wakeclutch-hatchling.png",
+      "source": "38.jpg",
+      "width": 1259,
+      "height": 588,
+      "sha256": "0a3937ac06b9d8e8d58c97e27d139f470c31dad4b61cebd81cc01867e1cac5aa",
+      "note": "Wake-clutch hatchling of the roost species"
+    },
+    {
+      "file": "plates/roost-presence.png",
+      "source": "36.jpg",
+      "width": 1280,
+      "height": 720,
+      "sha256": "2417332e2ecbecc13ee53bc91d895653b93531e5a4cfa0f580d08c4fb70a9c60",
+      "note": "16:9 roost presence plate from AlphaDesign"
     }
-  ]
+  ],
+  "species_studies": "dragons/* named as wild ecology, not a chromatic roster"
 }
