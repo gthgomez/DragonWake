@@ -1,0 +1,188 @@
+{
+  "status": "ALPHA_TEST_CANDIDATES",
+  "vision_locked": false,
+  "style_lock": "docs/design/reference-art/DragonWake-AlphaDesign.png",
+  "provider": "grok-imagine image_edit",
+  "date": "2026-09-12",
+  "vale_drake_untouched": true,
+  "wired_into": "CityGrid via alphaBuildings.ts with SVG glyph fallback",
+  "files": [
+    {
+      "file": "buildings/bld-keep.png",
+      "source": "22.jpg",
+      "width": 811,
+      "height": 590,
+      "sha256": "3bf1861bac883f600dbce080eed7dfd90e6244ca3e06484431822a8dc485b1ca",
+      "note": "Keep / Forge-Heart"
+    },
+    {
+      "file": "buildings/bld-barracks.png",
+      "source": "23.jpg",
+      "width": 975,
+      "height": 672,
+      "sha256": "69cbc7c46947f94c10504f152f58e13d50cc2a2a75bcd2ca91704fa5e0cf7967",
+      "note": "Barracks"
+    },
+    {
+      "file": "buildings/bld-scriptorium.png",
+      "source": "24.jpg",
+      "width": 1071,
+      "height": 649,
+      "sha256": "7eb14025414e5d1217fcc8c7123f4f367070b63dd4329c63a6e07b44dba6f4d0",
+      "note": "Scriptorium"
+    },
+    {
+      "file": "buildings/bld-muster-yard.png",
+      "source": "25.jpg",
+      "width": 947,
+      "height": 662,
+      "sha256": "cacd3d38febd741df0d0291ff0bdc3cb5ebfe2ebbc1cc080e65a173926fc0cff",
+      "note": "Muster Yard"
+    },
+    {
+      "file": "buildings/bld-commanders-hall.png",
+      "source": "26.jpg",
+      "width": 955,
+      "height": 654,
+      "sha256": "00b8f1bfff7ad6f9a0f1b5a555bbdfc7f5c0b48f2a844be695238d8b3e2c371d",
+      "note": "Commanders' Hall"
+    },
+    {
+      "file": "buildings/bld-watchtower.png",
+      "source": "27.jpg",
+      "width": 547,
+      "height": 689,
+      "sha256": "610d1067afe4f292fc2ea20e8b6135f8d0b09ac6fabf79f77ffb701f498be669",
+      "note": "Watchtower"
+    },
+    {
+      "file": "buildings/bld-storehouse.png",
+      "source": "28.jpg",
+      "width": 795,
+      "height": 599,
+      "sha256": "4010145fef73bcda40618ea010c9123cdb9e1fad6f91cca45e626cd657feec0d",
+      "note": "Storehouse"
+    },
+    {
+      "file": "buildings/bld-training-camp.png",
+      "source": "29.jpg",
+      "width": 977,
+      "height": 598,
+      "sha256": "68b2b2311cfa21bbcbf5fd9928179c282e1bc3edda01bdb5da0c168b6c601a95",
+      "note": "Training Camp"
+    },
+    {
+      "file": "buildings/bld-dragon-watch.png",
+      "source": "16.jpg",
+      "width": 957,
+      "height": 677,
+      "sha256": "3e172177bbef9f4a12cbbd84edbc978d4a72b7b8734f214b1044061d95f5b936",
+      "note": "Dragon Watch roost tower"
+    },
+    {
+      "file": "buildings/bld-forge.png",
+      "source": "18.jpg",
+      "width": 871,
+      "height": 684,
+      "sha256": "f2fad23058deee27c516f01f6ae962f6e39143af7c01382e9384ad181b40583f",
+      "note": "Smithy / forge-hearth"
+    },
+    {
+      "file": "buildings/bld-homes.png",
+      "source": "19.jpg",
+      "width": 1080,
+      "height": 578,
+      "sha256": "846fa352618e079c560bc67d200446fc644024e77b351774e88c08920234eb4d",
+      "note": "Homes"
+    },
+    {
+      "file": "buildings/bld-walls.png",
+      "source": "20.jpg",
+      "width": 661,
+      "height": 571,
+      "sha256": "dba5415576f4205535b15377d34e91426d694a858c0083829127b8c4de001a00",
+      "note": "Walls"
+    },
+    {
+      "file": "dragons/wyrm-roost-perch.png",
+      "source": "17.jpg",
+      "width": 1195,
+      "height": 653,
+      "sha256": "cf3156de8f93ea6c3d5316a6d220da5850d53e72b9d51036f8b5b54057cb5450",
+      "note": "Roost wyrm perch"
+    },
+    {
+      "file": "dragons/wyrm-roost-wounded.png",
+      "source": "21.jpg",
+      "width": 1184,
+      "height": 594,
+      "sha256": "6237f9ef380ac70905431475098d87863b1af9e1e1a451399c8dc7faff8899e6",
+      "note": "Roost wyrm wounded"
+    },
+    {
+      "file": "dragons/rimehide-wyrm.png",
+      "source": "31.jpg",
+      "width": 1367,
+      "height": 747,
+      "sha256": "f98515b7802e256b240903bc0aecd7b7dcf35d66f53d989f3596ff702bb1cf0f",
+      "note": "Rimehide Wyrm \u2014 highland frost ecology"
+    },
+    {
+      "file": "dragons/sootmaw-drake.png",
+      "source": "30.jpg",
+      "width": 1366,
+      "height": 745,
+      "sha256": "f46de0995e525db2d91ad73dbc8751e97e5a36e765182407be611acb62c0a310",
+      "note": "Sootmaw Drake \u2014 night/ash hunter"
+    },
+    {
+      "file": "dragons/ash-drake.png",
+      "source": "33.jpg",
+      "width": 1366,
+      "height": 745,
+      "sha256": "aa91b57d5c9a4529fcb9082e63c2a238d9ccf46edf544abfc27d7dd425b6ec5c",
+      "note": "Ash Drake \u2014 cinder-scarred wild slot"
+    },
+    {
+      "file": "dragons/ironback-wyrm.png",
+      "source": "32.jpg",
+      "width": 1369,
+      "height": 748,
+      "sha256": "b785a2b0c2eaea44d0537cc8f8c826277552f3fe187b262d53e7021a467451f2",
+      "note": "Ironback Wyrm \u2014 armored highland"
+    },
+    {
+      "file": "dragons/ridgeback-wyvern.png",
+      "source": "35.jpg",
+      "width": 1367,
+      "height": 748,
+      "sha256": "eedee6a1f7e13d84ffd2548860ea83d399b44e14aef34f4c22cedd12aa402631",
+      "note": "Ridgeback Wyvern \u2014 storm-slate ridge hunter"
+    },
+    {
+      "file": "dragons/mirecrown-wyrm.png",
+      "source": "37.jpg",
+      "width": 1366,
+      "height": 744,
+      "sha256": "d62a0fb5dc663f9ec12ad161ace75d5ed952d246b937ac8b1304c7c256cb4cb5",
+      "note": "Mirecrown \u2014 fen/silt domain study"
+    },
+    {
+      "file": "dragons/wakeclutch-hatchling.png",
+      "source": "38.jpg",
+      "width": 1259,
+      "height": 588,
+      "sha256": "0a3937ac06b9d8e8d58c97e27d139f470c31dad4b61cebd81cc01867e1cac5aa",
+      "note": "Wake-clutch hatchling of the roost species"
+    },
+    {
+      "file": "plates/roost-presence.png",
+      "source": "36.jpg",
+      "width": 1280,
+      "height": 720,
+      "sha256": "2417332e2ecbecc13ee53bc91d895653b93531e5a4cfa0f580d08c4fb70a9c60",
+      "note": "16:9 roost presence plate from AlphaDesign"
+    }
+  ],
+  "species_studies": "dragons/* named as wild ecology, not a chromatic roster"
+}
