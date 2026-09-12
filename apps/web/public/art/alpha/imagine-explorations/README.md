@@ -8,6 +8,16 @@ Style lock: `docs/design/reference-art/DragonWake-AlphaDesign.png` (PR #12).
 
 HUD from the mockup is **not** recreated.
 
+Buildings grow in three visual tiers (CLOSED_MOCKUP_V1):
+
+| Levels | Tier | Files |
+|---|---|---|
+| 1–3 | stone | `bld-*.png` |
+| 4–6 | bronze / reinforced | `bld-*-bronze.png` |
+| 7–10 | gold / lordly | `bld-*-gold.png` |
+
+CityGrid swaps the raster by building level and scales the sprite up a little at bronze/gold.
+
 | File | Building id |
 |---|---|
 | `buildings/bld-keep.png` | `forge_heart` |

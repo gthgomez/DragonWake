@@ -273,13 +273,18 @@ function BuildingArt({
   level: number;
   variant?: "plot" | "thumb";
 }) {
-  const src = alphaBuildingSrc(type);
+  const src = alphaBuildingSrc(type, level);
   const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
   if (src && !failed) {
     return (
       <span
         className={
-          variant === "thumb" ? "city-art-thumb" : "city-sprite city-sprite-art"
+          variant === "thumb"
+            ? `city-art-thumb city-tier-${tierOf(level)}`
+            : `city-sprite city-sprite-art city-tier-${tierOf(level)}`
         }
         aria-hidden="true"
       >
