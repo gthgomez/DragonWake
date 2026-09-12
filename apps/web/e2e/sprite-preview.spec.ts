@@ -71,6 +71,9 @@ test.describe("Sprite Preview & Runtime Verification Suite", () => {
   });
 
   test("Test B: Real Vale Drake preview certification and kinematic evaluation", async ({ page }) => {
+    const previewCurrentPath = path.resolve(__dirname, "../.preview-assets/current.json");
+    test.skip(!fs.existsSync(previewCurrentPath), "Skipping real asset preview certification: .preview-assets/current.json not present in this environment.");
+
     const consoleErrors: string[] = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") {
