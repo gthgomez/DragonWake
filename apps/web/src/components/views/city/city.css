@@ -195,6 +195,14 @@
   filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.62));
 }
 
+.city-sprite-art.city-tier-bronze {
+  width: 140%;
+}
+
+.city-sprite-art.city-tier-gold {
+  width: 154%;
+}
+
 .city-sprite-art img {
   display: block;
   width: 100%;
