@@ -1,19 +1,26 @@
 # Imagine explorations — locked to AlphaDesign.png
 
-Status: **CANDIDATES ONLY**. Vision not locked. Vale Drake production files untouched.
+Status: **ALPHA TEST CANDIDATES**. Vision not locked. Vale Drake production
+files untouched. Wired into Castle `CityGrid` with SVG glyph fallback
+(`src/lib/alphaBuildings.ts`).
 
-Style lock: `docs/design/reference-art/DragonWake-AlphaDesign.png`
-(DragonWake PR #12 / commit `1aa752b`). Extracted with Grok Imagine `image_edit`.
+Style lock: `docs/design/reference-art/DragonWake-AlphaDesign.png` (PR #12).
 
-HUD from the mockup is **not** recreated (text/layout stay in the live CSS UI).
+HUD from the mockup is **not** recreated.
 
-| File | What |
+| File | Building id |
 |---|---|
-| `dragons/wyrm-roost-perch.png` | Green-gold roost wyrm, isolated |
-| `dragons/wyrm-roost-wounded.png` | Same dragon, wounded pose |
-| `buildings/bld-dragon-watch.png` | Circular roost tower |
-| `buildings/bld-homes.png` | Timber cottages |
-| `buildings/bld-forge.png` | Forge-hearth |
-| `buildings/bld-walls.png` | Crenellated wall |
-
-Earlier CSS-grid city-master and grey stone-wyrms are superseded as a style mismatch vs this painting.
+| `buildings/bld-keep.png` | `forge_heart` |
+| `buildings/bld-homes.png` | `habitation` |
+| `buildings/bld-barracks.png` | `barracks` |
+| `buildings/bld-scriptorium.png` | `archive_spire` |
+| `buildings/bld-muster-yard.png` | `rally_quay` |
+| `buildings/bld-commanders-hall.png` | `command_gallery` |
+| `buildings/bld-watchtower.png` | `lookout` |
+| `buildings/bld-dragon-watch.png` | `skyreost` |
+| `buildings/bld-storehouse.png` | `saltvault` |
+| `buildings/bld-training-camp.png` | `training_camp` |
+| `buildings/bld-walls.png` | `seawall` |
+| `buildings/bld-forge.png` | `gearfoundry` |
+| `dragons/wyrm-roost-perch.png` | roost study |
+| `dragons/wyrm-roost-wounded.png` | roost study |
