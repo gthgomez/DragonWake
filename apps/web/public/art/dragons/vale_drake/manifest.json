@@ -1,0 +1,34 @@
+{
+  "vale_drake_master.png": {
+    "sha256": "46923e09ae4ffbba12dcb021424076ed56bb58931fdfb0d836c8237c860a0ded",
+    "size_bytes": 1023450
+  },
+  "vale_drake_roost.png": {
+    "sha256": "da75d8d6db7f9f724a7010b4a7e7b881c5d7a07ee4da967f48ad4af888d94e18",
+    "size_bytes": 1123980
+  },
+  "vale_drake_portrait.png": {
+    "sha256": "af99648cbb63ec5134ea3f3d652043d886838ddd65d1bcea521b5a98f791d723",
+    "size_bytes": 920829
+  },
+  "vale_drake_icon.png": {
+    "sha256": "c9c89a64b98a41d71c6b9601fdb0cc96146f86a6ca13df7b31f69fdabfb3931f",
+    "size_bytes": 1131453
+  },
+  "vale_drake_token.png": {
+    "sha256": "9b130e102a85cd1640c3fcdd9b7afd05965e3b9c3ba744812eb6af7d06db679e",
+    "size_bytes": 958671
+  },
+  "vale_drake_injured.png": {
+    "sha256": "74c454e3b2557136edcb2b7b41b1041bec26e482636f78513d8d1f5ffd05c46b",
+    "size_bytes": 1014726
+  },
+  "sprite/atlas.png": {
+    "sha256": "f2f0e66ac4425b28a60d82353b03631593b1e11743f714b418727fd58bf09ae8",
+    "size_bytes": 2238802
+  },
+  "sprite/sprite.runtime.json": {
+    "sha256": "86446df7bcd75c660e94e17758f614685b28f0781b8043c3b104ab73f8932163",
+    "size_bytes": 9430
+  }
+}

@@ -1,5 +1,59 @@
 # Dragon-Driven Alpha Closure Report
 
+## 2026-09-05 — Vision Council Round 4 implementation (truthful loop)
+
+Implements the five binding deltas from
+[`docs/design/DRAGON_VISION_COUNCIL_V1.md`](../docs/design/DRAGON_VISION_COUNCIL_V1.md)
+(Round 4). Supersedes the implementation notes below wherever they
+conflict (the Scar no longer uses the combat resolver; knowledge is no
+longer a counter; hatchlings are never wounded by a role click; the pact
+now costs the spawning bank).
+
+- **Scar (Q A):** authored `resolveDragonTerritoryEncounter` — the dragon
+  is not a unit; three observed beats (Wing Rush / Vane Dive / Breaking
+  Pressure) punish composition (unanchored melee, uncovered bowmen, thin
+  lines); outcomes SURVIVED / DRIVEN_BACK / ROUTED; DRIVEN_BACK/ROUTED
+  keep stage 4 retryable; the adult always breaks off and survives as a
+  world fact ("flew east over the Marches"); report names which behavior
+  punished which choice. Pure truth table pinned in `living.test.ts`.
+- **Research (Q B):** knowledge is field notes — `EvidenceRecord`
+  `{kind, source, summary, worldSourced}`; SUPPORTED requires ≥2 distinct
+  kinds incl. one world-sourced; same-kind repeats accumulate notes and
+  never advance; CODIFY is the only road to PROVEN; Vane Reading tell is
+  also observed from the Scar ridge (stage 3); growth gates on SUPPORTED
+  vane knowledge, not an observe counter.
+- **Harness (Q C):** Home Guard on a hatchling is refused ("it cannot
+  leave the yard yet") — no wound, ever, from a role click; the **Guard
+  Harness** (120 wood · 80 ore · 30 crownmarks) is crafted at wyrmling and
+  gates Home Guard; Home Guard degrades enemy capital intel (roost state
+  "could not be confirmed" — hides, never lies).
+- **Fen Crossing (Q D):** pre-existing `map_features` world feature,
+  CONTESTED when the rivalry begins; **Survey** grants world-sourced
+  scouting evidence; **Yield the Spawning Bank** (requires supported silt)
+  makes the crossing SANCTUARY — permanently, and its tile is forbidden to
+  wilderness claims in both states; pact requires sanctuary + codified
+  ford signaling; the verb carries `terms: spawning_bank_yielded`.
+- **Ford/Blockade (Q E):** verb tile is now the pre-existing Fen Crossing
+  (no `adjacentOpen` at pact time); station/absence semantics unchanged.
+- **Persistence:** `map_features` table (schema.sql + pg migration step
+  13); knowledge evidence, crossing state, and stationed-verb reload are
+  proven in `pg-persist.test.ts`.
+- **UI:** staged negotiation panel (observe → survey → yield → pact),
+  field-notes research surface (state words + notes, no counters/fractions),
+  harness status + craft button, dragon-encounter report rendering with
+  behavior lines, scar button marches the marshalled company.
+- **Verification:** server suite **203/203** with `REQUIRE_PG=1`; combat
+  20/20; all package typechecks + web build green; Playwright **12/12**
+  including the extended journey (anchored Scar survival → charter →
+  naming → survey → yield → codify → sanctuary pact → station → the
+  hatchling remains).
+- **Certification:** still withheld. `DRAGON_DRIVEN_ALPHA_CERTIFIED`
+  additionally requires the human
+  [`ALPHA_GAME_FEEL_GATE.md`](../docs/design/ALPHA_GAME_FEEL_GATE.md)
+  co-gate, per Council Round 10.D.
+
+---
+
 ## Git state
 
 | Item | Value |

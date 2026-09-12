@@ -115,6 +115,7 @@ export const adminGrantSchema = z.object({
     })
     .optional(),
   bestiaryEncounters: z.record(z.string(), z.number()).optional(),
+  dragonState: z.enum(["healthy", "wounded"]).optional(),
 });
 
 export type ParseOk<T> = { ok: true; data: T };

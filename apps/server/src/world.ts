@@ -3510,6 +3510,7 @@ export class World {
       };
       /** Dev/test fixture: add bestiary encounters without battles. */
       bestiaryEncounters?: Record<string, number>;
+      dragonState?: "healthy" | "wounded";
     },
   ): void {
     const player = this.players.get(playerId);
@@ -3584,6 +3585,25 @@ export class World {
         body.bestiaryEncounters,
       )) {
         this.updateBestiary(playerId, entryId, Number(count) || 0);
+      }
+    }
+    if (body.dragonState) {
+      const d = [...this.dragonIndividuals.values()].find(
+        (x) => x.ownerPlayerId === playerId && x.kind === "signature",
+      );
+      if (d) {
+        d.physicalState = body.dragonState;
+        if (body.dragonState === "wounded") {
+          d.woundId = "strained_vane";
+          d.woundUntil = this.now() + 3600000;
+          d.locationKind = "recovering";
+        } else {
+          d.woundId = null;
+          d.woundUntil = null;
+          d.locationKind = "roost";
+        }
+        this.dragonIndividuals.set(d.id, d);
+        this.dirty.dragons.add(d.id);
       }
     }
   }
