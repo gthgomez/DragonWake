@@ -3,6 +3,7 @@ import type { ReactElement, ReactNode } from "react";
 
 import "./city.css";
 
+import { alphaBuildingSrc } from "../../../lib/alphaBuildings";
 import { canAfford, fmtEta, fmtNum } from "../../../lib/format";
 import { buildingDef, buildingName, type BuildingLite } from "../../../lib/labels";
 import type { City, QueueJob } from "../../../lib/types";
@@ -263,6 +264,50 @@ function BuildingGlyph({ type, level }: { type: string; level: number }) {
   return <Glyph level={level} />;
 }
 
+function BuildingArt({
+  type,
+  level,
+  variant = "plot",
+}: {
+  type: string;
+  level: number;
+  variant?: "plot" | "thumb";
+}) {
+  const src = alphaBuildingSrc(type);
+  const [failed, setFailed] = useState(false);
+  if (src && !failed) {
+    return (
+      <span
+        className={
+          variant === "thumb" ? "city-art-thumb" : "city-sprite city-sprite-art"
+        }
+        aria-hidden="true"
+      >
+        <img
+          src={src}
+          alt=""
+          draggable={false}
+          onError={() => setFailed(true)}
+        />
+      </span>
+    );
+  }
+  if (variant === "thumb") {
+    return (
+      <span className={`city-detail-glyph city-tier-${tierOf(level)}`} aria-hidden="true">
+        <BuildingGlyph type={type} level={level} />
+      </span>
+    );
+  }
+  return (
+    <span className={`city-sprite city-tier-${tierOf(level)}`} aria-hidden="true">
+      <span className="city-sprite-inner">
+        <BuildingGlyph type={type} level={level} />
+      </span>
+    </span>
+  );
+}
+
 /** Small icon shown next to a build option / cost line. */
 function CostIcon({ name }: { name: IconName }) {
   return <Icon name={name} size={14} />;
@@ -403,17 +448,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                 >
                   <span className="city-ground" aria-hidden="true" />
                   {b && (
-                    <span
-                      className={`city-sprite city-tier-${tierOf(b.level)}`}
-                      aria-hidden="true"
-                    >
-                      <span className="city-sprite-inner">
-                        <BuildingGlyph
-                          type={b.buildingType}
-                          level={b.level}
-                        />
-                      </span>
-                    </span>
+                    <BuildingArt type={b.buildingType} level={b.level} />
                   )}
                   {job && (
                     <span
@@ -453,12 +488,11 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
         {selected ? (
           <div className="city-detail-body">
             <header className="city-detail-head">
-              <span
-                className={`city-detail-glyph city-tier-${tierOf(selected.level)}`}
-                aria-hidden="true"
-              >
-                <BuildingGlyph type={selected.buildingType} level={selected.level} />
-              </span>
+              <BuildingArt
+                type={selected.buildingType}
+                level={selected.level}
+                variant="thumb"
+              />
               <div>
                 <h4>{buildingName(selected.buildingType)}</h4>
                 <p className="muted tiny">
@@ -600,6 +634,14 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                     onClick={() => void doBuild(def.id, buildSlot)}
                     title={def.purpose}
                   >
+                    {alphaBuildingSrc(def.id) ? (
+                      <img
+                        className="city-pick-art"
+                        src={alphaBuildingSrc(def.id)}
+                        alt=""
+                        draggable={false}
+                      />
+                    ) : null}
                     <span className="city-pick-name">{def.name}</span>
                     <CostRow cost={cost} have={city.resources as unknown as Record<string, number>} />
                     <span className="muted tiny">
