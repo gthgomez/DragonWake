@@ -22,5 +22,13 @@
   "vale_drake_injured.png": {
     "sha256": "74c454e3b2557136edcb2b7b41b1041bec26e482636f78513d8d1f5ffd05c46b",
     "size_bytes": 1014726
+  },
+  "sprite/atlas.png": {
+    "sha256": "f2f0e66ac4425b28a60d82353b03631593b1e11743f714b418727fd58bf09ae8",
+    "size_bytes": 2238802
+  },
+  "sprite/sprite.runtime.json": {
+    "sha256": "86446df7bcd75c660e94e17758f614685b28f0781b8043c3b104ab73f8932163",
+    "size_bytes": 9430
   }
 }
