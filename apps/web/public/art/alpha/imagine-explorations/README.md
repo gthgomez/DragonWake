@@ -22,5 +22,15 @@ HUD from the mockup is **not** recreated.
 | `buildings/bld-training-camp.png` | `training_camp` |
 | `buildings/bld-walls.png` | `seawall` |
 | `buildings/bld-forge.png` | `gearfoundry` |
-| `dragons/wyrm-roost-perch.png` | roost study |
-| `dragons/wyrm-roost-wounded.png` | roost study |
+| `dragons/wyrm-roost-perch.png` | roost adult (style lock) |
+| `dragons/wyrm-roost-wounded.png` | roost wounded |
+| `dragons/wakeclutch-hatchling.png` | Wake-clutch hatchling |
+| `dragons/rimehide-wyrm.png` | highland frost ecology |
+| `dragons/sootmaw-drake.png` | night hunter |
+| `dragons/ash-drake.png` | cinder-scarred (wild list) |
+| `dragons/ironback-wyrm.png` | armored highland (wild list) |
+| `dragons/ridgeback-wyvern.png` | storm-slate ridge (wild list) |
+| `dragons/mirecrown-wyrm.png` | fen domain study |
+| `plates/roost-presence.png` | 16:9 Castle presence plate |
+
+Species names and canon mapping: `dragons/SPECIES.md`. Not a fire/ice/earth/wind roster.
