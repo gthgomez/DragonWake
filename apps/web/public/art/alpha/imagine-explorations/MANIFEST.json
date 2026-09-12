@@ -1,0 +1,59 @@
+{
+  "status": "CANDIDATES_ONLY",
+  "vision_locked": false,
+  "style_lock": "docs/design/reference-art/DragonWake-AlphaDesign.png (1aa752b / PR #12)",
+  "provider": "grok-imagine image_edit",
+  "date": "2026-09-12",
+  "vale_drake_untouched": true,
+  "files": [
+    {
+      "file": "dragons/wyrm-roost-perch.png",
+      "source": "17.jpg",
+      "w": 1280,
+      "h": 720,
+      "sha256": "18b1ae57054c526f477cbbc547a67470ec49361b1db0d060a4e8cabf5171f759",
+      "note": "Green-gold roost wyrm isolated from AlphaDesign.png"
+    },
+    {
+      "file": "dragons/wyrm-roost-wounded.png",
+      "source": "21.jpg",
+      "w": 1280,
+      "h": 720,
+      "sha256": "61d2e97062f7ec3cc26bed31b4dcb64751f2b23bc29df4eaafa9d292d3a58650",
+      "note": "Same dragon, wounded pose, edit-chained"
+    },
+    {
+      "file": "buildings/bld-dragon-watch.png",
+      "source": "16.jpg",
+      "w": 1280,
+      "h": 720,
+      "sha256": "fa779f2cd83ea7ba6b5d4122c7ccee2f4ddf53b609ffc1e7cfae01566c429873",
+      "note": "Circular roost tower from AlphaDesign"
+    },
+    {
+      "file": "buildings/bld-homes.png",
+      "source": "19.jpg",
+      "w": 1280,
+      "h": 720,
+      "sha256": "edd9575b6dd2c37e5f4e859a8bfbce254f14a242442fff61b39a813ca9d12787",
+      "note": "Timber cottages from AlphaDesign lower town"
+    },
+    {
+      "file": "buildings/bld-forge.png",
+      "source": "18.jpg",
+      "w": 1280,
+      "h": 720,
+      "sha256": "06affe1a20e8929fa737de26214ec92c62c15a28bef131a2ccf7906a3f4b86d9",
+      "note": "Forge-hearth from AlphaDesign mid-city"
+    },
+    {
+      "file": "buildings/bld-walls.png",
+      "source": "20.jpg",
+      "w": 1280,
+      "h": 720,
+      "sha256": "4764710898920bc73eb4596ed78c697ca81932aae62d1a3e6946a2c74a21821b",
+      "note": "Crenellated wall section from AlphaDesign"
+    }
+  ],
+  "supersedes": "Earlier CSS-grid city-master pack; grey stone-wyrms discarded as style mismatch vs AlphaDesign"
+}
