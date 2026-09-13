@@ -3,7 +3,11 @@ import type { ReactElement, ReactNode } from "react";
 
 import "./city.css";
 
-import { alphaBuildingSrc } from "../../../lib/alphaBuildings";
+import {
+  alphaBuildingArtEnabled,
+  alphaBuildingSrc,
+  artTierOf as tierOf,
+} from "../../../lib/alphaBuildings";
 import { canAfford, fmtEta, fmtNum } from "../../../lib/format";
 import { buildingDef, buildingName, type BuildingLite } from "../../../lib/labels";
 import type { City, QueueJob } from "../../../lib/types";
@@ -11,7 +15,6 @@ import type { IconName } from "../../../ui/icons";
 import { Icon } from "../../../ui/icons";
 
 type Building = City["buildings"][number];
-type Tier = "stone" | "bronze" | "gold";
 
 type CityGridProps = {
   city: City;
@@ -56,13 +59,6 @@ function effectLine(id: string, level: number): string {
     default:
       return "";
   }
-}
-
-/** Level bands visualized as roof/banner tiers: stone -> bronze -> gold. */
-function tierOf(level: number): Tier {
-  if (level >= 7) return "gold";
-  if (level >= 4) return "bronze";
-  return "stone";
 }
 
 /** Stacked plinth steps under each building grow with level. */
@@ -273,7 +269,7 @@ function BuildingArt({
   level: number;
   variant?: "plot" | "thumb";
 }) {
-  const src = alphaBuildingSrc(type, level);
+  const src = alphaBuildingArtEnabled() ? alphaBuildingSrc(type, level) : undefined;
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     setFailed(false);
@@ -288,12 +284,19 @@ function BuildingArt({
         }
         aria-hidden="true"
       >
-        <img
-          src={src}
-          alt=""
-          draggable={false}
-          onError={() => setFailed(true)}
-        />
+        <span className="city-sprite-inner">
+          {/* CSS sizes the raster; width/height reserve the square plot box. */}
+          <img
+            src={src}
+            alt=""
+            width={128}
+            height={128}
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+            onError={() => setFailed(true)}
+          />
+        </span>
       </span>
     );
   }
@@ -630,6 +633,9 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                   city.resources,
                   cost,
                 );
+                const artSrc = alphaBuildingArtEnabled()
+                  ? alphaBuildingSrc(def.id)
+                  : undefined;
                 return (
                   <button
                     key={def.id}
@@ -639,11 +645,15 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                     onClick={() => void doBuild(def.id, buildSlot)}
                     title={def.purpose}
                   >
-                    {alphaBuildingSrc(def.id) ? (
+                    {artSrc ? (
                       <img
                         className="city-pick-art"
-                        src={alphaBuildingSrc(def.id)}
+                        src={artSrc}
                         alt=""
+                        width={42}
+                        height={42}
+                        loading="lazy"
+                        decoding="async"
                         draggable={false}
                       />
                     ) : null}

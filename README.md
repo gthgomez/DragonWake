@@ -181,6 +181,7 @@ Env flags (`.env`):
 | `DEV_SKIP_TUTORIAL=1` | Skip tutorial steps |
 | `DATABASE_URL` | Postgres URL for schema verify |
 | `VITE_API_URL` | Web → API base (default `http://localhost:3001`) |
+| `VITE_ALPHA_CITY_ART=1` | Opt in to quarantined alpha city raster art (default: SVG glyph fallback) |
 
 ### Admin grant (dev)
 
