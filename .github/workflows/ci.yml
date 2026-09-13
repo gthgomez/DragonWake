@@ -41,6 +41,8 @@ jobs:
         run: pnpm --filter @dragonwake/combat test
       - name: Server tests (Postgres required)
         run: pnpm --filter @dragonwake/server test
+      - name: Web unit tests
+        run: pnpm --filter @dragonwake/web test
       - name: Web build + typecheck
         run: pnpm --filter @dragonwake/web build
       - name: Server typecheck
