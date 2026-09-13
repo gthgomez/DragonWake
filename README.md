@@ -350,4 +350,4 @@ Copyright is retained by the project owner. This notice does not grant
 permission to redistribute, modify, sublicense, sell, commercially exploit, or
 create derivative works from the game or its original code and content, except
 where required by applicable law. Third-party dependencies and fonts remain
-under their own licenses.
+under their own licenses. See [LICENSE](LICENSE).
