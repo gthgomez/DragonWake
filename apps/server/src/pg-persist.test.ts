@@ -7,7 +7,9 @@
  * - When REQUIRE_PG=1: suite **fails** if Postgres cannot connect.
  */
 import { beforeAll, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { PgStore } from "./pg-store.js";
+import { findSchemaPath, migrateExistingSchema, tryConnectPg } from "./pg.js";
 import { World } from "./world.js";
 import { FEN_SILT } from "./dragons/types.js";
 import { getBestiaryEntries, getShop } from "@dragonwake/content";
@@ -562,4 +564,110 @@ describe("PG persistence (shipped PgStore + World)", () => {
 
     await store2!.close();
   }, 30_000);
+
+  /**
+   * Schema-migration coverage (T7 boot path): a legacy volume whose premium
+   * currency lives in `chronite`, and a partially-migrated volume that has
+   * BOTH `chronite` and `dracolith`, must converge on `dracolith` with the
+   * balance preserved. Runs the shipped migrateExistingSchema in an isolated
+   * schema so the shared public tables (used by the other tests) are untouched.
+   */
+  it("migrates legacy chronite → dracolith without orphaning balances", async ({
+    skip,
+  }) => {
+    if (!canRun) {
+      skip(
+        probeError
+          ? `${probeError} (set REQUIRE_PG=1 to fail hard)`
+          : "Postgres not available",
+      );
+      return;
+    }
+
+    const schema = `mig_test_${Date.now().toString(36)}_${Math.random()
+      .toString(36)
+      .slice(2, 7)}`;
+    const client = await tryConnectPg(DATABASE_URL);
+    expect(client).not.toBeNull();
+    if (!client) return;
+
+    try {
+      // Isolate: create every table from schema.sql inside a throwaway schema.
+      // migrateExistingSchema issues unqualified DDL, and the migration's
+      // column lookups use current_schema(), so pointing search_path at the
+      // throwaway schema targets it consistently.
+      await client.query(`CREATE SCHEMA ${schema}`);
+      await client.query(`SET search_path TO ${schema}, public`);
+      // schema.sql includes CREATE EXTENSION IF NOT EXISTS "pgcrypto"; pin it to
+      // public first so it is never installed into (and later dropped with) the
+      // throwaway schema.
+      await client.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA public`);
+      const schemaPath = findSchemaPath();
+      expect(schemaPath).not.toBeNull();
+      await client.query(readFileSync(schemaPath!, "utf8"));
+
+      // Variant A — legacy volume: NO dracolith column, balance in chronite.
+      await client.query(`
+        ALTER TABLE players DROP COLUMN dracolith;
+        ALTER TABLE players ADD COLUMN chronite BIGINT NOT NULL DEFAULT 0;
+        INSERT INTO players (realm_id, display_name, faction, chronite)
+          VALUES (1, 'LegacyChronite', 'northern_kingdom', 1234);
+      `);
+      await migrateExistingSchema(client);
+
+      const renamedCols = await client.query(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_schema = current_schema() AND table_name = 'players'
+           AND column_name IN ('chronite','dracolith')
+         ORDER BY column_name`,
+      );
+      expect(renamedCols.rows.map((r) => r.column_name)).toEqual(["dracolith"]);
+      const renamed = await client.query(
+        `SELECT dracolith FROM players WHERE display_name = 'LegacyChronite'`,
+      );
+      expect(Number(renamed.rows[0].dracolith)).toBe(1234);
+
+      // Variant B — partial/manual migration: BOTH columns present and the
+      // legacy chronite value is larger. dracolith must absorb it, not stay 0.
+      await client.query(`
+        ALTER TABLE players ADD COLUMN chronite BIGINT NOT NULL DEFAULT 0;
+        UPDATE players SET dracolith = 0, chronite = 4321
+          WHERE display_name = 'LegacyChronite';
+      `);
+      await migrateExistingSchema(client);
+      const coalesced = await client.query(
+        `SELECT dracolith FROM players WHERE display_name = 'LegacyChronite'`,
+      );
+      expect(Number(coalesced.rows[0].dracolith)).toBe(4321);
+
+      // Variant C — both columns present with dracolith already larger: keep
+      // dracolith (never sum aliases) and still drop chronite.
+      await client.query(`
+        ALTER TABLE players ADD COLUMN chronite BIGINT NOT NULL DEFAULT 0;
+        UPDATE players SET dracolith = 9999, chronite = 12
+          WHERE display_name = 'LegacyChronite';
+      `);
+      await migrateExistingSchema(client);
+      const kept = await client.query(
+        `SELECT dracolith FROM players WHERE display_name = 'LegacyChronite'`,
+      );
+      expect(Number(kept.rows[0].dracolith)).toBe(9999);
+
+      // Idempotent: a clean dracolith-only schema is a no-op on re-run.
+      await migrateExistingSchema(client);
+      const finalCols = await client.query(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_schema = current_schema() AND table_name = 'players'
+           AND column_name IN ('chronite','dracolith')
+         ORDER BY column_name`,
+      );
+      expect(finalCols.rows.map((r) => r.column_name)).toEqual(["dracolith"]);
+    } finally {
+      try {
+        await client.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
+      } finally {
+        await client.end();
+      }
+    }
+  });
 });
