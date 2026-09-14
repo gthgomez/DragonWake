@@ -1,0 +1,102 @@
+/*
+   DragonWake remediation HUD layer.
+   Imported by components/Shell.tsx AFTER styles/hud.css, so these rules win
+   equal-specificity battles by load order. styles.css and hud.css stay
+   read-only.
+*/
+
+/* =====================================================================
+   F3 — in-flow notice rail.
+   The stack is the first child of <main> and sits in normal document flow,
+   so it can never overlap the primary content that follows it — overlap is
+   structurally impossible, not tuned away. Pointer events stay disabled
+   (hard requirement). The rail is bounded to the <=3 slips kept by the hook.
+   ===================================================================== */
+
+.toast-stack.hud-toast-stack {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 360px));
+  justify-content: start;
+  align-items: start;
+  gap: 0.4rem 0.6rem;
+  width: auto;
+  max-width: 100%;
+  max-height: 12rem; /* generous: never clips the 3 newest slips on mobile */
+  overflow: hidden;
+  margin: 0 0 0.6rem;
+  pointer-events: none;
+}
+
+/* No empty gap when there is nothing to announce. */
+.toast-stack.hud-toast-stack:empty {
+  margin-bottom: 0;
+}
+
+.toast-stack.hud-toast-stack .hud-toast {
+  min-width: 0;
+  max-width: 360px;
+  overflow-wrap: anywhere;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+@media (max-width: 560px) {
+  .toast-stack.hud-toast-stack {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* =====================================================================
+   F2 — persistent, cross-tab food ledger in the topbar.
+   Surfaces production, troop upkeep, net food, and a low-food warning
+   everywhere, not only on the Castle food tile.
+   ===================================================================== */
+
+.hud-upkeep {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.45rem;
+  margin: 0.4rem 0 0;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--parchment-2) 60%, var(--muted));
+}
+
+.hud-upkeep-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  white-space: nowrap;
+}
+
+.hud-upkeep-sep {
+  opacity: 0.45;
+}
+
+.hud-upkeep-net {
+  color: var(--ok);
+}
+
+.hud-upkeep-negative .hud-upkeep-net {
+  color: var(--warn-text, #e0b97a);
+}
+
+.hud-upkeep-warning {
+  flex-basis: 100%;
+  color: var(--warn-text, #e0b97a);
+}
+
+.hud-upkeep-warning-soft {
+  opacity: 0.85;
+}
+
+.hud-upkeep-starving .hud-upkeep-warning {
+  color: var(--err);
+  font-weight: 600;
+}

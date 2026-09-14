@@ -67,7 +67,7 @@ describe("parseCampComp", () => {
 });
 
 describe("World daily quests + tutorial", () => {
-  it("marks build/train quests and claims chronite once", () => {
+  it("marks build/train quests and claims dracoliths once", () => {
     const world = new World({ devFastTime: true });
     const { player, city } = world.createGuest("QuestA", "northern_kingdom");
     world.startBuild(city.id, player.id, 2, "barracks");
@@ -75,9 +75,9 @@ describe("World daily quests + tutorial", () => {
     const list = world.listDailyQuests(player.id);
     expect(list.find((q) => q.id === "build")?.done).toBe(true);
     expect(list.find((q) => q.id === "train")?.done).toBe(true);
-    const before = world.players.get(player.id)!.chronite;
+    const before = world.players.get(player.id)!.dracolith;
     const claim = world.claimDailyQuest(player.id, "build");
-    expect(claim.chronite).toBe(before + 2);
+    expect(claim.dracolith).toBe(before + 1);
     expect(() => world.claimDailyQuest(player.id, "build")).toThrow(
       /already claimed/,
     );
@@ -456,5 +456,118 @@ describe("World queues + marches (shipped paths)", () => {
     expect(report!.result.reason).toBe("not_own_or_alliance_city");
     // Cargo returned to origin on failed delivery
     expect(world.getCity(a.city.id)!.resources.wood).toBe(originKelp);
+  });
+});
+
+describe("World shop item use", () => {
+  it("speedup_sec shortens the soonest-finishing running job", () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const { player, city } = world.createGuest("UseSpeed", "northern_kingdom");
+    world.adminGrant(player.id, { dracolith: 100 });
+    world.shopBuy(player.id, "speedup_1h");
+    const job = world.startBuild(city.id, player.id, 2, "barracks");
+    const finishesAt = world.now() + 2 * 60 * 60 * 1000;
+    job.finishesAt = finishesAt;
+
+    const result = world.useShopItem(player.id, "speedup_1h");
+    expect(result.effect).toEqual({ type: "speedup_sec", seconds: 3600 });
+    expect(result.applied.finishesAt).toBe(finishesAt - 3600_000);
+    expect(world.jobs.get(job.id)!.finishesAt).toBe(finishesAt - 3600_000);
+    // Consumed on success.
+    expect(world.inventory.get(player.id)?.speedup_1h).toBeUndefined();
+    expect(() => world.useShopItem(player.id, "speedup_1h")).toThrow(
+      /item not owned/,
+    );
+  });
+
+  it("speedup with cityId shortens the selected city's job and not a sooner job elsewhere", () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const { player, city } = world.createGuest("UseScoped", "northern_kingdom");
+    world.adminGrant(player.id, { dracolith: 100, brineholdUnlock: true });
+    const other = world.foundBrinehold(player.id, "Scoped Hold");
+    world.shopBuy(player.id, "speedup_1h");
+
+    // The other city's job finishes SOONER, so the old player-wide filter
+    // would have picked it instead of the selected city's job.
+    const sooner = world.startBuild(other.id, player.id, 2, "barracks");
+    sooner.finishesAt = world.now() + 30 * 60 * 1000;
+    const soonerFinishesAt = sooner.finishesAt;
+    const target = world.startBuild(city.id, player.id, 2, "barracks");
+    const targetFinishesAt = world.now() + 2 * 60 * 60 * 1000;
+    target.finishesAt = targetFinishesAt;
+
+    const result = world.useShopItem(player.id, "speedup_1h", city.id);
+
+    expect(result.applied.finishesAt).toBe(targetFinishesAt - 3600_000);
+    expect(world.jobs.get(target.id)!.finishesAt).toBe(
+      targetFinishesAt - 3600_000,
+    );
+    // The sooner job in the other city is untouched.
+    expect(world.jobs.get(sooner.id)!.finishesAt).toBe(soonerFinishesAt);
+  });
+
+  it("speedup clamps finishesAt to now when the remaining time is shorter", () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const { player, city } = world.createGuest("UseClamp", "northern_kingdom");
+    world.adminGrant(player.id, { dracolith: 100 });
+    world.shopBuy(player.id, "speedup_1h");
+    const job = world.startBuild(city.id, player.id, 2, "barracks");
+    job.finishesAt = world.now() + 1000;
+    const result = world.useShopItem(player.id, "speedup_1h");
+    expect(result.applied.finishesAt).toBeGreaterThanOrEqual(world.now() - 5000);
+    expect(result.applied.finishesAt).toBeLessThanOrEqual(world.now() + 1000);
+  });
+
+  it("ITEM_UNUSABLE keeps the item when no running job exists", () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const { player } = world.createGuest("UseNone", "northern_kingdom");
+    world.adminGrant(player.id, { dracolith: 100 });
+    world.shopBuy(player.id, "speedup_1h");
+    try {
+      world.useShopItem(player.id, "speedup_1h");
+      throw new Error("expected throw");
+    } catch (e) {
+      expect((e as { code?: string }).code).toBe("ITEM_UNUSABLE");
+    }
+    // Not consumed when it cannot be applied.
+    expect(world.inventory.get(player.id)?.speedup_1h).toBe(1);
+  });
+
+  it("shield_sec extends protection from the current window", () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const { player } = world.createGuest("UseShield", "northern_kingdom");
+    world.adminGrant(player.id, { dracolith: 500 });
+    const before = world.players.get(player.id)!.protectionUntil!;
+    world.shopBuy(player.id, "shield_3d");
+    const result = world.useShopItem(player.id, "shield_3d");
+    expect(result.effect).toEqual({ type: "shield_sec", seconds: 259200 });
+    expect(result.applied.protectionUntil).toBe(before + 259200_000);
+    expect(world.players.get(player.id)!.protectionUntil).toBe(
+      before + 259200_000,
+    );
+  });
+
+  it("shield_sec caps the window at 30 days from now", () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const { player } = world.createGuest("UseCap", "northern_kingdom");
+    world.adminGrant(player.id, { dracolith: 500 });
+    const now = world.now();
+    const cap = now + 30 * 24 * 60 * 60 * 1000;
+    // Start near the cap so a 3-day shield would overshoot.
+    world.players.get(player.id)!.protectionUntil = now + 29 * 24 * 60 * 60 * 1000;
+    world.shopBuy(player.id, "shield_3d");
+    const result = world.useShopItem(player.id, "shield_3d");
+    expect(Math.abs(result.applied.protectionUntil! - cap)).toBeLessThan(5000);
+  });
+
+  it("throws NO_ITEM when the item is not owned", () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const { player } = world.createGuest("UseBroke", "northern_kingdom");
+    try {
+      world.useShopItem(player.id, "speedup_1h");
+      throw new Error("expected throw");
+    } catch (e) {
+      expect((e as { code?: string }).code).toBe("NO_ITEM");
+    }
   });
 });

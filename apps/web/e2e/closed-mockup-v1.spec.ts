@@ -250,9 +250,13 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
   await page
     .getByRole("button", { name: /^Dragon Studies/ })
     .click({ force: true });
-  await expect(
-    page.getByText(/Research complete: Dragon Studies/).nth(1),
-  ).toBeVisible({ timeout: 30_000 });
+  // Verify the second study from the persistent research status rather than a
+  // second transient toast: toasts are deliberately bounded/short-lived
+  // (remediation F3), so requiring two to coexist is timing-fragile.
+  await expect(page.getByTestId("research-status")).toContainText(
+    "Dragon Studies reached level 2",
+    { timeout: 30_000 },
+  );
 
   // The Dragon Watch is a progression facility rather than a normal city
   // plot card. Exercise its real build endpoint so the five-part readiness
@@ -337,7 +341,7 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
   const fenNotes = page.locator("div.readiness-req", {
     has: page.getByTestId("field-notes-fen_silt"),
   });
-  await fenNotes.getByRole("button", { name: "Codify" }).click();
+  await fenNotes.getByRole("button", { name: "Record findings" }).click();
   await expect(page.getByText(/ford signaling/i).first()).toBeVisible({
     timeout: 30_000,
   });

@@ -32,7 +32,7 @@ percentage stick. This document is the replacement philosophy.
 - shop-sold egg/armor progression
 - endless `+Power` stacking
 - identical slot matrices on every species
-- Chronite-purchased Titan plate that deletes recovery
+- Dracolith-purchased Titan plate that deletes recovery
 
 ---
 

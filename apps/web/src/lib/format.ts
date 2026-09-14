@@ -3,6 +3,7 @@ import {
   unitName,
   buildingName,
   researchName,
+  resourceLabel,
   wildInfo,
   postureLabel,
 } from "./labels";
@@ -34,6 +35,37 @@ export function canAfford(res: Resources, cost: Partial<Resources>): boolean {
   return (Object.keys(cost) as (keyof Resources)[]).every(
     (k) => (res[k] ?? 0) >= (cost[k] ?? 0),
   );
+}
+
+/** Resources that block an action, with what the player has and needs. */
+export function resourceShortfall(
+  res: Resources,
+  cost: Partial<Resources>,
+): Array<{ resource: keyof Resources; have: number; need: number }> {
+  return (Object.keys(cost) as (keyof Resources)[])
+    .filter((k) => (cost[k] ?? 0) > 0 && (res[k] ?? 0) < (cost[k] ?? 0))
+    .map((k) => ({ resource: k, have: res[k] ?? 0, need: cost[k] ?? 0 }));
+}
+
+/** "food 300 / 500 · wood 0 / 40" for the resources blocking an action. */
+export function shortfallText(
+  res: Resources,
+  cost: Partial<Resources>,
+): string {
+  return resourceShortfall(res, cost)
+    .map(
+      (s) =>
+        `${resourceLabel(s.resource)} ${fmtNum(s.have)} / ${fmtNum(s.need)}`,
+    )
+    .join(" · ");
+}
+
+/** "500 food · 200 wood" for a full, always-visible cost line. */
+export function costText(cost: Partial<Resources>): string {
+  return (Object.keys(cost) as (keyof Resources)[])
+    .filter((k) => (cost[k] ?? 0) > 0)
+    .map((k) => `${fmtNum(cost[k] ?? 0)} ${resourceLabel(k)}`)
+    .join(" · ");
 }
 
 export function unitTrainCost(u: UnitDef, count: number): Partial<Resources> {
@@ -79,6 +111,12 @@ export function lootList(loot?: Partial<Resources>): string {
 
 export { postureLabel } from "./labels";
 
+/** True when text still reads as a raw JSON payload rather than prose. */
+function looksLikeJson(text: string): boolean {
+  const t = text.trim();
+  return t.startsWith("{") || t.startsWith("[");
+}
+
 export function formatIntel(intel: BattleReport["result"]["intel"]): string {
   if (!intel) return "";
   if (typeof intel === "string") return intel;
@@ -101,7 +139,23 @@ export function formatIntel(intel: BattleReport["result"]["intel"]): string {
       intel.ownerName ? ` · held by ${intel.ownerName}` : " · unclaimed"
     }`;
   }
-  return JSON.stringify(intel);
+  return "";
+}
+
+/**
+ * Player-facing intel text. Uses the canonical `formatIntel` line when it is
+ * real prose; if that is empty or still looks like JSON, falls back to the
+ * server-authored `summary`. Raw JSON (object, array, or scalar payload) is
+ * never rendered.
+ */
+export function formatIntelForPlayer(intel: unknown): string {
+  if (typeof intel === "string") return looksLikeJson(intel) ? "" : intel;
+  if (!intel || typeof intel !== "object") return "";
+  const record = intel as Record<string, unknown>;
+  const formatted = formatIntel(record);
+  if (formatted.trim() && !looksLikeJson(formatted)) return formatted;
+  const summary = record.summary;
+  return typeof summary === "string" && summary.trim() ? summary : "";
 }
 
 export function reportHeadline(r: BattleReport, youId: string): string {

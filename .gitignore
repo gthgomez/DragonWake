@@ -9,3 +9,7 @@ build
 coverage
 *.tsbuildinfo
 .vite
+
+# Raw playtest run artifacts: heavy binaries stay local per
+# docs/competitive/evidence/README.md (the run MANIFEST.md stays tracked)
+delivery/evidence/*/screenshots/

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
+import { z } from "zod";
 import {
   COMBAT_RULES_VERSION,
 } from "@dragonwake/combat";
@@ -58,12 +59,23 @@ export type AppEnv = {
   };
 };
 
+// Steward's Wares bodies (P0.6). `cityId` scopes a speedup to the selected
+// settlement; omitting it preserves the historical player-wide behavior.
+const shopBuySchema = z.object({
+  itemId: z.string().min(1).max(64),
+});
+
+const shopUseSchema = z.object({
+  itemId: z.string().min(1).max(64),
+  cityId: z.string().min(1).max(64).optional(),
+});
+
 function publicPlayer(p: Player) {
   return {
     id: p.id,
     displayName: p.displayName,
     faction: p.faction,
-    chronite: p.chronite,
+    dracolith: p.dracolith,
     playerLevel: p.playerLevel,
     protectionUntil: p.protectionUntil
       ? new Date(p.protectionUntil).toISOString()
@@ -86,6 +98,8 @@ function publicCity(c: City, world: World) {
     stacks: c.stacks,
     research: c.research,
     productionPerHour: world.effectiveProduction(c),
+    foodUpkeepPerHour: world.foodUpkeepPerHour(c),
+    starving: world.isStarving(c),
     ownedWilderness: world.ownedWildernessCount(c.playerId),
     wildernessCapacity: world.wildernessCapacity(c.playerId),
     activeOperations: world.activeOperations(c.playerId),
@@ -934,9 +948,37 @@ export function createApp(world: World) {
   api.post("/shop/buy", async (c) => {
     const player = c.get("player");
     if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
-    const body = (await c.req.json()) as { itemId: string };
+    const parsed = parseBody(
+      shopBuySchema,
+      await c.req.json().catch(() => ({})),
+    );
+    if (!parsed.ok) return err(c, parsed.code, parsed.message);
     try {
-      const result = world.shopBuy(player.id, body.itemId);
+      const result = world.shopBuy(player.id, parsed.data.itemId);
+      return c.json(result);
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "SHOP_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/shop/use", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const parsed = parseBody(
+      shopUseSchema,
+      await c.req.json().catch(() => ({})),
+    );
+    if (!parsed.ok) return err(c, parsed.code, parsed.message);
+    try {
+      const result = world.useShopItem(
+        player.id,
+        parsed.data.itemId,
+        parsed.data.cityId,
+      );
       return c.json(result);
     } catch (e) {
       return err(

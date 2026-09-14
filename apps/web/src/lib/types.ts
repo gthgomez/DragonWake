@@ -25,6 +25,8 @@ export type City = {
   stacks: Record<string, number>;
   research: Record<string, number>;
   productionPerHour?: Resources;
+  foodUpkeepPerHour?: number;
+  starving?: boolean;
   ownedWilderness?: number;
   wildernessCapacity?: number;
   activeOperations?: number;
@@ -41,7 +43,7 @@ export type Player = {
   id: string;
   displayName: string;
   faction: string;
-  chronite: number;
+  dracolith: number;
   protectionUntil: string | null;
 };
 
@@ -188,9 +190,17 @@ export type TutorialState = {
 export type DailyQuest = {
   id: string;
   title: string;
-  rewardChronite: number;
+  rewardDracolith: number;
   done: boolean;
   claimed: boolean;
+};
+
+/** A purchasable entry in the Steward's Wares shop (GET /shop/catalog). */
+export type ShopItem = {
+  id: string;
+  name: string;
+  dracolith: number;
+  effect: { type: string; seconds: number };
 };
 
 export type ResearchDef = {

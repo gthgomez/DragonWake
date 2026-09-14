@@ -111,7 +111,7 @@ Accepted risks (documented): dev/admin grant surface is open in non-production (
 
 **Post-mockup (intentionally deferred):** shop UI, alliance depth, haul UX, watch/roadworks/smithy/walls mechanics, M4 Sovereign full deletion (exists as unpushed local main work), PG verification inside CI, mobile-native.
 
-**Lore decisions (deferred by design):** Sovereign/Harbinger canon, Tideband renaming, Chronite monetization freeze, dragon species/taxonomy canonization, crossroads/watch_hill strategic bonuses.
+**Lore decisions (deferred by design):** Sovereign/Harbinger canon, Tideband renaming, Dracoliths monetization freeze (renamed to Dracoliths 2026-09-14), dragon species/taxonomy canonization, crossroads/watch_hill strategic bonuses.
 
 ## REIGN-CLASS COMPARISON (qualitative, no inflation)
 

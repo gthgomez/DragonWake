@@ -160,7 +160,7 @@ describe("signature growth", () => {
     expect(w.dragonIndividuals.get(d.id)!.lifeStage).toBe("wyrmling");
   });
 
-  it("wounds stay supported by architecture and recover without Chronite", () => {
+  it("wounds stay supported by architecture and recover without Dracoliths", () => {
     const w = world();
     const { player } = w.createGuest("Wound", "northern_kingdom");
     charter(w, player.id);

@@ -515,7 +515,7 @@ not delete cities. Karth does not replace stacks.
 Recovery has story consequences (ash, frightened holdings, alliance
 mail). Not trivially monetizable. Armies remain necessary during
 recovery. Provisioning costs real resources and attention, not a
-Chronite skip.
+Dracolith skip.
 
 Deployment is realm-visible: *the colossal dragon has left its domain.*
 Alliances should react.

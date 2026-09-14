@@ -129,7 +129,7 @@ export class PgStore {
           displayName: row.display_name,
           faction: row.faction,
           guestToken: row.guest_token ?? "",
-          chronite: Number(row.chronite),
+          dracolith: Number(row.dracolith),
           playerLevel: row.player_level,
           protectionUntil: row.protection_until
             ? new Date(row.protection_until).getTime()
@@ -579,7 +579,7 @@ export class PgStore {
   private async upsertPlayer(client: pg.PoolClient, p: Player): Promise<void> {
     await client.query(
       `INSERT INTO players (
-           id, realm_id, display_name, faction, guest_token, chronite,
+           id, realm_id, display_name, faction, guest_token, dracolith,
            player_level, protection_until, created_at
          ) VALUES (
            $1,$2,$3,$4,$5,$6,$7,
@@ -588,7 +588,7 @@ export class PgStore {
          )
          ON CONFLICT (id) DO UPDATE SET
            display_name=EXCLUDED.display_name,
-           chronite=EXCLUDED.chronite,
+           dracolith=EXCLUDED.dracolith,
            player_level=EXCLUDED.player_level,
            protection_until=EXCLUDED.protection_until,
            guest_token=EXCLUDED.guest_token`,
@@ -598,7 +598,7 @@ export class PgStore {
         p.displayName,
         p.faction,
         p.guestToken || null,
-        p.chronite,
+        p.dracolith,
         p.playerLevel,
         p.protectionUntil,
         p.createdAt,
