@@ -480,6 +480,32 @@ describe("World shop item use", () => {
     );
   });
 
+  it("speedup with cityId shortens the selected city's job and not a sooner job elsewhere", () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const { player, city } = world.createGuest("UseScoped", "northern_kingdom");
+    world.adminGrant(player.id, { dracolith: 100, brineholdUnlock: true });
+    const other = world.foundBrinehold(player.id, "Scoped Hold");
+    world.shopBuy(player.id, "speedup_1h");
+
+    // The other city's job finishes SOONER, so the old player-wide filter
+    // would have picked it instead of the selected city's job.
+    const sooner = world.startBuild(other.id, player.id, 2, "barracks");
+    sooner.finishesAt = world.now() + 30 * 60 * 1000;
+    const soonerFinishesAt = sooner.finishesAt;
+    const target = world.startBuild(city.id, player.id, 2, "barracks");
+    const targetFinishesAt = world.now() + 2 * 60 * 60 * 1000;
+    target.finishesAt = targetFinishesAt;
+
+    const result = world.useShopItem(player.id, "speedup_1h", city.id);
+
+    expect(result.applied.finishesAt).toBe(targetFinishesAt - 3600_000);
+    expect(world.jobs.get(target.id)!.finishesAt).toBe(
+      targetFinishesAt - 3600_000,
+    );
+    // The sooner job in the other city is untouched.
+    expect(world.jobs.get(sooner.id)!.finishesAt).toBe(soonerFinishesAt);
+  });
+
   it("speedup clamps finishesAt to now when the remaining time is shorter", () => {
     const world = new World({ devFastTime: true, skipTutorial: true });
     const { player, city } = world.createGuest("UseClamp", "northern_kingdom");

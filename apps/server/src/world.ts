@@ -4187,14 +4187,16 @@ export class World {
 
   /**
    * Consume one owned shop item and apply its effect.
-   * `speedup_sec` shortens this player's soonest-finishing running queue job;
+   * `speedup_sec` shortens the soonest-finishing running queue job — scoped to
+   * `cityId` when provided (the selected settlement), otherwise player-wide;
    * `shield_sec` extends the player's protection window (capped at 30 days).
    * Throws NO_ITEM when not owned and ITEM_UNUSABLE when there is nothing to
-   * apply the effect to (no running job, unknown effect type).
+   * apply the effect to (no running job in scope, unknown effect type).
    */
   useShopItem(
     playerId: string,
     itemId: string,
+    cityId?: string,
   ): {
     itemId: string;
     effect: { type: string; seconds: number };
@@ -4216,9 +4218,15 @@ export class World {
     let applied: { finishesAt?: number; protectionUntil?: number };
 
     if (type === "speedup_sec") {
-      // Soonest-finishing running job across all of this player's cities.
+      // Soonest-finishing running job, scoped to the selected city when one is
+      // given; without a cityId, keep the historical player-wide behavior.
       const job = [...this.jobs.values()]
-        .filter((j) => j.playerId === playerId && j.status === "running")
+        .filter(
+          (j) =>
+            j.playerId === playerId &&
+            j.status === "running" &&
+            (cityId === undefined || j.cityId === cityId),
+        )
         .sort((a, b) => a.finishesAt - b.finishesAt)[0];
       if (!job) {
         throw Object.assign(new Error("nothing to speed up"), { code: "ITEM_UNUSABLE" });
