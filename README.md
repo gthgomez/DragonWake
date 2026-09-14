@@ -219,6 +219,7 @@ Env flags (`.env`):
 | `DEV_SKIP_TUTORIAL=1` | Skip tutorial steps |
 | `DATABASE_URL` | Postgres URL for schema verify |
 | `VITE_API_URL` | Web → API base (default `http://localhost:3001`) |
+| `VITE_ALPHA_CITY_ART=1` | Opt in to quarantined alpha city raster art (default: SVG glyph fallback) |
 
 ### Admin grant (dev)
 
@@ -388,4 +389,4 @@ Copyright is retained by the project owner. This notice does not grant
 permission to redistribute, modify, sublicense, sell, commercially exploit, or
 create derivative works from the game or its original code and content, except
 where required by applicable law. Third-party dependencies and fonts remain
-under their own licenses.
+under their own licenses. See [LICENSE](LICENSE).

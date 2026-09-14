@@ -1,11 +1,20 @@
 /** Alpha test raster buildings from AlphaDesign.png (Imagine edit-chain).
  *  Visual growth uses CLOSED_MOCKUP_V1 tiers: L1–3 stone, L4–6 bronze,
  *  L7+ gold. CityGrid falls back to SVG glyphs if a file is missing.
+ *
+ *  These files are quarantined candidates, not production art (see
+ *  MANIFEST.json). They are opt-in via `VITE_ALPHA_CITY_ART=1`; when the flag
+ *  is unset the city view keeps the SVG glyph fallback.
  */
 
 export type ArtTier = "stone" | "bronze" | "gold";
 
 const BASE = "/art/alpha/imagine-explorations/buildings";
+
+/** True only when the optional candidate-art flag is explicitly enabled. */
+export function alphaBuildingArtEnabled(): boolean {
+  return import.meta.env.VITE_ALPHA_CITY_ART === "1";
+}
 
 /** Stem under BASE, without tier suffix. Stone = `{stem}.png`. */
 const BUILDING_STEM: Record<string, string> = {
