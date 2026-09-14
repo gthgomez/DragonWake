@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+
+import "../../styles/remediation-realm.css";
 
 import { fmtEta, fmtNum } from "../../lib/format";
 import {
@@ -90,6 +92,8 @@ export function RealmView({
   sendMarch,
 }: RealmViewProps) {
   const [confirmIntent, setConfirmIntent] = useState<string | null>(null);
+  const ordersRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => setConfirmIntent(null), [selectedTile?.x, selectedTile?.y]);
 
@@ -236,6 +240,35 @@ export function RealmView({
     void sendMarch({ intent, target });
   };
 
+  // Selecting a tile must surface the detail + march composer so the player
+  // never has to scroll past the whole map to act (F4). If the orders panel is
+  // already fully on screen the player stays where they are; otherwise it
+  // scrolls to the top of the panel.
+  const revealOrders = () => {
+    window.requestAnimationFrame(() => {
+      const detail = ordersRef.current;
+      const composer = composerRef.current;
+      const anchor = detail ?? composer;
+      if (!anchor) return;
+      const viewportH =
+        window.innerHeight || document.documentElement.clientHeight;
+      const topVisible = detail
+        ? detail.getBoundingClientRect().top >= 0
+        : true;
+      const bottomVisible = composer
+        ? composer.getBoundingClientRect().bottom <= viewportH
+        : true;
+      if (topVisible && bottomVisible) return;
+      const reduceMotion = window.matchMedia?.(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      anchor.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+  };
+
   const setMax = (id: string) => {
     const have = city?.stacks[id] ?? 0;
     setComp((c) => ({ ...c, [id]: have }));
@@ -303,6 +336,7 @@ export function RealmView({
           onSelectTile={(tile) => {
             setSelectedTile(tile);
             setConfirmIntent(null);
+            revealOrders();
             // marches resolve while other tabs are open; refresh so the
             // inspected tile's ownership/camp state is never stale
             void loadMap().catch((err) => setError(String(err.message ?? err)));
@@ -372,7 +406,7 @@ export function RealmView({
       </details>
 
       {selectedTile && selectedInfo && (
-        <div className="tile-detail card-inset">
+        <div className="tile-detail card-inset realm-orders" ref={ordersRef}>
           {selectedInfo.kind === "camp" && (
             <>
               <h3>
@@ -428,7 +462,7 @@ export function RealmView({
         </div>
       )}
 
-      <div className="composer">
+      <div className="composer realm-composer" ref={composerRef}>
         <h3>Muster a March</h3>
         {!city ? (
           <p className="muted">No settlement.</p>
