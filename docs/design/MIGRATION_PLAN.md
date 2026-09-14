@@ -100,7 +100,7 @@ An intelligently composed 14,000-strength army must be able to destroy a
 badly composed 23,000-strength army. The battle engine should not *reason
 from* Power as its primary input.
 
-### Chronite / shop
+### Dracoliths / shop
 
 There is **no gacha** in the current shop. Blink, Jump, Momentary Truce, and
 Ceasefire are deterministic speedups and protection — traditional F2P
@@ -236,7 +236,7 @@ Before touching code, produce a table:
 
 `new lore concept → existing mechanic → keep / change / remove / new`
 
-This is where Brinehold, harbor posture, harness, Chronite, Sovereign, and
+This is where Brinehold, harbor posture, harness, Dracoliths, Sovereign, and
 city kinds are decided as *systems*, not renamed blindly.
 
 Also decide the target domain model for commanders / beasts / True Dragons.
@@ -413,7 +413,7 @@ resource names, or sovereign fields into a mobile API.
 3. Preserve deterministic combat *architecture*, not the current RPS model.
 4. Design the medieval roster from first principles; do not 1:1 map units.
 5. Soften Power into an estimate; do not delete it; do not let the engine worship it.
-6. Chronite is not gacha. Split lore rename from monetization freeze.
+6. Dracoliths are not gacha. Split lore rename from monetization freeze.
 7. Codex becomes Bestiary + Arms & Warfare + Chronicle. Knowledge can be wrong.
 8. Mobile architecture may be planned early; content-heavy UI waits.
 9. Authority freeze lands in the repo before more canon or code.

@@ -263,6 +263,24 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
       payload  JSONB NOT NULL
     );
   `);
+
+  // 14. Premium-currency rename: chronite → dracolith. Idempotent so fresh
+  //     databases (already on dracolith) and legacy volumes both converge.
+  await client.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'players' AND column_name = 'chronite'
+      ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'players' AND column_name = 'dracolith'
+      ) THEN
+        ALTER TABLE players RENAME COLUMN chronite TO dracolith;
+      END IF;
+    END
+    $$;
+  `);
 }
 
 export function findSchemaPath(): string | null {

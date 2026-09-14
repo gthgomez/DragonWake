@@ -62,7 +62,7 @@ describe("ACCEPTANCE_MVP M1–M11 (scripted)", () => {
         units: { bowman: 100, levy: 100 },
         brineholdUnlock: true,
         skipProtection: true,
-        chronite: 100,
+        dracolith: 100,
       }),
     });
     await json(app, "/api/v1/admin/grant", {
@@ -234,6 +234,6 @@ expect(world.getCity(cityA)!.research.brinehold_unlock).toBe(1);
       token: tokenA,
     });
     expect(claim.res.status).toBe(200);
-    expect(claim.body.chronite).toBeGreaterThanOrEqual(0);
+    expect(claim.body.dracolith).toBeGreaterThanOrEqual(0);
   });
 });

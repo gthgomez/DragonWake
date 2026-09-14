@@ -65,9 +65,28 @@ export function resourceLabel(key: string): string {
     stone: "stone",
     ore: "ore",
     crownmark: "crownmarks",
-    chronite: "Chronite",
+    dracolith: "Dracoliths",
   };
   return map[key] ?? prettify(key).toLowerCase();
+}
+
+/** Compact duration for shop effects: "1h", "30m", "45s". */
+function effectDuration(seconds?: number): string {
+  const s = Math.max(0, Math.floor(seconds ?? 0));
+  if (s >= 3600 && s % 3600 === 0) return `${s / 3600}h`;
+  if (s >= 60 && s % 60 === 0) return `${s / 60}m`;
+  return `${s}s`;
+}
+
+/** Player language for a Steward's Wares effect type. */
+export function shopEffectLabel(type: string, seconds?: number): string {
+  if (type === "speedup_sec") {
+    return `Completes the soonest construction/research/training ${effectDuration(seconds)} faster`;
+  }
+  if (type === "shield_sec") {
+    return `Extends protection ${effectDuration(seconds)}`;
+  }
+  return prettify(type || "unknown effect");
 }
 
 // ── Lifecycle / state nouns (no raw enums reach the player) ─────────────────
@@ -245,8 +264,9 @@ const ERROR_COPY: Record<string, string> = {
   NO_ALLY: "That alliance could not be found.",
   QUEST_INCOMPLETE: "That deed is not yet done.",
   QUEST_CLAIMED: "That reward is already claimed.",
-  NO_CHRONITE: "Not enough Chronite.",
+  NO_DRACOLITH: "Not enough Dracoliths.",
   NO_ITEM: "That wares entry is unknown.",
+  ITEM_UNUSABLE: "That ware cannot be used right now — there is nothing to apply it to.",
   VALIDATION: "That request could not be understood.",
   NO_CITY: "That settlement could not be found.",
   NO_REPORT: "That report could not be found.",

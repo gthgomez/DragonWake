@@ -68,6 +68,11 @@ export function App() {
         <CastleView
           city={city}
           cities={g.cities}
+          player={g.player}
+          shopCatalog={g.shopCatalog}
+          inventory={g.inventory}
+          buyShopItem={g.buyShopItem}
+          useShopItem={g.useShopItem}
           setCityId={g.setCityId}
           units={g.units}
           researchDefs={g.researchDefs}

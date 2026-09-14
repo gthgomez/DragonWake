@@ -16,7 +16,7 @@ with evidence confidence and player-experience evidence links.
 | Troops & army identity | PENDING Gate 1 | PENDING Gate 1 | Training works and flips Realm Awareness; units are named but roster is a list (Gate 2 04:00) | Weak army identity |
 | Combat & battle report | PENDING Gate 1 | PENDING Gate 1 | Legible report (rounds/losses/spoils); found only in War; victory is a toast (Gate 2 12:20) | Result attribution |
 | Quests/objectives | PENDING Gate 1 | PENDING Gate 1 | Strongest, most motivating surface; server-verified 1–10 ladder (Gate 2 all) | No CTA/deep-link |
-| Rewards & progression | PENDING Gate 1 | PENDING Gate 1 | Daily deeds pay small Chronite; no shop to spend it; thin cadence (Gate 2 04:30) | Motivation gap |
+| Rewards & progression | PENDING Gate 1 | PENDING Gate 1 | Daily deeds pay small Dracoliths (renamed to Dracoliths 2026-09-14); no shop to spend it; thin cadence (Gate 2 04:30) | Motivation gap |
 | Alliance/social presence | PENDING Gate 1 | PENDING Gate 1 | Create/join only; no members/list/empty state (Gate 2 18:00) | Skeletal |
 | Events | PENDING Gate 1 | PENDING Gate 1 | None observed in session | Not evaluated |
 | Player identity | PENDING Gate 1 | PENDING Gate 1 | Name/faction/alliance; factions cosmetic (Gate 2 00:50) | Identity thin |

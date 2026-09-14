@@ -59,7 +59,7 @@ describe("PG persistence (shipped PgStore + World)", () => {
 
     const { player, city, token } = world1.createGuest(name, "northern_kingdom");
     expect(city.resources.food).toBeGreaterThan(0);
-    world1.adminGrant(player.id, { units: { bowman: 42 }, chronite: 7 });
+    world1.adminGrant(player.id, { units: { bowman: 42 }, dracolith: 7 });
     world1.adminGrant(player.id, { resources: { food: 1234 } });
 
     // Posture cooldown armed on world1 — an immediate second change must throw.
@@ -185,7 +185,7 @@ describe("PG persistence (shipped PgStore + World)", () => {
     const loadedPlayer = world2.players.get(player.id);
     expect(loadedPlayer).toBeTruthy();
     expect(loadedPlayer!.displayName).toBe(name);
-    expect(loadedPlayer!.chronite).toBeGreaterThanOrEqual(7);
+    expect(loadedPlayer!.dracolith).toBeGreaterThanOrEqual(7);
 
     const loadedCity = world2.cities.get(city.id);
     expect(loadedCity).toBeTruthy();
@@ -333,8 +333,8 @@ describe("PG persistence (shipped PgStore + World)", () => {
     world1.landMarch(occ, world1.now());
     expect(world1.wilderness.get(wild.id)!.ownerPlayerId).toBe(a.player.id);
 
-    // Shop / inventory / chronite
-    world1.adminGrant(a.player.id, { chronite: 500 });
+    // Shop / inventory / dracoliths
+    world1.adminGrant(a.player.id, { dracolith: 500 });
     const shopItem = getShop()[0]!;
     const bought = world1.shopBuy(a.player.id, shopItem.id);
     expect(bought.itemId).toBe(shopItem.id);
@@ -382,9 +382,9 @@ describe("PG persistence (shipped PgStore + World)", () => {
     // Wilderness claim survived.
     expect(world2.wilderness.get(wild.id)!.ownerPlayerId).toBe(a.player.id);
 
-    // Inventory + chronite survived.
+    // Inventory + dracoliths survived.
     expect(world2.inventory.get(a.player.id)?.[shopItem.id]).toBeGreaterThan(0);
-    expect(world2.players.get(a.player.id)!.chronite).toBe(bought.chronite);
+    expect(world2.players.get(a.player.id)!.dracolith).toBe(bought.dracolith);
 
     // Tutorial + bestiary survived.
     expect(world2.tutorials.get(a.player.id)!.step).toBe(expectedTutorial);

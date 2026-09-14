@@ -1,10 +1,11 @@
 # Proposal — Shop/Inventory and Food Upkeep
 
-Status: **PROPOSAL — NOT AUTHORITY.** This document is not design law and does
-not authorize implementation. It routes two balance/monetization-touching
-features to the authority stack ([`design/CANON_AUTHORITY.md`](../design/CANON_AUTHORITY.md))
-for a decision. Approve, amend, or reject each part explicitly before Gate 6
-implementation.
+Status: **PART A IMPLEMENTED (2026-09-14); PART B APPROVED — Option S (soft
+upkeep), 2026-09-14.** Part A (rename + shop open + premium scaling) is
+implemented. Part B is approved in principle; the remaining questions below
+(rate basis, Rationing research, roost, floors/grace) are pending for
+implementation. Route implementation details through the authority stack
+([`design/CANON_AUTHORITY.md`](../design/CANON_AUTHORITY.md)).
 
 Prepared: 2026-09-14 · worktree `feat/imagine-alpha-city-pack` @ `2d4e422`.
 Evidence: [`competitive/audits/dragonwake-current-product.md`](../competitive/audits/dragonwake-current-product.md),
@@ -12,27 +13,28 @@ Evidence: [`competitive/audits/dragonwake-current-product.md`](../competitive/au
 
 ---
 
-## Part A — Finish the shop + inventory
+## Part A — Finish the shop + inventory (IMPLEMENTED 2026-09-14)
 
-### Current state (white-box, verified)
+### State at proposal time (white-box, verified — 2026-09-14, pre-implementation)
 
 | Piece | Status | Evidence |
 | --- | --- | --- |
 | Catalog content | Exists: `speedup_1m`, `speedup_1h`, `shield_1h`, `shield_12h` | `packages/content/data/shop.json` |
 | Buy API | Exists: `GET /shop/catalog`, `POST /shop/buy` | `apps/server/src/app.ts:932-954` |
-| Buy logic | Deducts Chronite, stores an inventory item | `apps/server/src/world.ts:4084-4104` |
+| Buy logic | Deducts Dracoliths, stores an inventory item | `apps/server/src/world.ts:4084-4104` |
 | Inventory store | Exists + persisted | `world.ts:847,950-952,4100-4102` |
 | **UI** | **Missing** | no `shop`/`inventory` reference in `apps/web/src` |
 | **Item effects** | **Never applied** — `speedup_sec` / `shield_sec` appear nowhere else in the codebase | grep of `apps/server/src` |
-| Chronite faucet | 50 start + daily deeds | `world.ts` daily quests |
+| Dracolith faucet | 0 start + daily deeds (1/1/2) + dev grants; **no IAP source** | `world.ts` daily quests |
 
-Net: Chronite is a currency with a working sink that has no front door and no
-effect. The blind pass independently noticed ("no shop to spend on").
+Net at proposal time: Dracoliths were a currency with a working sink that had
+no front door and no effect. The blind pass independently noticed ("no shop to
+spend on"); Part A closes that gap.
 
 ### Proposed scope
 
 1. **UI — "Steward's Wares"** (Castle panel, collapsible like the Scribe's Table).
-   - Chronite balance; item cards (name, cost, effect text, owned count); Buy disabled with an inline reason when short on Chronite.
+   - Dracolith balance; item cards (name, cost, effect text, owned count); Buy disabled with an inline reason when short on Dracoliths.
    - Inventory list with a **Use** action per item and an inline reason when unusable.
    - Owned count shown; no new tab needed.
 2. **Effects (server):**
@@ -43,13 +45,13 @@ effect. The blind pass independently noticed ("no shop to spend on").
 
 ### Governance flags
 
-- `CURRENT_STATE.md` marks "Shop / Chronite" as **UNKNOWN / later monetization freeze**. These items are purchasable with **earned** Chronite only (no IAP), so Part A is a convenience/UX completion, not monetization — **but the freeze must be lifted explicitly.**
+- `CURRENT_STATE.md` now records "Shop / Dracoliths" as **KEEP — shop opened 2026-09-14**; the monetization freeze was lifted for this earned-currency convenience shop. These items are purchasable with **earned** Dracoliths only (no IAP), so Part A is a convenience/UX completion, not monetization.
 - No new content IDs: items already exist.
 - Risk: shields affect PvP protection rules; ship behind the existing posture/protection semantics and keep the cap conservative.
 
 ### Acceptance
 
-- Buy deducts Chronite, increments inventory, and survives reload (PG test).
+- Buy deducts Dracoliths, increments inventory, and survives reload (PG test).
 - Use applies the effect and decrements; unusable cases are disabled with a visible reason.
 - Structural test: buy → use → queue completes earlier / protection extends.
 
@@ -92,9 +94,9 @@ Two options for sign-off; the recommendation is **Option S (soft)**, because Dra
 
 **Option H — hard attrition (DoA-faithful):** as Option S, but zero food causes gradual troop desertion (DoA/KoC/Travian pattern). Higher fantasy/strategic weight, higher newbie-trap and retention risk; would need a grace period and a strong reduction research to satisfy the design's "not punishment" rule.
 
-### Open questions for sign-off
+### Open questions (Part B — pending implementation)
 
-1. **Pattern:** Option S (soft, recommended) or Option H (attrition)?
+1. **Pattern:** **RESOLVED — Option S (soft upkeep) approved 2026-09-14.**
 2. Rate basis: `pop`-derived (proposed, no content change) vs. an authored `upkeep_food` per unit (content change).
 3. Relief lever: is a *Rationing*-style research approved (DoA parity), or should relief be items/premium only?
 4. Does the *roost/living dragon* add upkeep? (Design says "roost consumes food and attention" — flavor vs. mechanic must be decided.)
@@ -116,12 +118,14 @@ Two options for sign-off; the recommendation is **Option S (soft)**, because Dra
 
 ## Decision requested
 
-- **Part A (Shop — approved 2026-09-14):** proceed. The premium currency is being
-  renamed **Chronite → Dracoliths**, the shop is being opened, and Dracoliths are
-  to be scarce and valuable with item prices scaled accordingly. Shield
-  semantics are still to be confirmed during implementation.
-- **Part B (upkeep):** choose **Option S (soft, recommended)** or **Option H
-  (hard attrition)**, confirm the rate basis, and confirm whether a
-  *Rationing*-style **research** is the approved relief lever (DoA parity).
-- **Sequencing:** finish Part A (rename + shop) first, then Part B after the
-  upkeep decision, one slice at a time with rendered verification.
+- **Part A (Shop — IMPLEMENTED 2026-09-14):** done. The premium currency is
+  now **Dracoliths** (renamed 2026-09-14); the shop is open, and Dracoliths are
+  scarce and valuable with item prices scaled accordingly. Faucets: 0 start,
+  daily deeds pay 1/1/2, dev grants only — **no IAP source**. Shield semantics
+  were confirmed during implementation.
+- **Part B (upkeep — APPROVED 2026-09-14):** **Option S (soft upkeep)** is
+  approved. The rate basis, the *Rationing*-style **research** relief lever,
+  roost upkeep, and cap/floors remain pending for implementation (see open
+  questions).
+- **Sequencing:** Part A shipped first; Part B follows one slice at a time with
+  rendered verification.

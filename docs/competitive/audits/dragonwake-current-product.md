@@ -30,7 +30,7 @@ output (repo sweep) + Gate 2 record
 | Bestiary / clues | Observation levels 0-4, encounter counts, known/rumored entries, clue plates, daily cap | `views/KnowledgeView.tsx`; `packages/content/data/bestiary_entries.json`, `dragon_clues` |
 | Living dragons | `DragonIndividual` (signature hatchling, Fen Wyrm), roost, harness, chronicle, crossing/pact | `apps/server/src/dragons/living.ts`, `types.ts`; `views/CastleView.tsx:240-455` |
 | Objectives / tutorial | Server-verified 10-step ladder, banner with progress | `world.ts` tutorial; `components/Shell.tsx:143-182` |
-| Daily deeds / rewards | Daily quests paid in Chronite; shop out of scope | `world.ts` quests; `views/CastleView.tsx` Daily Deeds |
+| Daily deeds / rewards | Daily quests paid in Dracoliths (renamed to Dracoliths 2026-09-14); shop out of scope | `world.ts` quests; `views/CastleView.tsx` Daily Deeds |
 | Player identity | Display name, 4 cosmetic factions, protection timer, posture | `views/LoginView.tsx`, `lib/gameConfig.ts` |
 
 Mechanical depth is consistently **ahead of** perceived product — the
@@ -79,7 +79,7 @@ invalid.
 | Bestiary / clues | 3 | 4 | 2 | 2 | Populates from play; text cards, raw states, duplicate "Unidentified Creature" |
 | Dragon Expedition / charter | 4 | 2 | 2 | 3 | Full 4-stage expedition + Scar exists; readiness gate hides it, body is text/stage lists |
 | Quests / objectives | 4 | 5 | 3 | 4 | Server-verified ladder always visible and drives the session; no CTA/deep link, wording drifts across surfaces |
-| Progression rewards | 2 | 3 | 2 | 2 | Daily deeds pay small Chronite with no shop; tutorial steps pay nothing; no reward flourish |
+| Progression rewards | 2 | 3 | 2 | 2 | Daily deeds pay small Dracoliths with no shop; tutorial steps pay nothing; no reward flourish |
 | Player identity | 2 | 3 | 2 | 2 | Name/faction/alliance; factions are cosmetic (blurb over-promises) |
 
 **Read:** Mechanical Depth averages ~3.2; Presentation averages ~2.3.

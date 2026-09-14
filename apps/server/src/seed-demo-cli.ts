@@ -14,7 +14,7 @@ const b = world.createGuest("DemoB", "mountain_realm");
 world.adminGrant(a.player.id, {
   units: { levy: 200, bowman: 150 },
   brineholdUnlock: true,
-  chronite: 80,
+  dracolith: 80,
   skipProtection: true,
 });
 world.adminGrant(b.player.id, {

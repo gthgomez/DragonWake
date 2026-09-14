@@ -101,7 +101,7 @@ export const stationSchema = z.object({
 export const adminGrantSchema = z.object({
   resources: inboundResourceBagSchema.optional(),
   units: z.record(z.string(), z.number().int().min(0)).optional(),
-  chronite: z.number().int().min(0).optional(),
+  dracolith: z.number().int().min(0).optional(),
   skipProtection: z.boolean().optional(),
   brineholdUnlock: z.boolean().optional(),
   stonekeelUnlock: z.boolean().optional(),

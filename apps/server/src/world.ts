@@ -19,6 +19,7 @@ import {
   getUnitCost,
   getResearch,
   getResearchUnlocks,
+  getShop,
   canonTechId,
   canonResourceId,
   isUnitUnlocked,
@@ -87,7 +88,7 @@ export type Player = {
   displayName: string;
   faction: Faction;
   guestToken: string;
-  chronite: number;
+  dracolith: number;
   playerLevel: number;
   protectionUntil: number | null;
   createdAt: number;
@@ -386,17 +387,17 @@ export const DAILY_QUEST_DEFS = [
   {
     id: "build",
     title: "Queue a construction",
-    rewardChronite: 2,
+    rewardDracolith: 1,
   },
   {
     id: "train",
     title: "Train troops",
-    rewardChronite: 2,
+    rewardDracolith: 1,
   },
   {
     id: "camp",
     title: "Attack a bandit camp",
-    rewardChronite: 5,
+    rewardDracolith: 2,
   },
 ] as const;
 
@@ -1247,7 +1248,8 @@ export class World {
       displayName: name,
       faction,
       guestToken,
-      chronite: 50,
+      // Premium currency: Dracoliths are scarce — no starting balance.
+      dracolith: 0,
       playerLevel: 1,
       protectionUntil: now + NEW_PLAYER_PROTECTION_MS,
       createdAt: now,
@@ -3578,7 +3580,7 @@ export class World {
     body: {
       resources?: Partial<ResourceBag>;
       units?: Record<string, number>;
-      chronite?: number;
+      dracolith?: number;
       skipProtection?: boolean;
       brineholdUnlock?: boolean;
       stonekeelUnlock?: boolean;
@@ -3613,8 +3615,8 @@ export class World {
       city.usedManpower = recalculateManpower(city);
       this.putCity(city.id, city);
     }
-    if (body.chronite) {
-      player.chronite += body.chronite;
+    if (body.dracolith) {
+      player.dracolith += body.dracolith;
       this.putPlayer(player.id, player);
     }
     if (body.skipProtection) {
@@ -4053,7 +4055,7 @@ export class World {
     return DAILY_QUEST_DEFS.map((def) => ({
       id: def.id,
       title: def.title,
-      rewardChronite: def.rewardChronite,
+      rewardDracolith: def.rewardDracolith,
       done: !!d.done[def.id],
       claimed: !!d.claimed[def.id],
     }));
@@ -4062,7 +4064,7 @@ export class World {
   claimDailyQuest(
     playerId: string,
     questId: string,
-  ): { chronite: number; questId: string } {
+  ): { dracolith: number; questId: string } {
     const def = DAILY_QUEST_DEFS.find((q) => q.id === questId);
     if (!def) {
       throw Object.assign(new Error("unknown quest"), { code: "NO_QUEST" });
@@ -4081,9 +4083,9 @@ export class World {
       });
     }
     d.claimed[questId] = true;
-    player.chronite += def.rewardChronite;
+    player.dracolith += def.rewardDracolith;
     this.putPlayer(playerId, player);
-    return { chronite: player.chronite, questId };
+    return { dracolith: player.dracolith, questId };
   }
 
   /**
@@ -4163,26 +4165,81 @@ export class World {
     return msg;
   }
 
-  shopBuy(playerId: string, itemId: string): { itemId: string; chronite: number } {
+  shopBuy(playerId: string, itemId: string): { itemId: string; dracolith: number } {
     const player = this.players.get(playerId);
     if (!player) throw new Error("no player");
-    const catalog = [
-      { id: "speedup_1m", chronite: 1 },
-      { id: "speedup_1h", chronite: 10 },
-      { id: "shield_1h", chronite: 3 },
-      { id: "shield_12h", chronite: 25 },
-    ];
-    const item = catalog.find((c) => c.id === itemId);
+    // Catalog is content-driven (packages/content/data/shop.json).
+    const item = getShop().find((c) => c.id === itemId);
     if (!item) throw Object.assign(new Error("unknown item"), { code: "NO_ITEM" });
-    if (player.chronite < item.chronite) {
-      throw Object.assign(new Error("not enough chronite"), { code: "NO_CHRONITE" });
+    if (player.dracolith < item.dracolith) {
+      throw Object.assign(new Error("Not enough Dracoliths."), { code: "NO_DRACOLITH" });
     }
-    player.chronite -= item.chronite;
+    player.dracolith -= item.dracolith;
     this.putPlayer(player.id, player);
     const inv = this.inventory.get(playerId) ?? {};
     inv[itemId] = (inv[itemId] ?? 0) + 1;
     this.putInventory(playerId, inv);
-    return { itemId, chronite: player.chronite };
+    return { itemId, dracolith: player.dracolith };
+  }
+
+  /** Cap on how far one shield item may push protection from now (30 days). */
+  private static readonly SHIELD_CAP_MS = 30 * 24 * 60 * 60 * 1000;
+
+  /**
+   * Consume one owned shop item and apply its effect.
+   * `speedup_sec` shortens this player's soonest-finishing running queue job;
+   * `shield_sec` extends the player's protection window (capped at 30 days).
+   * Throws NO_ITEM when not owned and ITEM_UNUSABLE when there is nothing to
+   * apply the effect to (no running job, unknown effect type).
+   */
+  useShopItem(
+    playerId: string,
+    itemId: string,
+  ): {
+    itemId: string;
+    effect: { type: string; seconds: number };
+    applied: { finishesAt?: number; protectionUntil?: number };
+  } {
+    const player = this.players.get(playerId);
+    if (!player) throw new Error("no player");
+    const inv = this.inventory.get(playerId) ?? {};
+    const owned = inv[itemId] ?? 0;
+    if (owned <= 0) {
+      throw Object.assign(new Error("item not owned"), { code: "NO_ITEM" });
+    }
+    const item = getShop().find((c) => c.id === itemId);
+    if (!item) throw Object.assign(new Error("unknown item"), { code: "NO_ITEM" });
+
+    const type = item.effect.type;
+    const seconds = Number(item.effect.seconds ?? 0);
+    const now = this.now();
+    let applied: { finishesAt?: number; protectionUntil?: number };
+
+    if (type === "speedup_sec") {
+      // Soonest-finishing running job across all of this player's cities.
+      const job = [...this.jobs.values()]
+        .filter((j) => j.playerId === playerId && j.status === "running")
+        .sort((a, b) => a.finishesAt - b.finishesAt)[0];
+      if (!job) {
+        throw Object.assign(new Error("nothing to speed up"), { code: "ITEM_UNUSABLE" });
+      }
+      job.finishesAt = Math.max(now, job.finishesAt - seconds * 1000);
+      this.putJob(job.id, job);
+      applied = { finishesAt: job.finishesAt };
+    } else if (type === "shield_sec") {
+      const base = Math.max(now, player.protectionUntil ?? now);
+      const capped = Math.min(base + seconds * 1000, now + World.SHIELD_CAP_MS);
+      player.protectionUntil = capped;
+      this.putPlayer(player.id, player);
+      applied = { protectionUntil: capped };
+    } else {
+      throw Object.assign(new Error("item effect cannot be applied"), { code: "ITEM_UNUSABLE" });
+    }
+
+    inv[itemId] = owned - 1;
+    if (inv[itemId] <= 0) delete inv[itemId];
+    this.putInventory(playerId, inv);
+    return { itemId, effect: { type, seconds }, applied };
   }
 
   mapViewport(x0: number, y0: number, x1: number, y1: number) {

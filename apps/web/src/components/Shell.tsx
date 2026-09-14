@@ -93,7 +93,7 @@ export function Shell({
           <p className="eyebrow">{factionMeta.label}</p>
           <h1>Dragon Wake</h1>
           <p className="tag">
-            {player.displayName} · Chronite {player.chronite}
+            {player.displayName} · Dracoliths {player.dracolith}
             {player.protectionUntil
               ? ` · protected until ${new Date(player.protectionUntil).toLocaleString()}`
               : ""}

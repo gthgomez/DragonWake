@@ -48,7 +48,7 @@ not to missing systems. That is the productization gap in its purest form:
 | Alliance | Create/join/chat/shared intel | A form with no members, no list, no empty state | Content / IA | 4 / 9 |
 | Economy & queues | Production, jobs, marches with ETAs | Only visible on Castle/Lands; queues render below page content | Visibility / IA | 5 / 9 |
 | Quests / progression | Server-verified 10-step ladder | The clearest, most motivating surface in the game | (strength — no gap) | — |
-| Rewards | Daily deeds + Chronite | Small numbers with no shop to spend on | Motivation | 4 |
+| Rewards | Daily deeds + Dracoliths (renamed to Dracoliths 2026-09-14) | Small numbers with no shop to spend on | Motivation | 4 |
 
 ## Why DragonWake feels like a systems prototype
 

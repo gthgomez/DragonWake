@@ -94,7 +94,7 @@ authoritative write wins; the previous wyrm returns home.
 While stationed at the ford the wyrm is **Away**. It cannot also
 guard Brinehold. Returning home clears Ford/Blockade.
 
-No Chronite skip.
+No Dracolith skip.
 
 ### On leave
 

@@ -50,8 +50,8 @@ Player-honest Alpha on `main` (README, PR #7 era):
 - MMORTS loop: Castle, Lands, Realm, research, training, scout, camps,
   wilderness, marches, reports, PvP postures, alliances/chat,
   persistence (PostgreSQL in CI).
-- Final resources: Food, Wood, Stone, Ore, Crownmarks. Chronite
-  separate.
+- Final resources: Food, Wood, Stone, Ore, Crownmarks. Dracoliths remain
+  separate as the premium earned currency.
 - Dragon Presence read model: `DORMANT → STIRRING → AWAKENED → BONDED
   → BATTLE_READY` derived from facts (`docs/design/DRAGON_PRESENCE_ARCHITECTURE.md`,
   `ALPHA_R2_AWAKENING.md`).
@@ -191,7 +191,7 @@ detailed.
 | PvP / postures / protection | **KEEP** | absence windows later |
 | Alliances / chat | **KEEP** | intel about dragon absence later |
 | Sovereign / Harbinger harness | **DEPRECATE** (already removed live) | do not resurrect as relics |
-| Shop / Chronite | **UNKNOWN** / later monetization freeze | must not skip injury or Titan recovery |
+| Shop / Dracoliths | **KEEP** — shop opened 2026-09-14 | Dracoliths are the premium earned currency, scarce by design. Items are convenience only (queue speed-ups, protection shields). No IAP source: Dracoliths come from daily deeds (1/1/2) and dev grants only; must not skip injury or Titan recovery. |
 
 Prefer migration over rewrite. The existing Alpha is valuable.
 
