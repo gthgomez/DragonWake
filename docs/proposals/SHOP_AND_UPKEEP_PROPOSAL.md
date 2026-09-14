@@ -94,13 +94,13 @@ Two options for sign-off; the recommendation is **Option S (soft)**, because Dra
 
 **Option H — hard attrition (DoA-faithful):** as Option S, but zero food causes gradual troop desertion (DoA/KoC/Travian pattern). Higher fantasy/strategic weight, higher newbie-trap and retention risk; would need a grace period and a strong reduction research to satisfy the design's "not punishment" rule.
 
-### Open questions (Part B — pending implementation)
+### Open questions (Part B — implementation status 2026-09-14)
 
-1. **Pattern:** **RESOLVED — Option S (soft upkeep) approved 2026-09-14.**
-2. Rate basis: `pop`-derived (proposed, no content change) vs. an authored `upkeep_food` per unit (content change).
-3. Relief lever: is a *Rationing*-style research approved (DoA parity), or should relief be items/premium only?
-4. Does the *roost/living dragon* add upkeep? (Design says "roost consumes food and attention" — flavor vs. mechanic must be decided.)
-5. Cap/floors to avoid a death spiral for returning players (grace period, minimum net production).
+1. **Pattern:** **RESOLVED — Option S (soft upkeep) approved and implemented 2026-09-14.** Per-troop hourly Food drain derived from `pop`; no desertion; growth pauses and mustering is blocked while starving; food clamps at zero.
+2. Rate basis: **RESOLVED (v1) — `pop`-derived** (`FOOD_UPKEEP_PER_POP_PER_HOUR = 1`), no content-ID change. An authored per-unit `upkeep_food` remains a future tuning option.
+3. Relief lever: **RESOLVED — the existing `rationing` research (per-level 0.05, max 10, capped −50%) is now wired to upkeep reduction.**
+4. Does the *roost/living dragon* add upkeep? (Design says "roost consumes food and attention" — flavor vs. mechanic still to be decided.)
+5. Cap/floors to avoid a death spiral for returning players (grace period, minimum net production) — still open; v1 relies on the starting-realm pacing guard.
 
 ### Governance flags
 

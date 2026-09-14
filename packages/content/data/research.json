@@ -191,16 +191,5 @@
       "ore": 1000,
       "crownmark": 800
     }
-  },
-  {
-    "id": "rationing",
-    "name": "Rationing",
-    "per_level": 0.05,
-    "max_level": 10,
-    "group": "production",
-    "cost": {
-      "food": 400,
-      "wood": 400
-    }
   }
 ]
