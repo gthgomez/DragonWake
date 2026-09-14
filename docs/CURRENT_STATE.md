@@ -2,10 +2,13 @@
 
 Status: **CURRENT AUTHORITY** for "what should I believe today?"
 
-Audited against `main` at **`1331ab961a15296c720f392f06d64810b2b9d5de`**
-(2026-09-05). Reconciled 2026-09-05 against the Alpha Closure branch
-(`feat/dragon-driven-alpha-closure` @ `80991c3`) to admit the Vision
-Council outcome. Update the SHA when this file is next reconciled.
+Audited against `main` at `1331ab961a15296c720f392f06d64810b2b9d5de`
+(2026-09-05) and reconciled 2026-09-05 against the Alpha Closure branch
+(`feat/dragon-driven-alpha-closure` @ `80991c3`). Reconciled again
+2026-09-14 against `feat/imagine-alpha-city-pack` @ **`67ab23a`** (Dracolith
+shop + Option S soft food upkeep) and the remediation branch
+`fix/audit-remediation` off that commit (Competitive Product Lab audit
+remediation). Update the SHA when this file is next reconciled.
 
 This file exists so future agents do not reconstruct product intent
 from ten campaigns, parity matrices, or chat.
@@ -65,6 +68,45 @@ Player-honest Alpha on `main` (README, PR #7 era):
   scout → camps → dragon evidence → expedition → charter → Marcher
   Keep.
 
+### Audit remediation (`fix/audit-remediation`, 2026-09-14)
+
+A Competitive Product Lab remediation pass landed off
+`feat/imagine-alpha-city-pack` @ `67ab23a`, addressing eight audit findings
+(F1–F8) without changing balance or content IDs:
+
+- **Shop / Dracoliths (F1, F7)** — Steward's Wares is open and now teaches
+  the earn path (Daily Deeds pay 1/1/2 = 4 a day; no IAP) with a link to the
+  Deeds and progress toward the first ware. Dracoliths (earned premium) and
+  Crownmarks (produced resource) are labelled and explained distinctly.
+- **Food upkeep visibility (F2)** — soft garrison upkeep (Option S, with
+  Rationing relief) exists; a persistent topbar ledger (production / upkeep
+  / net / low-food warning) now surfaces it on every tab, and Lands shows
+  upkeep + net-food context. The marching-army upkeep *rule* is unchanged —
+  see the open decisions below.
+- **Feedback and navigation (F3–F6)** — toasts render in an in-flow, bounded
+  notice rail (cap 3, 4 s TTL, deduped, `pointer-events: none`); Realm tile
+  selection surfaces the detail + march composer; build and research show
+  in-place results; Alliance has an empty state, an auto-loaded banner list,
+  and a member roster. A blocking build confirm was deliberately not added
+  (E2E compatibility); cost acknowledgment is shown instead.
+- **First-dragon reveal (F8)** — research/spec only, **not implemented**;
+  see [`proposals/UX_REMEDIATION_PLAN.md`](proposals/UX_REMEDIATION_PLAN.md).
+
+Beyond F1–F8, the adversarial/polish passes fixed two more player-visible
+defects: raw-JSON leaks in the player flow (Alliance shared intel and War
+scout/dispatch intel now use canonical formatting / the server summary) and
+test/state hygiene (`alpha-r2` run-unique display name; Castle research
+status keyed to `city.id`).
+
+Verification reported at this branch: `pnpm -r typecheck`; web 27/27; server
+214 tests (4 PostgreSQL skips); full Playwright suite repeatably green
+(20 passed / 1 skipped / 0 failed on consecutive runs against the persistent
+DB). This is a developer-reviewer rendered pass, not a human playtest.
+Dispositions and evidence:
+[`competitive/audits/dragonwake-current-product.md`](competitive/audits/dragonwake-current-product.md);
+balance analysis:
+[`proposals/AUDIT_REMEDIATION_DECISIONS.md`](proposals/AUDIT_REMEDIATION_DECISIONS.md).
+
 Living dragons now exist as **DragonIndividual** records, separate from
 Dragon Presence. Presence `BONDED` still means the expedition charter
 is earned; player-facing copy says **Frontier charter earned**. The
@@ -121,6 +163,24 @@ comprehension, balance, and retention observation (Council Round 10.I).
 Alpha Closure implements the Proof Slice (Phase 0 amendments in
 [`design/DRAGON_ALPHA_CLOSURE_AMENDMENTS.md`](design/DRAGON_ALPHA_CLOSURE_AMENDMENTS.md))
 as amended by the Vision Council.
+
+---
+
+## OPEN DECISIONS — pending owner ratification (2026-09-14)
+
+Two balance/economy decisions surfaced by the remediation audit are
+explicitly **not** decided by `fix/audit-remediation`. Until the owner rules,
+the code keeps its current behavior. The analysis, options, and
+implementation sketches are in
+[`proposals/AUDIT_REMEDIATION_DECISIONS.md`](proposals/AUDIT_REMEDIATION_DECISIONS.md).
+
+| # | Decision requested | Default if not ratified | Why the owner must decide |
+| --- | --- | --- | --- |
+| 1 | Should marching/recovering armies pay food upkeep at their origin city (soft, no attrition)? | **No** — upkeep stays garrison-only, so the known "keep troops in transit to avoid food" gap remains; the remediation only added visibility | It amends the approved Option S soft-upkeep record and the core economy (army size vs food); the Lab and subagents cannot set it |
+| 2 | Keep the Dracolith faucet (`1/1/2` = 4/day) and prices (`20/100/60/360`) with **no** IAP, or adjust? | **Yes — keep as-is**; the remediation only added earn-path UX | `CURRENT_STATE` fixes "scarce by design" and "no IAP source"; changing it is an economy decision reserved to the owner |
+
+The first-dragon reveal (F8) is a spec-only future slice, not an open
+decision in this pass.
 
 ---
 

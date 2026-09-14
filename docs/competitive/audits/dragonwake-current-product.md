@@ -106,3 +106,61 @@ dragon surfaces partial; mobile reflows cleanly with a minor toast overlap.
 - The Gate 2 world contained developer baseline guests; the evaluator also reports an automatic `AGENTS.md` injection (did not act on it).
 - "Muster control overlap" is reported by the evaluator but not reproduced from source; classified BUG-pending-repro.
 - No competitor evidence (Gate 1 not started) — see synthesis.
+
+---
+
+## Remediation pass (fix/audit-remediation) — 2026-09-14
+
+Status: **remediation head rendered-verified by a `DEVELOPER_REVIEWER`.** The
+eight audit findings tracked by the remediation plan
+(`/tmp/opencode/dw-fix/PLAN.md`) were addressed on branch
+`fix/audit-remediation` (off `feat/imagine-alpha-city-pack` @ `67ab23a`).
+This is not a blind or human playtest and does not close Gate 7; it records
+what shipped and the evidence behind each claim. Before/after captures:
+`/tmp/opencode/dw-fix/{before,after}`. No balance, content-ID, or canon change
+was made.
+
+Evidence: `pnpm -r typecheck` green; web 27/27; server 214 pass / 4 PostgreSQL
+skips; the **full Playwright suite** (not just the certified journey)
+repeatably green — run 2 (fresh world) and run 3 (a genuine second consecutive
+run against the persistent DB) each `20 passed / 1 skipped / 0 failed`, the
+one skip being the conditionally-skipped sprite-preview Test B. Run 1 hit
+three guest-creation failures from the long-lived dev world reaching its
+`map full` spawn-tile limit — an environment capacity limit, not a
+remediation defect; a world reset clears it. Sources:
+`/tmp/opencode/dw-fix/notes/verify.md`, `apps/web/e2e/audit-remediation.spec.ts`,
+and run logs `/tmp/opencode/dw-fix/run{1,2,3}.log`.
+
+| Finding | Disposition | What shipped | Evidence |
+| --- | --- | --- | --- |
+| **F1** Shop dead on arrival (shop was out of scope at Gate 2/3) | **Fixed — UX half**; faucet/first-price **decision-pending** | Steward's Wares teaches that Dracoliths are earned from Daily Deeds, links to the Deeds block, and explains the shortfall; no price/faucet change | `views/shop/ShopPanel.tsx`; `lib/labels.ts` (`DRACOLITH_LABEL`, `currencyBlurb`); [`../../proposals/AUDIT_REMEDIATION_DECISIONS.md`](../../proposals/AUDIT_REMEDIATION_DECISIONS.md) §3 |
+| **F2** Upkeep garrison-only + Castle-only (variants of audit finding 14) | **Fixed — visibility half**; marching-upkeep rule **decision-pending** | Persistent topbar food ledger (production / upkeep / net + low-food warning) on every tab, plus upkeep/net context on Lands; marching upkeep unchanged | `components/Shell.tsx` (`upkeep-indicator`, `upkeep-warning`); `hooks/useGame.ts` (`useFoodStatus`); `views/LandsView.tsx`; `styles/remediation-hud.css`; decisions doc §2 |
+| **F3** Toast stack obscures content | **Fixed** | Toasts moved into an in-flow, bounded notice rail as the first child of `<main>`: cap 3, 4 s TTL, deduped, `pointer-events: none`, so overlap is structurally impossible | `components/Shell.tsx` (`toast-stack`); `hooks/useGame.ts` (`TOAST_MAX_VISIBLE=3`, `TOAST_TTL_MS=4000`); `styles/remediation-hud.css` |
+| **F4** Realm tile selection leaves detail + composer below the map | **Fixed** | Selecting a tile scrolls the detail + march composer into view (rAF, reduced-motion aware); no selector/label changes | `views/RealmView.tsx` (`revealOrders`); `styles/remediation-realm.css` |
+| **F5** Alliance skeletal (audit finding 9) | **Fixed** | Empty-state copy, auto-loaded banner list with refresh affordance, and a rank-sorted member roster; no new mechanics | `views/AllianceView.tsx`; `styles/remediation-social.css` |
+| **F6** Research/build mute + no build confirm (blind FTUE 01:40, 03:40) | **Fixed — feedback**; blocking build confirm **deferred** | In-place build result and research status/ETA render at the point of action; a blocking confirm on build/research/abandon was deliberately not added (would break the certified E2E journey) | `views/city/CityGrid.tsx` (`city-build-result`); `views/CastleView.tsx` (`research-status`); `styles/remediation-castle.css`; [`../../proposals/UX_REMEDIATION_PLAN.md`](../../proposals/UX_REMEDIATION_PLAN.md) §F6 |
+| **F7** Currency/naming confusion (inventory wording gap) | **Fixed** | Dracoliths (earned premium) and Crownmarks (produced resource) are labelled and explained distinctly; ware flavour names carry plain effect sentences | `lib/labels.ts`; `views/shop/ShopPanel.tsx`; `views/CastleView.tsx` (`res-dracolith`, `currencyBlurb`) |
+| **F8** Dragon is a card, not a moment (audit findings 7, 8) | **Spec-only — not implemented** | A bounded, non-blocking "first sign" reveal slice is specified; no spectacle/animation work shipped this campaign | [`../../proposals/UX_REMEDIATION_PLAN.md`](../../proposals/UX_REMEDIATION_PLAN.md) §F8; [`../sources/shop-and-first-dragon.md`](../sources/shop-and-first-dragon.md) Topic C |
+
+### Additional defects found and fixed by the adversarial/polish passes (beyond F1–F8)
+
+These were not in the original eight-finding list; they were demonstrated
+during verification and fixed in the same branch.
+
+| # | Defect | Disposition | What shipped | Evidence |
+| --- | --- | --- | --- | --- |
+| **D1** Raw-JSON leaks in the player flow (adversarial probe 2f-a) | **Fixed** | Alliance shared intel printed `JSON.stringify(event.data.intel)` — raw camelCase keys, a camp UUID, and an internal `kind` — and War scout/dispatch intel could hit `formatIntel`'s JSON last-resort for `empty`/`coords` kinds. Alliance now uses the canonical `formatIntel()` (via a local `sharedIntelText()` that prefers the server `summary` and suppresses JSON); `WarView` adds `intelText()` preferring the server-authored `summary` for unknown kinds. No raw JSON reaches the player | `views/AllianceView.tsx`; `views/WarView.tsx`; `notes/verify.md` (adversarial finding 2f-a) |
+| **D2a** `alpha-r2-awakening` test not run-unique (hygiene) | **Fixed** | The spec used a hardcoded display name, so a second run against the persistent DB collided; it now fills a run-unique name (`R2 Witness ${Date.now() % 100000}`) and passes on consecutive runs | `apps/web/e2e/alpha-r2-awakening.spec.ts`; run 3 in `notes/verify.md` |
+| **D2b** Research status could describe the wrong settlement | **Fixed** | `CastleView`'s "Last completed"/running research state is keyed to `city.id` (the `prevResearchRef` and `lastResearch` records carry `cityId`), so switching settlements cannot surface another city's result | `views/CastleView.tsx`; `notes/verify.md` (F6b, same keying discipline applied in `CityGrid`) |
+
+Open items carried forward (not defects in this pass):
+
+- **Gate 7 human blind replay** — the fixes were verified by a
+  developer-reviewer against the running game, not by an isolated blind
+  player; see the dated note in [`blind-playtest.md`](blind-playtest.md).
+- **Gate 8 before/after verdict** — capture pairs exist locally but no
+  IMPROVED / NOT IMPROVED / UNVERIFIABLE verdict is issued without the human
+  replay, and nothing is promoted to `delivery/evidence/` yet.
+- **Two balance decisions** — marching-army upkeep and the Dracolith
+  faucet/first price remain pending owner ratification
+  ([`../../proposals/AUDIT_REMEDIATION_DECISIONS.md`](../../proposals/AUDIT_REMEDIATION_DECISIONS.md)).

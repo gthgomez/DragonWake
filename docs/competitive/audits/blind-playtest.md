@@ -140,3 +140,37 @@ tracked; screenshot binaries local per
 ### Screenshot Test notes (per surface visited)
 <surface>: understood fantasy/importance/interactability/maturity? Y/N/partial
 ```
+
+---
+
+## Remediation verification note — 2026-09-14 (`fix/audit-remediation` off `67ab23a`)
+
+**This is not a blind playtest and adds no Gate 2 record.** It records that
+the fixes for the eight audit findings (F1–F8) were checked by a
+`DEVELOPER_REVIEWER` against the running game, using the same player workflow
+as the Gate 2 session.
+
+- `EVALUATOR_CLASS: DEVELOPER_REVIEWER` (implementation-aware; may make
+  rendered-UX claims, may **not** make black-box or human-experience claims).
+- Isolation: **NO** — the reviewer had repository and design knowledge; the
+  Gate 2 isolation rules do not apply to this note.
+- Evidence: before/after captures and assertions in
+  `/tmp/opencode/dw-fix/{before,after}`; dispositions in
+  [`dragonwake-current-product.md`](dragonwake-current-product.md) § Remediation
+  pass, and the roadmap's remediation subsection.
+- Verification reported green: `pnpm -r typecheck`; web 27/27; server 214
+  tests (4 PostgreSQL skips); full Playwright suite repeatably green
+  (20 passed / 1 skipped / 0 failed on consecutive runs against the
+  persistent DB), with the additional raw-JSON player-flow leaks
+  removed and the `alpha-r2` repeat-run defect fixed
+  (`/tmp/opencode/dw-fix/notes/verify.md`).
+- What it does **not** establish: fun, motivation, retention, or
+  comprehension by a normal player. Three findings remain partly open by
+  design — the two balance decisions (marching upkeep; Dracolith faucet) and
+  the spec-only first-dragon reveal (F8).
+
+**Gate 7 is still open.** A **human blind replay** (or an isolated
+`SYNTHETIC_AGENT` run followed by a human pass per
+[`../../product/FTUE_PLAYTEST_PROTOCOL.md`](../../product/FTUE_PLAYTEST_PROTOCOL.md))
+of the post-remediation build is still required before the fixes can be
+called product-verified or a Gate 8 IMPROVED verdict issued.
