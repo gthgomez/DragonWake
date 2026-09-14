@@ -70,6 +70,22 @@ export function resourceLabel(key: string): string {
   return map[key] ?? prettify(key).toLowerCase();
 }
 
+// ── Currency (F7: Dracoliths are premium+earned; Crownmarks are a resource) ──
+
+/** The earned premium currency. No purchase path (no IAP). */
+export const DRACOLITH_LABEL = "Dracoliths";
+
+/** The in-realm resource minted by settlements — not a premium currency. */
+export const CROWNMARK_LABEL = "Crownmarks";
+
+/**
+ * One-line distinction between the two currencies, for the resource rail and
+ * the shop. Dracoliths are earned (Daily Deeds); Crownmarks are produced.
+ */
+export function currencyBlurb(): string {
+  return `${DRACOLITH_LABEL} are earned, never bought — Daily Deeds pay them out. ${CROWNMARK_LABEL} are a realm resource produced by your settlements, not a premium currency.`;
+}
+
 /** Compact duration for shop effects: "1h", "30m", "45s". */
 function effectDuration(seconds?: number): string {
   const s = Math.max(0, Math.floor(seconds ?? 0));
@@ -78,13 +94,28 @@ function effectDuration(seconds?: number): string {
   return `${s}s`;
 }
 
-/** Player language for a Steward's Wares effect type. */
+/** Player language for a Steward's Wares effect type (compact; used in lists). */
 export function shopEffectLabel(type: string, seconds?: number): string {
   if (type === "speedup_sec") {
     return `Completes the soonest construction/research/training ${effectDuration(seconds)} faster`;
   }
   if (type === "shield_sec") {
     return `Extends protection ${effectDuration(seconds)}`;
+  }
+  return prettify(type || "unknown effect");
+}
+
+/**
+ * Plain-language explanation of what a ware does in the realm, so item names
+ * such as "Relay Riders" read coherently next to their effect (F7).
+ */
+export function shopEffectSentence(type: string, seconds?: number): string {
+  const d = effectDuration(seconds);
+  if (type === "speedup_sec") {
+    return `Couriers ride ahead of the work queue: the next construction, research, or training job in this settlement finishes ${d} sooner.`;
+  }
+  if (type === "shield_sec") {
+    return `The watch is ordered to stand alert: protection from attack is extended by ${d}.`;
   }
   return prettify(type || "unknown effect");
 }

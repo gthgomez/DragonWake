@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 
 import "./city.css";
@@ -353,6 +353,42 @@ function CostRow({
 export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps) {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 
+  // F6: an in-place build result, not only a toast. CityGrid is remounted per
+  // settlement, so the first observation of city.buildings only seeds the
+  // baseline; a later level rise (or a new structure on a slot) is a result.
+  const [lastBuildResult, setLastBuildResult] = useState<{
+    slot: number;
+    name: string;
+    level: number;
+  } | null>(null);
+  const prevBuildingsRef = useRef<{
+    cityId: string;
+    levels: Map<number, number>;
+  } | null>(null);
+  useEffect(() => {
+    const levels = new Map<number, number>();
+    for (const b of city.buildings) levels.set(b.slotIndex, b.level);
+    const prev = prevBuildingsRef.current;
+    if (!prev || prev.cityId !== city.id) {
+      // First look at this settlement: remember it, do not announce it.
+      prevBuildingsRef.current = { cityId: city.id, levels };
+      return;
+    }
+    let result: { slot: number; name: string; level: number } | null = null;
+    for (const b of city.buildings) {
+      const was = prev.levels.get(b.slotIndex);
+      if (was === undefined || b.level > was) {
+        result = {
+          slot: b.slotIndex,
+          name: buildingName(b.buildingType),
+          level: b.level,
+        };
+      }
+    }
+    prevBuildingsRef.current = { cityId: city.id, levels };
+    if (result) setLastBuildResult(result);
+  }, [city.buildings, city.id]);
+
   useEffect(() => {
     if (selectedSlot !== null) return;
     const dragonWatch = city.buildings.find(
@@ -485,6 +521,17 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps
             })}
           </div>
         </div>
+        {lastBuildResult && (
+          <p
+            className="city-build-result"
+            data-testid="city-build-result"
+            role="status"
+          >
+            <Icon name="hammer" size={14} /> Construction complete —{" "}
+            <strong>{lastBuildResult.name}</strong> now stands at level{" "}
+            {lastBuildResult.level}.
+          </p>
+        )}
         <p className="city-scene-hint muted tiny">
           Select a plot to inspect it, raise a structure, or improve it
         </p>
@@ -512,9 +559,18 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps
             <p className="city-effect">
               <strong>Now:</strong> {effectLine(selected.buildingType, selected.level) || "—"}
             </p>
+            {lastBuildResult?.slot === selectedSlot && (
+              <p
+                className="city-build-result city-build-result-inline"
+                data-testid="city-build-result-detail"
+              >
+                <Icon name="hammer" size={14} /> Construction complete — level{" "}
+                {lastBuildResult.level} is in service.
+              </p>
+            )}
             {selectedJob ? (
               <>
-                <p className="city-effect">
+                <p className="city-effect" data-testid="city-build-inprogress">
                   <strong>
                     {Number(selectedJob.payload.upgradeTo ?? 0) > 1
                       ? `Improving to level ${String(selectedJob.payload.upgradeTo)}`

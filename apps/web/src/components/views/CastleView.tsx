@@ -1,13 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import "../../styles/remediation-castle.css";
 
 import {
   ALPHA_HATCHLING_ART,
   ALPHA_ROOST_PRESENCE_PLATE,
   signatureStudySrc,
 } from "../../lib/alphaDragons";
-import { canAfford, costText, fmtNum, shortfallText, unitTrainCost } from "../../lib/format";
+import { canAfford, costText, fmtEta, fmtNum, shortfallText, unitTrainCost } from "../../lib/format";
 import {
   cityKindLabel,
+  CROWNMARK_LABEL,
+  currencyBlurb,
+  DRACOLITH_LABEL,
   lifeStageLabel,
   physicalStateLabel,
   presenceStateLabel,
@@ -201,6 +206,53 @@ export function CastleView({
 
   // Reset the found confirmation when the keep exists or selection changes.
   useEffect(() => setConfirmFound(false), [city.id, hasMarcherKeep]);
+
+  // F1: the shop points here so a new player can find the Dracolith faucet.
+  const dailyDeedsRef = useRef<HTMLElement | null>(null);
+  const goToDailyDeeds = () => {
+    const el = dailyDeedsRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.focus({ preventScroll: true });
+  };
+
+  // F6: research feedback beyond the toast. Purely derived from state the
+  // client already has — a running job is "researching to level N", and a
+  // level that just rose is the last result. No server or balance change.
+  const researchJobs = useMemo(() => {
+    const m = new Map<string, QueueJob>();
+    for (const j of jobs) {
+      if (j.kind === "research") m.set(String(j.payload.techId), j);
+    }
+    return m;
+  }, [jobs]);
+
+  const [lastResearch, setLastResearch] = useState<{
+    cityId: string;
+    id: string;
+    level: number;
+  } | null>(null);
+  const prevResearchRef = useRef<{
+    cityId: string;
+    levels: Record<string, number>;
+  } | null>(null);
+  useEffect(() => {
+    const levels = city.research ?? {};
+    const prev = prevResearchRef.current;
+    if (!prev || prev.cityId !== city.id) {
+      // A different settlement's study history is not this keep's history —
+      // drop the previous keep's "last completed" line on the city switch.
+      prevResearchRef.current = { cityId: city.id, levels: { ...levels } };
+      setLastResearch(null);
+      return;
+    }
+    let result: { id: string; level: number } | null = null;
+    for (const [id, lvl] of Object.entries(levels)) {
+      if ((prev.levels[id] ?? 0) < lvl) result = { id, level: lvl };
+    }
+    prevResearchRef.current = { cityId: city.id, levels: { ...levels } };
+    if (result) setLastResearch({ cityId: city.id, ...result });
+  }, [city.research, city.id]);
 
   return (
     <section className="card castle-view">
@@ -505,9 +557,23 @@ export function CastleView({
                 {fmtNum(Math.abs(foodNet))}/h
               </span>
             )}
+            {k === "crownmark" && (
+              <span className="res-kind muted tiny">realm resource</span>
+            )}
           </li>
         ))}
+        {/* F7: Dracoliths are not a realm resource — they are earned, and the
+            row says so here as well as in the Steward's Wares. */}
+        <li className="res-premium" data-testid="res-dracolith">
+          <strong className="res-head">
+            <Icon name="crown" size={16} />
+            {DRACOLITH_LABEL}
+          </strong>
+          <span className="res-val">{fmtNum(player.dracolith)}</span>
+          <span className="res-kind muted tiny">earned premium · Daily Deeds</span>
+        </li>
       </ul>
+      <p className="muted tiny res-blurb">{currencyBlurb()}</p>
 
       <h3>The Settlement</h3>
       <section className="keep-progression" aria-label="Keep progression">
@@ -582,6 +648,24 @@ export function CastleView({
           </div>
 
           <h3>Studies</h3>
+          <p
+            className="muted tiny study-status"
+            data-testid="research-status"
+            aria-live="polite"
+          >
+            {researchJobs.size > 0
+              ? `Research under way: ${[...researchJobs.entries()]
+                  .map(([id, j]) => {
+                    const target = (city.research[id] ?? 0) + 1;
+                    return `${researchName(id)} → level ${target} (${fmtEta(
+                      Math.max(0, j.finishesAt - now),
+                    )} left)`;
+                  })
+                  .join("; ")}.`
+              : lastResearch && lastResearch.cityId === city.id
+                ? `Last completed: ${researchName(lastResearch.id)} reached level ${lastResearch.level}.`
+                : "No study under way — choose a study below to advance the realm."}
+          </p>
           {Object.keys(city.research).length > 0 && (
             <ul className="study-list">
               {Object.entries(city.research).map(([k, v]) => (
@@ -595,6 +679,7 @@ export function CastleView({
             {researchDefs.map((r) => {
               const lvl = city.research[r.id] ?? 0;
               const maxed = Boolean(r.max_level && lvl >= r.max_level);
+              const running = researchJobs.get(r.id);
               const cost: Partial<Resources> = {};
               for (const [k, v] of Object.entries(r.cost ?? {})) {
                 cost[k as keyof Resources] = Math.floor((v ?? 0) * (lvl + 1));
@@ -619,8 +704,17 @@ export function CastleView({
                   onClick={() => void doResearch(r.id)}
                 >
                   <span className="study-name">{r.name}</span>
+                  <span className="study-level muted tiny">
+                    {maxed ? `mastered at level ${lvl}` : `now level ${lvl}`}
+                  </span>
                   <span className="muted tiny">
-                    {maxed ? "mastered" : `to level ${lvl + 1}`}
+                    {maxed
+                      ? "mastered"
+                      : running
+                        ? `researching to level ${lvl + 1} — ${fmtEta(
+                            Math.max(0, running.finishesAt - now),
+                          )} left`
+                        : `to level ${lvl + 1}`}
                   </span>
                   {!maxed && costText(cost) && (
                     <span className="study-cost">{costText(cost)}</span>
@@ -835,33 +929,50 @@ export function CastleView({
         hasActiveQueue={jobs.length > 0}
         onBuy={buyShopItem}
         onUse={useShopItem}
+        onGoToDailyDeeds={goToDailyDeeds}
       />
 
-      <h3>Daily Deeds</h3>
-      {dailyQuests.length === 0 ? (
-        <p className="muted">No deeds posted today.</p>
-      ) : (
-        <ul className="quest-list">
-          {dailyQuests.map((q) => (
-            <li key={q.id} className="plot-row">
-              <div>
-                {q.done ? "✓ " : "○ "}
-                {q.title}{" "}
-                <span className="muted">+{q.rewardDracolith} Dracoliths</span>
-              </div>
-              {q.done && !q.claimed ? (
-                <button type="button" onClick={() => void claimQuest(q.id)}>
-                  Claim
-                </button>
-              ) : q.claimed ? (
-                <span className="muted">Claimed</span>
-              ) : (
-                <span className="muted">In progress</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <section
+        className="daily-deeds"
+        id="daily-deeds"
+        data-testid="daily-deeds"
+        aria-label="Daily Deeds"
+        tabIndex={-1}
+        ref={dailyDeedsRef}
+      >
+        <h3>Daily Deeds</h3>
+        <p className="muted tiny">
+          {DRACOLITH_LABEL} are earned here — each deed pays 1 or 2 on claim, and
+          there is no purchase path. {CROWNMARK_LABEL} are a realm resource and
+          do not buy Steward's Wares.
+        </p>
+        {dailyQuests.length === 0 ? (
+          <p className="muted">No deeds posted today.</p>
+        ) : (
+          <ul className="quest-list">
+            {dailyQuests.map((q) => (
+              <li key={q.id} className="plot-row">
+                <div>
+                  {q.done ? "✓ " : "○ "}
+                  {q.title}{" "}
+                  <span className="muted">
+                    +{q.rewardDracolith} {DRACOLITH_LABEL}
+                  </span>
+                </div>
+                {q.done && !q.claimed ? (
+                  <button type="button" onClick={() => void claimQuest(q.id)}>
+                    Claim
+                  </button>
+                ) : q.claimed ? (
+                  <span className="muted">Claimed</span>
+                ) : (
+                  <span className="muted">In progress</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </section>
   );
 }

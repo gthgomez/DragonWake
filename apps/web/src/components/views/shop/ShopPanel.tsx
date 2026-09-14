@@ -1,7 +1,12 @@
 import { useState } from "react";
 
 import { fmtNum } from "../../../lib/format";
-import { shopEffectLabel } from "../../../lib/labels";
+import {
+  CROWNMARK_LABEL,
+  DRACOLITH_LABEL,
+  shopEffectLabel,
+  shopEffectSentence,
+} from "../../../lib/labels";
 import type { Player, ShopItem } from "../../../lib/types";
 
 type ShopPanelProps = {
@@ -12,12 +17,14 @@ type ShopPanelProps = {
   hasActiveQueue: boolean;
   onBuy: (itemId: string) => Promise<void>;
   onUse: (itemId: string) => Promise<void>;
+  /** Scroll the Castle to the Daily Deeds that pay out Dracoliths (F1). */
+  onGoToDailyDeeds?: () => void;
 };
 
 /** Inline reason a purchase is blocked, or null when it can proceed. */
 function buyBlockedReason(item: ShopItem, balance: number): string | null {
   if (balance < item.dracolith) {
-    return `You need ${fmtNum(item.dracolith - balance)} more Dracoliths.`;
+    return `You need ${fmtNum(item.dracolith - balance)} more ${DRACOLITH_LABEL} — Daily Deeds pay them out.`;
   }
   return null;
 }
@@ -45,6 +52,7 @@ export function ShopPanel({
   hasActiveQueue,
   onBuy,
   onUse,
+  onGoToDailyDeeds,
 }: ShopPanelProps) {
   const [pending, setPending] = useState<string | null>(null);
 
@@ -68,12 +76,34 @@ export function ShopPanel({
       <summary>
         Steward's Wares{" "}
         <span className="muted tiny">
-          · {fmtNum(player.dracolith)} Dracoliths
+          · {fmtNum(player.dracolith)} {DRACOLITH_LABEL}
+        </span>
+        <span className="muted tiny shop-earn-inline">
+          {" "}
+          · earned from Daily Deeds, never bought
         </span>
       </summary>
 
+      <div className="shop-earn-note" data-testid="shop-earn-note">
+        <p>
+          <strong>{DRACOLITH_LABEL} are earned, not bought.</strong> There is no
+          purchase path — Daily Deeds pay out 1 to 2 each when you complete them,
+          and a test realm may top them up by grant. {CROWNMARK_LABEL} are a
+          separate realm resource and cannot buy wares here.
+        </p>
+        {onGoToDailyDeeds ? (
+          <button
+            type="button"
+            className="shop-earn-link"
+            onClick={onGoToDailyDeeds}
+          >
+            Earn from Daily Deeds
+          </button>
+        ) : null}
+      </div>
+
       <p className="muted tiny">
-        Spend Dracoliths on dispatches and protections for your realm.
+        Spend {DRACOLITH_LABEL} on dispatches and protections for your realm.
       </p>
 
       {catalog.length === 0 ? (
@@ -93,11 +123,14 @@ export function ShopPanel({
                 <div className="shop-item-head">
                   <span className="shop-item-name">{item.name}</span>
                   <span className="shop-item-cost">
-                    {fmtNum(item.dracolith)} Dracoliths
+                    {fmtNum(item.dracolith)} {DRACOLITH_LABEL}
                   </span>
                 </div>
                 <p className="shop-item-effect">
                   {shopEffectLabel(item.effect.type, item.effect.seconds)}
+                </p>
+                <p className="muted tiny shop-item-detail">
+                  {shopEffectSentence(item.effect.type, item.effect.seconds)}
                 </p>
                 <p className="muted tiny">Owned: {owned}</p>
                 <button
