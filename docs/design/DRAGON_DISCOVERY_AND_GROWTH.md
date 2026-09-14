@@ -153,7 +153,7 @@ Minimum injury types (reusable):
 | Cracked wing / vane | no long flight; home defense reduced | rest vs rare treatment vs risky emergency sortie | yes — flight ceiling drops |
 | Joint crack (plated wyrms) | cannot entrench far; slow | rest in vein vs brace-craft | yes — permanent limp, still a fortress at home |
 | Dry-crack (Fen Wyrm) | silt-pack fails; must reach water | flood a channel vs wait for rain | hide weaker when dry |
-| Exhaustion (Titan) | see provisioning table | cannot be skipped with Chronite | political scar: holdings remember the wake |
+| Exhaustion (Titan) | see provisioning table | cannot be skipped with Dracoliths | political scar: holdings remember the wake |
 | Temperament break | refusals increase | honor rest, change commander, or push and make it worse | Chronicle refusal entries |
 
 No pay-to-skip of core injury. Convenience currency may speed *travel

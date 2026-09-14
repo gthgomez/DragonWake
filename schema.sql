@@ -18,7 +18,11 @@ CREATE TABLE players (
   faction         TEXT NOT NULL CHECK (faction IN ('northern_kingdom','mountain_realm','forest_people','coastal_lords')),
   password_hash   TEXT, -- null for pure guest
   guest_token     TEXT UNIQUE,
-  chronite        BIGINT NOT NULL DEFAULT 0,
+  -- Premium currency (internal id singular "dracolith", displayed "Dracoliths").
+  -- Existing volumes created before the rename must run:
+  --   ALTER TABLE players RENAME COLUMN chronite TO dracolith;
+  -- (also applied idempotently by migrateExistingSchema in apps/server/src/pg.ts)
+  dracolith       BIGINT NOT NULL DEFAULT 0,
   player_level    INT NOT NULL DEFAULT 1,
   xp              BIGINT NOT NULL DEFAULT 0,
   protection_until TIMESTAMPTZ,

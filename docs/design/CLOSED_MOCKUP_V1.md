@@ -93,7 +93,7 @@ Player-facing language authority. IDs never change (persistence); only labels.
 |---|---|---|
 | Sovereign / Harbinger / harness | **INTERNAL_COMPAT** | Backend + persistence remain; no player-facing surface. Full deletion exists as separate unmerged work (M4); out of this campaign's authority. |
 | Saltvault, Brinehold ids | label-level MIGRATE only | ids stable in saves |
-| Chronite | **KEEP** (shop credit, neutral label) | monetization freeze is a separate deliverable |
+| Dracoliths | **KEEP** (premium earned currency, neutral label) | shop opened 2026-09-14; monetization is a separate deliverable |
 | Defense posture values `harbor/partial/full` | labels "Withdraw / Garrison / Full defense" | id-level rename deferred (schema CHECK) |
 | "Tideband" alliance label | "Alliance (Tideband)" transitional | lore decision pending |
 | Wilderness `crossroads`/`watch_hill` no-op bonuses | displayed as strategic positions, bonus row "— (strategic position)" | no new bonus system |

@@ -19,11 +19,12 @@ import type {
   QueueJob,
   ResearchDef,
   ResearchUnlock,
+  ShopItem,
   TutorialState,
   UnitDef,
   WorldEventDto,
 } from "../lib/types";
-import { registerLabels } from "../lib/labels";
+import { registerLabels, translateError } from "../lib/labels";
 import { useGameActions } from "./useGameActions";
 
 export function useGame() {
@@ -75,6 +76,8 @@ export function useGame() {
   });
   const [tutorial, setTutorial] = useState<TutorialState | null>(null);
   const [dailyQuests, setDailyQuests] = useState<DailyQuest[]>([]);
+  const [shopCatalog, setShopCatalog] = useState<ShopItem[]>([]);
+  const [inventory, setInventory] = useState<Record<string, number>>({});
   const [allianceList, setAllianceList] = useState<AllianceSummary[]>([]);
   const [joinTag, setJoinTag] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -117,6 +120,30 @@ export function useGame() {
     if (me.tutorial) setTutorial(me.tutorial);
     if (me.dailyQuests) setDailyQuests(me.dailyQuests);
     if (me.serverNow) setNow(me.serverNow);
+  }, []);
+
+  const refreshShop = useCallback(async (tok: string) => {
+    try {
+      const data = await api<{ catalog: ShopItem[] }>(
+        "/api/v1/shop/catalog",
+        tok,
+      );
+      setShopCatalog(data.catalog ?? []);
+    } catch {
+      /* the shop is optional at boot */
+    }
+  }, []);
+
+  const refreshInventory = useCallback(async (tok: string) => {
+    try {
+      const data = await api<{ items: Record<string, number> }>(
+        "/api/v1/inventory",
+        tok,
+      );
+      setInventory(data.items ?? {});
+    } catch {
+      /* inventory is optional at boot */
+    }
   }, []);
 
   const refreshQueues = useCallback(
@@ -180,6 +207,59 @@ export function useGame() {
       }, 6000);
     },
     [],
+  );
+
+  const buyShopItem = useCallback(
+    async (itemId: string) => {
+      if (!token) return;
+      const name =
+        shopCatalog.find((i) => i.id === itemId)?.name ?? "Steward's wares";
+      setError(null);
+      try {
+        await api<{ itemId: string; dracolith: number }>(
+          "/api/v1/shop/buy",
+          token,
+          { method: "POST", body: JSON.stringify({ itemId }) },
+        );
+        await refreshMe(token);
+        await refreshInventory(token);
+        setStatus(`Bought ${name}`);
+        pushToast(`Bought ${name}`, "ok");
+      } catch (e) {
+        const msg = translateError(e);
+        setError(msg);
+        pushToast(msg, "err");
+      }
+    },
+    [token, shopCatalog, refreshMe, refreshInventory, pushToast],
+  );
+
+  const useShopItem = useCallback(
+    async (itemId: string) => {
+      if (!token) return;
+      const name =
+        shopCatalog.find((i) => i.id === itemId)?.name ?? "Steward's wares";
+      setError(null);
+      try {
+        await api<{
+          itemId: string;
+          effect: { type: string; seconds: number };
+          applied: { finishesAt?: number; protectionUntil?: number };
+        }>("/api/v1/shop/use", token, {
+          method: "POST",
+          body: JSON.stringify({ itemId }),
+        });
+        await refreshMe(token);
+        await refreshInventory(token);
+        setStatus(`${name} applied`);
+        pushToast(`${name} applied`, "ok");
+      } catch (e) {
+        const msg = translateError(e);
+        setError(msg);
+        pushToast(msg, "err");
+      }
+    },
+    [token, shopCatalog, refreshMe, refreshInventory, pushToast],
   );
 
   async function loadMap(focus = mapFocus) {
@@ -268,6 +348,13 @@ export function useGame() {
     if (!token) return;
     void loadCommanders(token);
   }, [token, loadCommanders]);
+
+  // Steward's Wares: catalog + owned items load once the player is signed in.
+  useEffect(() => {
+    if (!token) return;
+    void refreshShop(token);
+    void refreshInventory(token);
+  }, [token, refreshShop, refreshInventory]);
 
   useEffect(() => {
     if (!token) return;
@@ -457,6 +544,8 @@ export function useGame() {
     bestiaryDefs,
     tutorial,
     dailyQuests,
+    shopCatalog,
+    inventory,
     allianceList,
     commanders,
     commandersReady,
@@ -499,6 +588,8 @@ export function useGame() {
     loadCodex,
     refreshKnowledge,
     loadAlliances,
+    buyShopItem,
+    useShopItem,
 
     // actions
     ...actions,

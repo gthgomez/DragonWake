@@ -63,7 +63,7 @@ function publicPlayer(p: Player) {
     id: p.id,
     displayName: p.displayName,
     faction: p.faction,
-    chronite: p.chronite,
+    dracolith: p.dracolith,
     playerLevel: p.playerLevel,
     protectionUntil: p.protectionUntil
       ? new Date(p.protectionUntil).toISOString()
@@ -937,6 +937,22 @@ export function createApp(world: World) {
     const body = (await c.req.json()) as { itemId: string };
     try {
       const result = world.shopBuy(player.id, body.itemId);
+      return c.json(result);
+    } catch (e) {
+      return err(
+        c,
+        (e as { code?: string }).code ?? "SHOP_FAIL",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  });
+
+  api.post("/shop/use", async (c) => {
+    const player = c.get("player");
+    if (!player) return err(c, "UNAUTHORIZED", "login required", 401);
+    const body = (await c.req.json()) as { itemId: string };
+    try {
+      const result = world.useShopItem(player.id, body.itemId);
       return c.json(result);
     } catch (e) {
       return err(

@@ -198,12 +198,12 @@ describe("security gates", () => {
         body: JSON.stringify({ displayName: "TokGate" }),
       });
       const token = guest.body.token as string;
-      const chroniteBefore = guest.body.player.chronite as number;
+      const dracolithBefore = guest.body.player.dracolith as number;
 
       const noHeader = await json(app, "/api/v1/admin/grant", {
         method: "POST",
         token,
-        body: JSON.stringify({ chronite: 100 }),
+        body: JSON.stringify({ dracolith: 100 }),
       });
       expect(noHeader.res.status).toBe(403);
 
@@ -211,7 +211,7 @@ describe("security gates", () => {
         method: "POST",
         token,
         headers: { "x-admin-token": "wrong" },
-        body: JSON.stringify({ chronite: 100 }),
+        body: JSON.stringify({ dracolith: 100 }),
       });
       expect(wrongHeader.res.status).toBe(403);
 
@@ -219,10 +219,10 @@ describe("security gates", () => {
         method: "POST",
         token,
         headers: { "x-admin-token": "secret-admin-token" },
-        body: JSON.stringify({ chronite: 100 }),
+        body: JSON.stringify({ dracolith: 100 }),
       });
       expect(ok.res.status).toBe(200);
-      expect(ok.body.me.chronite).toBe(chroniteBefore + 100);
+      expect(ok.body.me.dracolith).toBe(dracolithBefore + 100);
     } finally {
       if (prev === undefined) delete process.env.ADMIN_TOKEN;
       else process.env.ADMIN_TOKEN = prev;

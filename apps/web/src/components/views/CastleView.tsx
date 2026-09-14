@@ -21,17 +21,25 @@ import type {
   City,
   DailyQuest,
   March,
+  Player,
   QueueJob,
   ResearchDef,
   ResearchUnlock,
   Resources,
+  ShopItem,
   UnitDef,
 } from "../../lib/types";
 import { CityGrid } from "./city/CityGrid";
+import { ShopPanel } from "./shop/ShopPanel";
 
 type CastleViewProps = {
   city: City;
   cities: City[];
+  player: Player;
+  shopCatalog: ShopItem[];
+  inventory: Record<string, number>;
+  buyShopItem: (itemId: string) => Promise<void>;
+  useShopItem: (itemId: string) => Promise<void>;
   setCityId: (cityId: string) => void;
   units: UnitDef[];
   researchDefs: ResearchDef[];
@@ -111,6 +119,11 @@ function musterPriority(u: UnitDef): number {
 export function CastleView({
   city,
   cities,
+  player,
+  shopCatalog,
+  inventory,
+  buyShopItem,
+  useShopItem,
   setCityId,
   units,
   researchDefs,
@@ -792,6 +805,15 @@ export function CastleView({
         </p>
       )}
 
+      <ShopPanel
+        player={player}
+        catalog={shopCatalog}
+        inventory={inventory}
+        hasActiveQueue={jobs.length > 0}
+        onBuy={buyShopItem}
+        onUse={useShopItem}
+      />
+
       <h3>Daily Deeds</h3>
       {dailyQuests.length === 0 ? (
         <p className="muted">No deeds posted today.</p>
@@ -802,7 +824,7 @@ export function CastleView({
               <div>
                 {q.done ? "✓ " : "○ "}
                 {q.title}{" "}
-                <span className="muted">+{q.rewardChronite} Chronite</span>
+                <span className="muted">+{q.rewardDracolith} Dracoliths</span>
               </div>
               {q.done && !q.claimed ? (
                 <button type="button" onClick={() => void claimQuest(q.id)}>

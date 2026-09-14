@@ -5,7 +5,7 @@ Multiplayer web MMORTS MVP beta (async city builder + map combat).
 ## Player-honest Alpha status (2026-09-05, landed on main via PR #7)
 
 The final resource domain is
-Food, Wood, Stone, Ore, and Crownmarks; Chronite remains separate. Older
+Food, Wood, Stone, Ore, and Crownmarks; Dracoliths remain separate. Older
 aquatic and intermediate saves are canonicalized at the persistence/input
 boundary. See `docs/design/M2_FINAL_RESOURCE_CUTOVER.md` and
 `docs/design/PAST_WORK_PRESERVATION_LEDGER.md`.
@@ -188,7 +188,7 @@ Env flags (`.env`):
 POST /api/v1/admin/grant
 Authorization: Bearer <session token>
 x-admin-token: <ADMIN_TOKEN>
-{ "units": { "levy": 200 }, "brineholdUnlock": true, "chronite": 100, "skipProtection": true }
+{ "units": { "levy": 200 }, "brineholdUnlock": true, "dracolith": 100, "skipProtection": true }
 ```
 
 ## ACCEPTANCE_MVP manual path (M1–M11)

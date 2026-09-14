@@ -52,7 +52,7 @@ Dragon Wake is a **functioning MMORTS prototype** with:
 - **Marches**: 5 intents (scout/attack/occupy/reinforce/haul), distance-based travel time
 - **Sovereigns**: 2 defined (Harbinger, Brine Sovereign), 4-slot harness system, massive hero stats
 - **Alliances**: Create/join, chat, reinforce, haul between members
-- **Shop**: 4 deterministic items (2 speedups, 2 shields), Chronite currency
+- **Shop**: 4 deterministic items (2 speedups, 2 shields), Dracoliths currency (renamed to Dracoliths 2026-09-14)
 - **Tutorial**: 10-step linear flow ending at Brinehold founding
 - **Codex**: Raw formulas JSON dump (placeholder)
 
@@ -333,10 +333,10 @@ Dragon Warfare ──────→ Anti-dragon formations + specialized weapon
 
 | Current ID | Current Name | Actual Mechanic | Old-Theme Coupling | Target Disposition | Proposed Target | Confidence | Migration |
 |------------|-------------|-----------------|-------------------|-------------------|----------------|------------|-----------|
-| `speedup_1m` | Blink | 60-second queue speedup for 1 Chronite | Time magic / aquatic | **RETHINK** | Mundane wartime stores (dispatches, supply priority) | HIGH | M1 |
-| `speedup_1h` | Jump | 1-hour queue speedup for 10 Chronite | Time magic | **RETHINK** | Same | HIGH | M1 |
-| `shield_1h` | Momentary Truce | 1-hour protection for 3 Chronite | Magic shield | **RETHINK** | Garrison readiness / warning system | HIGH | M1 |
-| `shield_12h` | Ceasefire | 12-hour protection for 25 Chronite | Magic shield | **RETHINK** | Treaty / diplomatic protection | HIGH | M1 |
+| `speedup_1m` | Blink | 60-second queue speedup for 1 Dracolith | Time magic / aquatic | **RETHINK** | Mundane wartime stores (dispatches, supply priority) | HIGH | M1 |
+| `speedup_1h` | Jump | 1-hour queue speedup for 10 Dracoliths | Time magic | **RETHINK** | Same | HIGH | M1 |
+| `shield_1h` | Momentary Truce | 1-hour protection for 3 Dracoliths | Magic shield | **RETHINK** | Garrison readiness / warning system | HIGH | M1 |
+| `shield_12h` | Ceasefire | 12-hour protection for 25 Dracoliths | Magic shield | **RETHINK** | Treaty / diplomatic protection | HIGH | M1 |
 
 **Freeze constraint**: Direction Freeze §16 says "Convenience items must not be framed as everyday time magic." The product mechanics (speedups/shields) are traditional F2P but need lore-appropriate framing. A product monetization freeze is needed before Phase 4.
 

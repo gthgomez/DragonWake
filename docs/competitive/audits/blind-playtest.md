@@ -58,7 +58,7 @@ tracked; screenshot binaries local per
 | TIME | ACTION | EXPECTATION | WHAT HAPPENED | INTERPRETATION | FRICTION | POSITIVE | REF | SEVERITY |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 00:20 | Loaded game | See a game | Landing page: "DRAGON WAKE · MVP BETA", "Claim a keep in a dangerous age", Create Guest (name + faction) | A medieval kingdom builder; beta | none | Clean, legible hero screen | 01 | cosmetic |
-| 00:50 | Typed name, chose Forest People, Enter | Join a realm | Instant entry, toast "Entered realm", free "Chronite 50", protection to 9/17 | Live game, protected start | none | Onboarding explains itself | 02,03 | none |
+| 00:50 | Typed name, chose Forest People, Enter | Join a realm | Instant entry, toast "Entered realm", free "Dracoliths 50" (renamed to Dracoliths 2026-09-14), protection to 9/17 | Live game, protected start | none | Onboarding explains itself | 02,03 | none |
 | 01:15 | Read Castle screen | Know what to do | Objective **2/10** "Raise Homes"; build palette with costs; Studies; Muster; Daily Deeds; Realm Awareness "Dormant" + The Roost | Clear next step; dragon theme present immediately | none | Objective card + "Next:" hints | 03,04 | none |
 | 01:40 | Clicked "Homes" build card | Cost/confirm dialog | Construction began immediately; toast "Building Homes"; no confirm | Clicking a card commits; wanted a confirm for spend | minor (build) | Fast, satisfying first build | 05 | minor |
 | 02:00 | Reloaded | See progress | "Construction complete: Homes"; Objective **3/10** "Stake a farmstead in the Lands" | Loop works; resources spent correctly | none | Objective advanced + auto-next | 06 | none |
@@ -67,7 +67,7 @@ tracked; screenshot binaries local per
 | 03:10 | Opened Knowledge | Find research | Knowledge is a **dragon campaign hub** (Awakening path, Dragon Readiness 0/5, Bestiary, Evidence, Expedition, Scribe's Table) — research lives back on Castle | Two different "knowledge" concepts split across tabs | minor (IA) | Campaign path is a strong roadmap | 10 | minor |
 | 03:40 | Clicked "Infantry Doctrine" | Open research | Short toast "Studying…" then "Research complete"; study now "level 1 → to level 2" | Research is one-click and near-instant here | minor (no panel; weak read) | Feels snappy | 11 | minor |
 | 04:00 | Trained 40 Levy Spearman | Add troops | Toast "Training 40× Levy Spearman"; Realm Awareness flipped **Dormant → Stirring** | Training works; kingdom state reacts | none | Dynamic "Realm Awareness" state | 12 | none |
-| 04:30 | Claimed daily deeds | Currency | "Daily deed claimed", Chronite 50→54 | Small reward loop | none | Clear "Claim" affordances | 12,13 | none |
+| 04:30 | Claimed daily deeds | Currency | "Daily deed claimed", Dracoliths 50→54 | Small reward loop | none | Clear "Claim" affordances | 12,13 | none |
 | 05:00 | Opened Realm | World map | Tile grid with Camps (L1–L10), unclaimed Wilds, two other settlements, my keep; legend present | Real world map with content | none | Map reads well; camps have levels | 14 | none |
 | 05:30 | Selected Wyrm-Scarred Ruin L10 | Inspect camp | "Threat: grave — wyrm-scarred and deadly", intel after scouting | Camp difficulty is explicit | none | Great camp framing | 15 | none |
 | 08:00 | Tried "Send scouts" empty | Dispatch | Button **disabled** with no reason and no hint that a company must be added | Had to guess the rule | major (muster) | — | 16 | major |

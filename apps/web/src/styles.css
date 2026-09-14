@@ -1123,3 +1123,66 @@ button.confirm-armed {
   .dragon-presence-glyph { width: 46px; height: 46px; }
   .dragon-status-rail > span:not(.dragon-state-pill) { border-left: 0; padding-left: 0; }
 }
+
+/* ── Steward's Wares (Castle shop) ─────────────────────────────────────── */
+.shop-panel {
+  margin: 1rem 0 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-card) 85%, #000);
+}
+.shop-panel > summary {
+  cursor: pointer;
+  color: var(--gold-text, #e8c777);
+  font-weight: 600;
+}
+.shop-panel > summary:hover { color: var(--accent-hot); }
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.6rem;
+  margin: 0.6rem 0 0.9rem;
+}
+.shop-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2, #241d16);
+}
+.shop-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.shop-item-name { font-weight: 600; }
+.shop-item-cost {
+  color: var(--gold-text, #e8c777);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.shop-item-effect {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.shop-item button { align-self: flex-start; }
+.shop-inventory-head { margin: 0.9rem 0 0.25rem; font-size: 1rem; }
+.shop-inventory { list-style: none; padding: 0; margin: 0; }
+.shop-use {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  max-width: 22rem;
+  text-align: right;
+}
+@media (max-width: 560px) {
+  .shop-item-head { flex-direction: column; align-items: flex-start; }
+  .shop-use { max-width: none; }
+}

@@ -205,7 +205,7 @@ No hunger punishment. No gacha season.
 | 6 | Why doesn't the first dragon lose importance? | It lives in the Capital; others do not. It has Chronicle density. It is never the best specialist, so it is not discarded for a stat reason — it is kept for home and history. Alpha Proof Slice acceptance includes "hatchling still matters after Mirecrown." |
 | 7 | Why isn't the fast dragon a Wind Dragon? | Hollow-bone migratory biology, thermal roads, grounded helplessness, refuses plate. Speed is anatomy, not an element. |
 | 8 | Why isn't the crystal dragon an Earth Dragon? | Diet-grown plating, joint gaps, mine coexistence, absence window. Not a magic school. |
-| 9 | Why isn't the Titan pay-to-win? | Provisioning + exhaustion with story consequences; no Chronite skip; Breach does not delete cities; realm-visible so others react. |
+| 9 | Why isn't the Titan pay-to-win? | Provisioning + exhaustion with story consequences; no Dracolith skip (renamed to Dracoliths 2026-09-14); Breach does not delete cities; realm-visible so others react. |
 | 10 | Why aren't harnesses relics? | Crafted, species-specific slots, role flips, no rarity ladder. M4 harness stays dead. |
 | 11 | What creates PvP? | Scoutable absence, river politics, later intercept, knowledge counters, Titan wakes. |
 | 12 | Low-population realm? | Wild ecology, hatchling, Mirecrown geography, PvE hunts still work. |

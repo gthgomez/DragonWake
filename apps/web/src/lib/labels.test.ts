@@ -5,6 +5,8 @@ import {
   lifeStageLabel,
   physicalStateLabel,
   presenceStateLabel,
+  resourceLabel,
+  shopEffectLabel,
 } from "./labels";
 
 describe("lifecycle labels", () => {
@@ -22,5 +24,18 @@ describe("lifecycle labels", () => {
     expect(knowledgeStateLabel("SUPPORTED")).toBe("Supported");
     expect(knowledgeStateLabel("observed")).toBe("Observed");
     expect(physicalStateLabel("WOUNDED")).toBe("wounded");
+  });
+
+  it("names Dracoliths and describes Steward's Wares effects", () => {
+    expect(resourceLabel("dracolith")).toBe("Dracoliths");
+    expect(shopEffectLabel("speedup_sec", 3600)).toBe(
+      "Completes the soonest construction/research/training 1h faster",
+    );
+    expect(shopEffectLabel("speedup_sec", 60)).toBe(
+      "Completes the soonest construction/research/training 1m faster",
+    );
+    expect(shopEffectLabel("shield_sec", 43200)).toBe(
+      "Extends protection 12h",
+    );
   });
 });
