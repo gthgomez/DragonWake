@@ -124,8 +124,9 @@ A Competitive Product Lab remediation pass landed on `fix/audit-remediation`
 findings without changing balance or content IDs:
 
 - **Shop** — Steward's Wares is open and now teaches that Dracoliths are
-  earned (not bought) from the Daily Deeds, with a link to them and progress
-  toward the first ware; no IAP and no faucet/price change.
+  earned (not bought) from the Daily Deeds, with a link to them and a
+  per-item "You need N more Dracoliths" shortfall on blocked buys; no IAP and
+  no faucet/price change.
 - **Food upkeep** — soft army food upkeep exists, and is now surfaced as a
   persistent topbar ledger (production / upkeep / net + low-food warning) on
   every tab, plus upkeep context on Lands. The marching-army upkeep rule is
@@ -147,7 +148,7 @@ Two balance decisions remain open pending owner ratification (marching-army
 upkeep; Dracolith faucet/first price) — see
 `docs/proposals/AUDIT_REMEDIATION_DECISIONS.md`. The first-dragon reveal (F8)
 is **spec-only**, not implemented. Verified green on this branch: `pnpm -r
-typecheck`, web 27/27, server 214 tests (4 PostgreSQL skips), and the full
+typecheck`, web 28/28, server 214 tests (4 PostgreSQL skips), and the full
 Playwright suite repeatably green (20 passed / 1 skipped / 0 failed on
 consecutive runs against the persistent DB). A human blind replay is still
 required (see `docs/competitive/audits/blind-playtest.md`).

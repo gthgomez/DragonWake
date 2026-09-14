@@ -76,8 +76,9 @@ A Competitive Product Lab remediation pass landed off
 
 - **Shop / Dracoliths (F1, F7)** — Steward's Wares is open and now teaches
   the earn path (Daily Deeds pay 1/1/2 = 4 a day; no IAP) with a link to the
-  Deeds and progress toward the first ware. Dracoliths (earned premium) and
-  Crownmarks (produced resource) are labelled and explained distinctly.
+  Deeds and a per-item "You need N more Dracoliths" shortfall on blocked buys.
+  Dracoliths (earned premium) and Crownmarks (produced resource) are labelled
+  and explained distinctly.
 - **Food upkeep visibility (F2)** — soft garrison upkeep (Option S, with
   Rationing relief) exists; a persistent topbar ledger (production / upkeep
   / net / low-food warning) now surfaces it on every tab, and Lands shows
@@ -98,7 +99,7 @@ scout/dispatch intel now use canonical formatting / the server summary) and
 test/state hygiene (`alpha-r2` run-unique display name; Castle research
 status keyed to `city.id`).
 
-Verification reported at this branch: `pnpm -r typecheck`; web 27/27; server
+Verification reported at this branch: `pnpm -r typecheck`; web 28/28; server
 214 tests (4 PostgreSQL skips); full Playwright suite repeatably green
 (20 passed / 1 skipped / 0 failed on consecutive runs against the persistent
 DB). This is a developer-reviewer rendered pass, not a human playtest.

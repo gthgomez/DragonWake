@@ -164,3 +164,67 @@ Open items carried forward (not defects in this pass):
 - **Two balance decisions** — marching-army upkeep and the Dracolith
   faucet/first price remain pending owner ratification
   ([`../../proposals/AUDIT_REMEDIATION_DECISIONS.md`](../../proposals/AUDIT_REMEDIATION_DECISIONS.md)).
+
+---
+
+## PR #15 review swarm — 2026-09-14
+
+Status: **review-only swarm pass; dispositions recorded.** A four-role review
+swarm (regression, security/privacy, performance/reliability, and contract/test
+coverage) ran read-only over PR #15 (`fix/audit-remediation`). This is a
+`DEVELOPER_REVIEWER` pass, **not** a blind or human playtest — **Gate 7 (human
+blind replay) remains open** and no Gate 8 before/after verdict is issued. No
+balance, content-ID, or canon change was made by the swarm; the two owner
+decisions above remain open.
+
+Verification at the swarm head: `pnpm -r typecheck`; web **28/28** (up from
+27/27 — the swarm added tests for D1 intel suppression, F6 build result,
+starvation growth pause, and shop buy/use); server 214 tests (4 PostgreSQL
+skips); the full Playwright suite green as previously recorded.
+
+### Fixed in this swarm
+
+| Finding | Fix |
+| --- | --- |
+| Shop speed-up UI/server scope mismatch | Selected-city semantics were aligned between the UI and the server, and `/shop/use` now validates `cityId` so a speed-up is applied to the city actually selected and an unknown/invalid `cityId` is rejected. |
+| Shop buy/use false-negative that could double-charge | The mutation and the follow-up refresh were separated so a failed read-back can no longer read as a failed action and invite a duplicate purchase/use. |
+| `chronite` → `dracolith` migration unsafe when both columns exist | The migration is now safe when both columns are present, with a PostgreSQL-gated test covering the coexistence case. |
+| `formatIntel` could render raw JSON | Hardened so it can **never** emit raw JSON — a payload beginning with `{` or `[`, or a scalar, is suppressed instead of dumped to the player. |
+| `"1 Dracoliths"` pluralization | Corrected to `"1 Dracolith"` / `"2 Dracoliths"`. |
+| Missing regression coverage | Added tests for D1 intel suppression, F6 build result, starvation growth pause, and shop buy/use (web suite 27 → 28). |
+
+### Accepted (documented, not changed)
+
+- **Certified journey "Codify" → "Record findings" button copy.** The label was
+  changed in lockstep with `KnowledgeView` as a deliberate Slice A copy
+  amendment, and the e2e journey was updated to match. Accepted as intentional;
+  no further change.
+
+### Deferred (documented, still open)
+
+- **Marching-army upkeep** — awaiting owner ratification (the same open decision
+  recorded in [`../../CURRENT_STATE.md`](../../CURRENT_STATE.md) and
+  [`../../proposals/AUDIT_REMEDIATION_DECISIONS.md`](../../proposals/AUDIT_REMEDIATION_DECISIONS.md)).
+- **Large-garrison food dirty-write amplification** — performance concern,
+  speculative; no demonstrated player impact.
+- **Duplicated `.dragon-presence` CSS** — pre-existing duplication, not
+  introduced by this PR.
+- **Rationing constants hardcoded rather than derived from content** — the
+  hardcoded values are numerically aligned with the content today.
+- **Legacy `chronite` admin-grant silently no-ops** — a `.strict()` schema would
+  reject it; left as-is rather than change the admin contract in a UX PR.
+- **CI e2e does not set the alpha-art env flag** — the merged art lineage is
+  therefore not rendered in CI (local verification used the flag).
+
+### Test-stability follow-up (same day)
+
+- **Toast dedupe removed; TTL restored to 6 s.** The F3 rail's 3 s dedupe
+  collapsed two legitimate identical queue-completion notices (e.g. two
+  consecutive "Research complete: Dragon Studies" events), which made the
+  certified journey's second-toast assertion flaky. The no-overlap guarantee is
+  structural (the in-flow rail), so dedupe was dropped and the pre-remediation
+  6 s TTL restored; the visible cap remains 3.
+- **Certified-journey assertion made state-based.** The second Dragon Studies
+  study is now verified from the persistent `data-testid="research-status"`
+  ("Dragon Studies reached level 2") instead of a second transient toast. This
+  checks the same behavior without depending on toast timing.
