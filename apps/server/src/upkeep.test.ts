@@ -61,6 +61,32 @@ describe("food upkeep (Option S, soft)", () => {
     expect(world.getCity(city.id)!.stacks.levy).toBe(100);
   });
 
+  it("pauses population growth while starving and resumes once food returns", () => {
+    const world = fresh();
+    const { city } = world.createGuest("UpkF", "northern_kingdom");
+    // A host whose upkeep (200/h) out-eats the fields (120/h) leaves the
+    // stores dry at zero, so the settlement is genuinely starving.
+    city.stacks = { levy: 200 };
+    city.resources.food = 0;
+    city.lastResourceTick = 0;
+    const before = city.population;
+    expect(before).toBeGreaterThan(0);
+    expect(before).toBeLessThan(city.maxPopulation);
+
+    const starving = tickCityResources(city, 3_600_000); // one hour
+    expect(isCityStarving(starving)).toBe(true);
+    expect(starving.resources.food).toBe(0);
+    // Growth is paused while the host goes hungry.
+    expect(starving.population).toBe(before);
+
+    // Relieve the host and restock the stores: the next hour grows again.
+    starving.stacks = { levy: 1 };
+    starving.resources.food = 1_000;
+    const recovering = tickCityResources(starving, 2 * 3_600_000);
+    expect(isCityStarving(recovering)).toBe(false);
+    expect(recovering.population).toBeGreaterThan(before);
+  });
+
   it("keeps a fresh realm upkeep-positive before its first economy action", () => {
     const world = fresh();
     const { city } = world.createGuest("UpkE", "northern_kingdom");

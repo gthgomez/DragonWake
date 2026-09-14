@@ -373,3 +373,172 @@ test("mobile 390: Castle and Realm render without horizontal overflow", async ({
   await expect(page.getByRole("heading", { name: "The Realm" })).toBeVisible();
   await assertNoOverflow("Realm");
 });
+
+test("F6: a completed build renders an in-place result panel", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await enterGuest(page, `build-${Date.now() % 100000}`);
+
+  // Raise Homes on an empty plot through the player's own build path. With the
+  // dev-fast clock the queue finishes in well under a second; the result must
+  // still land in the page (not only a transient toast).
+  await page.getByRole("button", { name: "Empty plot 2" }).click();
+  await page.locator(".city-pick", { hasText: "Homes" }).click();
+
+  const result = page.getByTestId("city-build-result");
+  await expect(result).toBeVisible({ timeout: 30_000 });
+  await expect(result).toContainText(/Construction complete/i);
+  await expect(result).toContainText(/Homes/);
+  await shot(page, "16-build-result");
+});
+
+test("shop: buying the cheapest ware stocks it and using it consumes it", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await enterGuest(page, `wares-${Date.now() % 100000}`);
+  const tok = await token(page);
+
+  // Dracoliths are earned, never bought — the test realm tops them up by grant
+  // so the purchase path can be exercised without a Deeds grind.
+  const grant = await page.request.post(`${API}/api/v1/admin/grant`, {
+    headers: { authorization: `Bearer ${tok}` },
+    data: { dracolith: 100 },
+  });
+  expect(grant.ok()).toBeTruthy();
+
+  const shop = page.getByTestId("shop-panel");
+  await expect(shop).toBeVisible();
+  await shop.locator("summary").click();
+
+  // Relay Riders (speedup_1h) is the cheapest catalog ware.
+  const cheapest = shop.getByTestId("shop-item-speedup_1h");
+  await expect(cheapest).toContainText("Owned: 0");
+  const buy = cheapest.getByRole("button", { name: "Buy", exact: true });
+  // The granted balance reaches the shop through the /me poll.
+  await expect(buy).toBeEnabled({ timeout: 15_000 });
+  await buy.click();
+  await expect(cheapest).toContainText("Owned: 1", { timeout: 15_000 });
+
+  // The owned ware is listed with a Use action.
+  const wares = shop.locator("ul.shop-inventory li.plot-row", {
+    hasText: "Relay Riders",
+  });
+  await expect(wares).toBeVisible();
+
+  // A speedup needs a running queue. Training is a real, long-running queue
+  // (100 Levy Spearman ≈ 16s on the dev-fast clock), so start it before Use.
+  const levyRow = page.locator("li.muster-row", { hasText: "Levy Spearman" });
+  await levyRow.getByLabel("Levy Spearman count").fill("100");
+  await levyRow.getByRole("button", { name: "Train", exact: true }).click();
+
+  const use = wares.getByRole("button", { name: "Use", exact: true });
+  await expect(use).toBeEnabled({ timeout: 15_000 });
+  await use.click();
+
+  // Consumed: it leaves "Your wares" and the catalog stock falls back to zero.
+  await expect(wares).toHaveCount(0, { timeout: 15_000 });
+  await expect(shop.getByText("You hold no wares yet.")).toBeVisible();
+  await expect(cheapest).toContainText("Owned: 0");
+  await shot(page, "17-shop-consumed");
+});
+
+test("F2: a host that out-eats the fields shows the upkeep warning", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await enterGuest(page, `hungry-${Date.now() % 100000}`);
+  const tok = await token(page);
+
+  // The fields yield 120 Food/h while the starting host eats 65/h. Negative
+  // resource grants are rejected, so flip the net negative the player-legal
+  // way: grant a host large enough to out-eat the fields without draining the
+  // stores (upkeep 365/h vs production 120/h).
+  const grant = await page.request.post(`${API}/api/v1/admin/grant`, {
+    headers: { authorization: `Bearer ${tok}` },
+    data: { units: { levy: 300 } },
+  });
+  expect(grant.ok()).toBeTruthy();
+
+  // The /me poll updates the HUD within a couple of seconds.
+  const upkeep = page.getByTestId("upkeep-indicator");
+  await expect(upkeep).toContainText(/Net −/, { timeout: 15_000 });
+  // Either the hard starvation banner or the soft negative-net note.
+  await expect(
+    page
+      .getByTestId("upkeep-warning")
+      .or(page.locator(".hud-upkeep-warning-soft")),
+  ).toBeVisible({ timeout: 15_000 });
+  await shot(page, "18-upkeep-negative");
+});
+
+test("latest-dispatch: a resolved march renders the result panel", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await enterGuest(page, `march-${Date.now() % 100000}`);
+  const tok = await token(page);
+
+  // Discover a low-level camp in the seeded realm (same path as F4).
+  const mapResp = await page.request.get(
+    `${API}/api/v1/map/viewport?x0=0&y0=0&x1=39&y1=39`,
+    { headers: { authorization: `Bearer ${tok}` } },
+  );
+  expect(mapResp.ok()).toBeTruthy();
+  const world = (await mapResp.json()) as {
+    camps: { id: string; x: number; y: number; level: number }[];
+  };
+  const camp = world.camps
+    .filter((c) => c.level <= 2)
+    .sort((a, b) => a.level - b.level)[0];
+  expect(camp, "a low-level camp must exist in the seeded realm").toBeTruthy();
+
+  // The dev fixture tops up the host so a real march is sustainable; win or
+  // lose, the resolution still raises a report.
+  const grant = await page.request.post(`${API}/api/v1/admin/grant`, {
+    headers: { authorization: `Bearer ${tok}` },
+    data: { units: { levy: 300 } },
+  });
+  expect(grant.ok()).toBeTruthy();
+
+  await page.getByRole("button", { name: "Realm", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "The Realm" })).toBeVisible();
+
+  // Travel to the camp via the visible map-jump control (player path).
+  await page.locator(".map-jump summary").click();
+  const jump = page.locator(".map-jump form");
+  await jump.getByLabel("X").fill(String(camp!.x));
+  await jump.getByLabel("Y").fill(String(camp!.y));
+  await jump.getByRole("button", { name: "Travel" }).click();
+  await page.waitForTimeout(900);
+
+  const tile = page
+    .getByRole("button", {
+      name: new RegExp(`level ${camp!.level}, at ${camp!.x}, ${camp!.y}`),
+    })
+    .first();
+  await expect(tile).toBeVisible();
+  await tile.click();
+
+  // The granted host reaches the composer through the /me poll.
+  const levyComp = page.locator(".comp-item", { hasText: "Levy Spearman" });
+  await expect(levyComp).toContainText(/have 350/, { timeout: 15_000 });
+  await page.getByLabel("Levy Spearman count to send").fill("300");
+  await page
+    .getByRole("button", { name: /Send attack \(\d+ marching\)/ })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirm — send the attack" })
+    .click();
+
+  // The report event drives the in-view latest-dispatch panel.
+  const result = page.getByTestId("latest-dispatch");
+  await expect(result).toBeVisible({ timeout: 90_000 });
+  await expect(result).toContainText(/Latest dispatch/);
+  await shot(page, "19-latest-dispatch");
+});
