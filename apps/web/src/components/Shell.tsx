@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
 import "../styles/hud.css";
+import "../styles/remediation-hud.css";
+import { useFoodStatus } from "../hooks/useGame";
 import { jobLabel, fmtEta, fmtNum } from "../lib/format";
 import {
   intentLabel,
@@ -79,15 +81,10 @@ export function Shell({
   setError,
   children,
 }: ShellProps) {
+  const food = useFoodStatus();
+
   return (
     <div className={`shell faction-${factionMeta.accent}`}>
-      <div className="toast-stack hud-toast-stack" aria-live="polite">
-        {toasts.map((t) => (
-          <div key={t.id} className={`toast toast-${t.kind} hud-toast`}>
-            {t.message}
-          </div>
-        ))}
-      </div>
       <header className="topbar hud-topbar">
         <div>
           <p className="eyebrow">{factionMeta.label}</p>
@@ -98,6 +95,40 @@ export function Shell({
               ? ` · protected until ${new Date(player.protectionUntil).toLocaleString()}`
               : ""}
           </p>
+          {food ? (
+            <p
+              className={`hud-upkeep${food.netPerHour < 0 ? " hud-upkeep-negative" : ""}${
+                food.starving ? " hud-upkeep-starving" : ""
+              }`}
+              data-testid="upkeep-indicator"
+            >
+              <span className="hud-upkeep-item">
+                <Icon name="food" size={13} /> Food +{fmtNum(food.foodPerHour)}/h
+              </span>
+              <span className="hud-upkeep-sep" aria-hidden="true">
+                ·
+              </span>
+              <span className="hud-upkeep-item">
+                Upkeep −{fmtNum(food.upkeepPerHour)}/h
+              </span>
+              <span className="hud-upkeep-sep" aria-hidden="true">
+                ·
+              </span>
+              <span className="hud-upkeep-item hud-upkeep-net">
+                Net {food.netPerHour >= 0 ? "+" : "−"}
+                {fmtNum(Math.abs(food.netPerHour))}/h
+              </span>
+              {food.starving ? (
+                <span className="hud-upkeep-warning" data-testid="upkeep-warning">
+                  The stores run dry — the host goes hungry
+                </span>
+              ) : food.netPerHour < 0 ? (
+                <span className="hud-upkeep-warning hud-upkeep-warning-soft">
+                  The host eats more than the fields yield
+                </span>
+              ) : null}
+            </p>
+          ) : null}
         </div>
         <nav className="tabs hud-tabs" aria-label="Main">
           {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
@@ -130,6 +161,26 @@ export function Shell({
       </header>
 
       <main>
+        {/* F3: in-flow notice rail — structurally cannot overlap the content
+            that follows it, at any viewport. Bounded + pointer-events:none. */}
+        <div
+          className="toast-stack hud-toast-stack"
+          aria-live="polite"
+          aria-atomic="false"
+          data-testid="toast-stack"
+          data-count={toasts.length}
+        >
+          {toasts.map((t) => (
+            <div
+              key={t.id}
+              className={`toast toast-${t.kind} hud-toast`}
+              data-testid="toast"
+            >
+              {t.message}
+            </div>
+          ))}
+        </div>
+
         {error && (
           <p className="err banner hud-banner">
             {error}{" "}

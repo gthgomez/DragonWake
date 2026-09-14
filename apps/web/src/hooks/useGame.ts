@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { api } from "../lib/api";
 import { FACTION_META, type Toast } from "../lib/gameConfig";
@@ -26,6 +32,75 @@ import type {
 } from "../lib/types";
 import { registerLabels, translateError } from "../lib/labels";
 import { useGameActions } from "./useGameActions";
+
+/**
+ * Small external store for the selected city's food ledger.
+ *
+ * The persistent HUD (Shell) needs upkeep/net-food numbers on every tab, but
+ * Shell is a presentational component and, in the shared chrome, has no access
+ * to the `useGame()` instance App owns. Rather than duplicate polling, useGame
+ * publishes the numbers here and Shell subscribes via useFoodStatus(). Only
+ * changed values notify, so a Shell tab does not re-render on every 2s poll.
+ */
+export type FoodStatus = {
+  cityName: string;
+  /** Food produced per hour before upkeep. */
+  foodPerHour: number;
+  /** Troop food eaten per hour. */
+  upkeepPerHour: number;
+  /** foodPerHour - upkeepPerHour (may be negative). */
+  netPerHour: number;
+  /** Server-flagged famine: growth paused, mustering blocked. */
+  starving: boolean;
+};
+
+let foodStatusSnapshot: FoodStatus | null = null;
+const foodStatusListeners = new Set<() => void>();
+
+function sameFoodStatus(a: FoodStatus | null, b: FoodStatus | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.cityName === b.cityName &&
+    a.foodPerHour === b.foodPerHour &&
+    a.upkeepPerHour === b.upkeepPerHour &&
+    a.netPerHour === b.netPerHour &&
+    a.starving === b.starving
+  );
+}
+
+function publishFoodStatus(next: FoodStatus | null) {
+  if (sameFoodStatus(foodStatusSnapshot, next)) return;
+  foodStatusSnapshot = next;
+  for (const listener of foodStatusListeners) listener();
+}
+
+function subscribeFoodStatus(listener: () => void) {
+  foodStatusListeners.add(listener);
+  return () => {
+    foodStatusListeners.delete(listener);
+  };
+}
+
+function getFoodStatusSnapshot() {
+  return foodStatusSnapshot;
+}
+
+/** Subscribe to the selected city's food ledger (null before a city loads). */
+export function useFoodStatus(): FoodStatus | null {
+  return useSyncExternalStore(
+    subscribeFoodStatus,
+    getFoodStatusSnapshot,
+    getFoodStatusSnapshot,
+  );
+}
+
+/** Newest notices kept on screen at once (F3: was 5). */
+const TOAST_MAX_VISIBLE = 3;
+/** How long a notice stays before it clears (F3: was 6_000). */
+const TOAST_TTL_MS = 4_000;
+/** Repeat of the newest message inside this window refreshes, not stacks. */
+const TOAST_DEDUPE_MS = 3_000;
 
 export function useGame() {
   const [token, setToken] = useState<string | null>(
@@ -101,6 +176,23 @@ export function useGame() {
 
   const factionMeta =
     FACTION_META[player?.faction ?? faction] ?? FACTION_META.northern_kingdom!;
+
+  // Keep the cross-tab HUD ledger in sync with the selected city.
+  useEffect(() => {
+    if (!city) {
+      publishFoodStatus(null);
+      return;
+    }
+    const foodPerHour = city.productionPerHour?.food ?? 0;
+    const upkeepPerHour = city.foodUpkeepPerHour ?? 0;
+    publishFoodStatus({
+      cityName: city.name,
+      foodPerHour,
+      upkeepPerHour,
+      netPerHour: foodPerHour - upkeepPerHour,
+      starving: Boolean(city.starving),
+    });
+  }, [city]);
 
   const refreshMe = useCallback(async (tok: string) => {
     const me = await api<{
@@ -201,10 +293,17 @@ export function useGame() {
   const pushToast = useCallback(
     (message: string, kind: Toast["kind"] = "info") => {
       const id = Date.now() + Math.floor(Math.random() * 1000);
-      setToasts((t) => [...t.slice(-4), { id, message, kind }]);
+      setToasts((t) => {
+        const last = t[t.length - 1];
+        if (last && last.message === message && id - last.id < TOAST_DEDUPE_MS) {
+          // Refresh the existing slip's TTL instead of stacking a clone.
+          return [...t.slice(0, -1), { ...last, id, kind }];
+        }
+        return [...t.slice(-(TOAST_MAX_VISIBLE - 1)), { id, message, kind }];
+      });
       window.setTimeout(() => {
         setToasts((t) => t.filter((x) => x.id !== id));
-      }, 6000);
+      }, TOAST_TTL_MS);
     },
     [],
   );
