@@ -492,6 +492,15 @@ const MAX_OPERATION_CAPACITY = 10;
 const BASE_TROOPS_PER_MARCH = 500;
 const TROOPS_PER_MUSTER_LEVEL = 100;
 
+// ── Food upkeep (Option S, soft) ────────────────────────────────────────────
+// Every unit of a company's `pop` eats this much Food per hour. Standing
+// troops therefore couple the economy to the army. Under-payment is SOFT:
+// no desertion — growth pauses and training is blocked (see isCityStarving).
+// The "Rationing" research is the genre-standard pressure-release lever.
+export const FOOD_UPKEEP_PER_POP_PER_HOUR = 1;
+export const RATIONING_UPKEEP_REDUCTION_PER_LEVEL = 0.05;
+export const RATIONING_UPKEEP_REDUCTION_CAP = 0.5;
+
 const UNIT_HOLDING_REQUIREMENTS: Record<string, CityKind> = {
   light_cavalry: "marcher_keep",
   mounted_scout: "marcher_keep",
@@ -741,6 +750,31 @@ export function productionPerHour(city: City): ResourceBag {
   };
 }
 
+/**
+ * Food eaten per hour by a city's standing companies (soft-upkeep model).
+ * Derived from each unit's existing `pop`, reduced by the Rationing research.
+ * Marching troops are already removed from `city.stacks`, so this is the
+ * present garrison.
+ */
+export function cityFoodUpkeepPerHour(city: City): number {
+  let pop = 0;
+  for (const [unitId, count] of Object.entries(city.stacks ?? {})) {
+    if (!count || count <= 0) continue;
+    pop += (getUnitById(unitId)?.pop ?? 1) * count;
+  }
+  const level = Math.min(10, Math.max(0, city.research?.rationing ?? 0));
+  const reduction = Math.min(
+    RATIONING_UPKEEP_REDUCTION_CAP,
+    RATIONING_UPKEEP_REDUCTION_PER_LEVEL * level,
+  );
+  return pop * FOOD_UPKEEP_PER_POP_PER_HOUR * (1 - reduction);
+}
+
+/** A city is starving when it has upkeep to pay and no Food to pay it. */
+export function isCityStarving(city: City): boolean {
+  return (city.resources?.food ?? 0) <= 0 && cityFoodUpkeepPerHour(city) > 0;
+}
+
 /** Pure resource tick used by sim + tests. */
 export function tickCityResources(
   city: City,
@@ -788,11 +822,31 @@ export function tickCityResources(
       frac[key] = gain;
     }
   };
-  accrue("food", rates.food + wildFood);
+  // Food is net of troop upkeep. Unlike the other resources it can be
+  // negative, so it gets sign-aware fractional carry and clamps at zero.
+  const upkeep = cityFoodUpkeepPerHour(city);
+  const foodNetPerHour = rates.food + wildFood - upkeep;
+  {
+    const carry = (frac.food ?? 0) + foodNetPerHour * hours;
+    if (carry >= 0) {
+      const whole = Math.floor(carry);
+      next.food += whole;
+      frac.food = carry - whole;
+    } else {
+      const owed = Math.ceil(-carry);
+      const paid = Math.min(next.food, owed);
+      next.food -= paid;
+      // Forgive residual debt once the stores are empty (no negative food).
+      frac.food = next.food <= 0 ? 0 : carry + paid;
+    }
+  }
   accrue("wood", rates.wood + wildTimber);
   accrue("stone", rates.stone + wildStone);
   accrue("ore", rates.ore + wildIron);
   accrue("crownmark", rates.crownmark);
+
+  // Soft starvation: stores are dry and there is upkeep to pay. No desertion.
+  const starving = next.food <= 0 && upkeep > 0;
 
   // Population growth: grows based on habitation building levels.
   // Proportional with fractional carry — the old Math.max(1, …) granted
@@ -804,7 +858,7 @@ export function tickCityResources(
   const maxPop = city.maxPopulation || computeMaxPopulation(city);
   let newPop = city.population;
   let popFraction = city.popFraction ?? 0;
-  if (habitationLevels > 0 && newPop < maxPop) {
+  if (habitationLevels > 0 && newPop < maxPop && !starving) {
     const growthTotal =
       newPop * POPULATION_GROWTH_RATE * hours * habitationLevels +
       popFraction;
@@ -1640,6 +1694,13 @@ export class World {
     if (!unit) {
       throw Object.assign(new Error("unknown unit"), { code: "BAD_UNIT" });
     }
+    // Soft starvation blocks mustering — no troop loss, just no new companies.
+    if (isCityStarving(city)) {
+      throw Object.assign(
+        new Error("the stores run dry — feed the host first"),
+        { code: "STARVING" },
+      );
+    }
     // Enforce research unlock gates (PG-INV-003)
     if (!isUnitUnlocked(unitId, city.research)) {
       throw Object.assign(new Error(`unit ${unitId} not unlocked by research`), {
@@ -2015,6 +2076,16 @@ export class World {
       ore: Math.floor(rates.ore + wildBonus.ore),
       crownmark: Math.floor(rates.crownmark + wildBonus.crownmark),
     };
+  }
+
+  /** Food per hour eaten by this city's standing companies. */
+  foodUpkeepPerHour(city: City): number {
+    return cityFoodUpkeepPerHour(city);
+  }
+
+  /** Soft-starvation state: dry stores with upkeep outstanding. */
+  isStarving(city: City): boolean {
+    return isCityStarving(city);
   }
 
   /** Per-type wilderness resource bonus for a player. */

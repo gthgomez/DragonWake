@@ -199,6 +199,7 @@ export function commanderStateLabel(state: string, woundedUntil: string | null):
 const ERROR_COPY: Record<string, string> = {
   NO_TROOPS: "You do not have enough available troops for this march.",
   NO_MANPOWER: "Your settlement lacks the people to muster that force. Raise more Homes or wait for the population to grow.",
+  STARVING: "The stores run dry — feed the host first. No new company can be mustered while the realm goes hungry.",
   NO_RES: "Not enough resources for that — your stores fall short.",
   RESEARCH_COST: "Not enough resources for that research — your stores fall short.",
   RECRUIT_COST: "Not enough resources to recruit that commander.",

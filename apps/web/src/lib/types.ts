@@ -25,6 +25,8 @@ export type City = {
   stacks: Record<string, number>;
   research: Record<string, number>;
   productionPerHour?: Resources;
+  foodUpkeepPerHour?: number;
+  starving?: boolean;
   ownedWilderness?: number;
   wildernessCapacity?: number;
   activeOperations?: number;

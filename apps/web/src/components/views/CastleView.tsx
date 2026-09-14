@@ -141,6 +141,8 @@ export function CastleView({
   pactFenWyrm,
 }: CastleViewProps) {
   const rates = city.productionPerHour;
+  const foodUpkeep = city.foodUpkeepPerHour ?? 0;
+  const foodNet = (rates?.food ?? 0) - foodUpkeep;
   const [confirmFound, setConfirmFound] = useState(false);
   const [hatchName, setHatchName] = useState("");
   const signature = livingDragons?.dragons?.find((d: any) => d.kind === "signature");
@@ -480,6 +482,16 @@ export function CastleView({
             {rates && (
               <span className="res-rate">+{fmtNum(rates[k])}/h</span>
             )}
+            {k === "food" && foodUpkeep > 0 && (
+              <span
+                className={`res-rate ${city.starving ? "res-rate-alert" : ""}`}
+                data-testid="food-upkeep"
+              >
+                −{fmtNum(foodUpkeep)}/h upkeep · net{" "}
+                {foodNet >= 0 ? "+" : "−"}
+                {fmtNum(Math.abs(foodNet))}/h
+              </span>
+            )}
           </li>
         ))}
       </ul>
@@ -619,6 +631,12 @@ export function CastleView({
             Muster Yard raises both limits; Commanders remain a separate leadership
             constraint.
           </p>
+          {city.starving && (
+            <p className="action-hint" data-testid="starving-banner">
+              The stores run dry — feed the host first. Population growth is
+              paused and no new company can be mustered until Food recovers.
+            </p>
+          )}
           <ul className="muster-list">
             {trainable.map((u) => {
               const count = countFor(u.id);
@@ -631,7 +649,9 @@ export function CastleView({
               );
               const locked = !unitUnlocked(u, unlockDefs, city.research);
               const short = shortfallText(city.resources, cost);
-              const reason = locked
+              const reason = city.starving
+                ? "The stores run dry — feed the host first."
+                : locked
                 ? gate
                   ? `Requires ${researchName(gate.research_id)} level ${gate.research_level}.`
                   : "Requires further study."
@@ -675,7 +695,10 @@ export function CastleView({
                     <button
                       type="button"
                       disabled={
-                        locked || !affordable || !enoughPeople
+                        Boolean(city.starving) ||
+                        locked ||
+                        !affordable ||
+                        !enoughPeople
                       }
                       title={
                         reason ??

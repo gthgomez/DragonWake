@@ -204,6 +204,13 @@ button.linkish {
   font-size: 0.8rem;
 }
 
+/* Food net can be negative under troop upkeep (Option S, soft upkeep). */
+.res-rate + .res-rate { margin-top: 0.1rem; }
+.res-rate-alert {
+  color: var(--warn-text, #e0b97a);
+}
+.res-rate-alert::before { content: "⚠ "; }
+
 .err {
   color: var(--err);
 }

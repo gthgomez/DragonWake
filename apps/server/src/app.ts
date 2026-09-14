@@ -86,6 +86,8 @@ function publicCity(c: City, world: World) {
     stacks: c.stacks,
     research: c.research,
     productionPerHour: world.effectiveProduction(c),
+    foodUpkeepPerHour: world.foodUpkeepPerHour(c),
+    starving: world.isStarving(c),
     ownedWilderness: world.ownedWildernessCount(c.playerId),
     wildernessCapacity: world.wildernessCapacity(c.playerId),
     activeOperations: world.activeOperations(c.playerId),

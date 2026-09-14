@@ -32,6 +32,8 @@ describe("economy: fractional resource accumulation", () => {
     let c = world.getCity(city.id)!;
     const start = { ...c.resources };
     const foodRate = productionPerHour(c).food; // base 120/h
+    // Food is now net of troop upkeep (Option S); the starting garrison eats.
+    const netFoodRate = foodRate - world.foodUpkeepPerHour(c);
 
     // Simulate one hour of the production loop's 1s ticks.
     for (let i = 0; i < 3600; i++) {
@@ -39,8 +41,8 @@ describe("economy: fractional resource accumulation", () => {
     }
     const gainedFood = c.resources.food - start.food;
     // Old bug: floor-per-tick lost every fraction → gained ≈ 0.
-    expect(gainedFood).toBeGreaterThanOrEqual(foodRate - 2);
-    expect(gainedFood).toBeLessThanOrEqual(foodRate + 2);
+    expect(gainedFood).toBeGreaterThanOrEqual(netFoodRate - 2);
+    expect(gainedFood).toBeLessThanOrEqual(netFoodRate + 2);
 
     // Slow crownmark stream (20/h) also lands its ~20 units over the hour.
     expect(c.resources.crownmark - start.crownmark).toBeGreaterThanOrEqual(18);
