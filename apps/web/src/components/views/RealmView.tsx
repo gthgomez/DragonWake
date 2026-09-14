@@ -20,6 +20,14 @@ import type {
 } from "../../lib/types";
 import { RealmMap, tileAt } from "./map/RealmMap";
 
+type LatestResult = {
+  message: string;
+  reportId: string | null;
+  type: string | null;
+  winner: string | null;
+  at: number;
+};
+
 type RealmViewProps = {
   city: City | null;
   player: Player;
@@ -40,6 +48,8 @@ type RealmViewProps = {
   setError: Dispatch<SetStateAction<string | null>>;
   recruitCommander: () => Promise<void>;
   onAbandonWild: (wildId: string) => Promise<void>;
+  lastResult?: LatestResult | null;
+  onOpenReports?: () => void;
   sendMarch: (opts: {
     intent: "attack" | "occupy" | "scout" | "reinforce";
     target: {
@@ -75,11 +85,21 @@ export function RealmView({
   setError,
   recruitCommander,
   onAbandonWild,
+  lastResult,
+  onOpenReports,
   sendMarch,
 }: RealmViewProps) {
   const [confirmIntent, setConfirmIntent] = useState<string | null>(null);
 
   useEffect(() => setConfirmIntent(null), [selectedTile?.x, selectedTile?.y]);
+
+  // An armed confirm is a safety step, not a mode — let it lapse so a later
+  // click can never act on a decision made minutes ago.
+  useEffect(() => {
+    if (!confirmIntent) return;
+    const t = window.setTimeout(() => setConfirmIntent(null), 6000);
+    return () => window.clearTimeout(t);
+  }, [confirmIntent]);
 
   // ownership and camp state change while this view is closed (marches
   // resolving in the background); refresh on entry so tile panels and the
@@ -143,6 +163,14 @@ export function RealmView({
     const have = city?.stacks[e.id] ?? 0;
     return e.count > have;
   });
+
+  /** Why the dispatch buttons are unavailable, in player language. */
+  const dispatchReason =
+    totalSelected === 0
+      ? "Add companies to the march first."
+      : overSelected.length > 0
+        ? "You are sending more than you own — lower the highlighted counts."
+        : null;
 
   /** March-speed factor: Muster Yard levels (mirrors server rule). */
   const speedFactor = useMemo(() => {
@@ -232,6 +260,37 @@ export function RealmView({
           )}
         </div>
       </header>
+
+      {lastResult && (
+        <div
+          className={`dispatch-result ${
+            lastResult.winner === "defender"
+              ? "is-defeat"
+              : lastResult.winner === "attacker"
+                ? "is-victory"
+                : ""
+          }`}
+          role="status"
+          data-testid="latest-dispatch"
+        >
+          <span className="dispatch-result-mark" aria-hidden="true">
+            {lastResult.winner === "defender"
+              ? "✕"
+              : lastResult.winner === "attacker"
+                ? "✓"
+                : "✉"}
+          </span>
+          <div>
+            <strong>Latest dispatch</strong>
+            <p className="muted tiny">{lastResult.message}</p>
+          </div>
+          {onOpenReports && (
+            <button type="button" onClick={onOpenReports}>
+              View report
+            </button>
+          )}
+        </div>
+      )}
 
       {mapData ? (
         <RealmMap
@@ -506,12 +565,24 @@ export function RealmView({
               </div>
             )}
 
+            {(dispatchReason || confirmIntent) && (
+              <p
+                className={`composer-hint ${
+                  confirmIntent ? "composer-hint-armed" : ""
+                }`}
+                data-testid="composer-hint"
+              >
+                {confirmIntent
+                  ? "Confirm armed — press the highlighted action again to send."
+                  : dispatchReason}
+              </p>
+            )}
             <div className="row composer-actions">
               {selectedInfo?.kind === "camp" && (
                 <>
                   <button
                     type="button"
-                    className="primary"
+                    className={`primary ${confirmIntent === "attack" ? "confirm-armed" : ""}`}
                     disabled={totalSelected === 0 || overSelected.length > 0}
                     onClick={() =>
                       confirmIntent === "attack"
@@ -530,6 +601,7 @@ export function RealmView({
                   </button>
                   <button
                     type="button"
+                    className={confirmIntent === "scout" ? "confirm-armed" : undefined}
                     disabled={totalSelected === 0 || overSelected.length > 0}
                     onClick={() =>
                       confirmIntent === "scout"
@@ -550,7 +622,7 @@ export function RealmView({
                 <>
                   <button
                     type="button"
-                    className="primary"
+                    className={`primary ${confirmIntent === "occupy" ? "confirm-armed" : ""}`}
                     disabled={
                       totalSelected === 0 ||
                       overSelected.length > 0 ||
@@ -590,7 +662,7 @@ export function RealmView({
                     <>
                       <button
                         type="button"
-                        className="primary"
+                        className={`primary ${confirmIntent === "attack" ? "confirm-armed" : ""}`}
                         disabled={totalSelected === 0 || overSelected.length > 0}
                         onClick={() =>
                           confirmIntent === "attack"
@@ -609,6 +681,7 @@ export function RealmView({
                       </button>
                       <button
                         type="button"
+                        className={confirmIntent === "scout" ? "confirm-armed" : undefined}
                         disabled={totalSelected === 0 || overSelected.length > 0}
                         onClick={() =>
                           confirmIntent === "scout"
@@ -628,6 +701,7 @@ export function RealmView({
                   {selectedInfo.city.playerId === player.id && (
                     <button
                       type="button"
+                      className={confirmIntent === "reinforce" ? "confirm-armed" : undefined}
                       disabled={totalSelected === 0 || overSelected.length > 0}
                       onClick={() =>
                         confirmIntent === "reinforce"

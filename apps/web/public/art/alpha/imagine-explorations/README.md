@@ -1,8 +1,20 @@
 # Imagine explorations — locked to AlphaDesign.png
 
 Status: **ALPHA TEST CANDIDATES**. Vision not locked. Vale Drake production
-files untouched. Wired into Castle `CityGrid` with SVG glyph fallback
-(`src/lib/alphaBuildings.ts`).
+files untouched.
+
+Wiring:
+
+| Surface | Module |
+|---|---|
+| City building rasters (stone/bronze/gold) | `src/lib/alphaBuildings.ts` → `CityGrid` |
+| Dragon studies, hatchling, presence plate | `src/lib/alphaDragons.ts` → Castle presence/roost/clutch + Bestiary |
+| Dev still gallery | `src/dev/SpritePreviewHarness.tsx` |
+
+Every art lookup degrades gracefully: `ArtImage` falls back to a secondary
+source or glyph rather than a broken image. The certified Vale Drake roost
+art (`/art/dragons/vale_drake/…`) is deliberately left as the live roost
+hero — the Imagine roost studies render as the secondary "field study".
 
 Style lock: `docs/design/reference-art/DragonWake-AlphaDesign.png` (PR #12).
 

@@ -129,6 +129,8 @@ export function App() {
           setError={g.setError}
           recruitCommander={g.recruitCommander}
           onAbandonWild={g.abandonWild}
+          lastResult={g.lastResult}
+          onOpenReports={() => setTab("war")}
           sendMarch={g.sendMarch}
         />
       )}

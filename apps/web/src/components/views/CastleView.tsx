@@ -1,7 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { canAfford, fmtNum, unitTrainCost } from "../../lib/format";
-import { cityKindLabel, unitName } from "../../lib/labels";
+import {
+  ALPHA_HATCHLING_ART,
+  ALPHA_ROOST_PRESENCE_PLATE,
+  signatureStudySrc,
+} from "../../lib/alphaDragons";
+import { canAfford, costText, fmtNum, shortfallText, unitTrainCost } from "../../lib/format";
+import {
+  cityKindLabel,
+  lifeStageLabel,
+  physicalStateLabel,
+  presenceStateLabel,
+  researchName,
+  temperamentLabel,
+  unitName,
+} from "../../lib/labels";
+import { ArtImage } from "../../ui/ArtImage";
 import { Icon, type IconName } from "../../ui/icons";
 import type {
   City,
@@ -202,8 +216,8 @@ export function CastleView({
         )}
       </header>
 
-      <section className="dragon-presence" data-testid="dragon-presence" aria-label="Dragon Presence">
-        <div className={`dragon-presence-glyph dragon-state-${dragonPresence?.state ?? "dormant"}`}>
+      <section className="dragon-presence dragon-presence-with-plate" data-testid="dragon-presence" aria-label="Dragon Presence">
+        <div className={`dragon-presence-glyph dragon-state-${String(dragonPresence?.state ?? "dormant").toLowerCase()}`}>
           <img
             src="/art/dragons/vale_drake/vale_drake_icon.png"
             alt="Vale Drake Icon"
@@ -223,10 +237,10 @@ export function CastleView({
           <p>{dragonPresence?.summary ?? "A vast, sleeping presence lies beneath the kingdom's oldest foundations."}</p>
           <p className="muted tiny"><strong>Next:</strong> {dragonPresence?.nextMilestone ?? "Build the Dragon Watch and bring back your first sign from the realm."}</p>
           <div className="dragon-status-rail" data-testid="dragon-status-rail" aria-label="Dragon status">
-            <span className="dragon-state-pill"><span className="dragon-state-dot" />{dragonPresence?.state ?? "dormant"}</span>
+            <span className="dragon-state-pill"><span className="dragon-state-dot" />{presenceStateLabel(dragonPresence?.state)}</span>
             {signature ? (
               <>
-                <span><strong>{signature.lifeStage}</strong> · life stage</span>
+                <span><strong>{lifeStageLabel(signature.lifeStage)}</strong> · life stage</span>
                 <span><strong>{signature.roostEmpty ? "On the approaches" : "In the roost"}</strong></span>
                 <span><strong>{signature.chronicle?.length ?? 0}</strong> Chronicle entries</span>
               </>
@@ -235,6 +249,11 @@ export function CastleView({
             )}
           </div>
         </div>
+        <ArtImage
+          src={ALPHA_ROOST_PRESENCE_PLATE}
+          className="dragon-presence-plate"
+          alt=""
+        />
       </section>
 
       {city.kind === "capital" && (
@@ -276,8 +295,8 @@ export function CastleView({
                   <p className="muted tiny">The roost is empty. {signature.givenName} is on the approaches (Home Guard).</p>
                 ) : (
                   <p className="muted tiny">
-                    {signature.lifeStage} · {signature.physicalState}
-                    {signature.woundId ? ` · ${String(signature.woundId).replace(/_/g, " ")}` : ""} · {signature.temperament}
+                    {lifeStageLabel(signature.lifeStage)} · {physicalStateLabel(signature.physicalState)}
+                    {signature.woundId ? ` · ${String(signature.woundId).replace(/_/g, " ")}` : ""} · {temperamentLabel(signature.temperament)}
                     {signature.vaneTells ? ` · ${signature.vaneTells}` : ""}
                   </p>
                 )}
@@ -288,6 +307,22 @@ export function CastleView({
                     : "none"}
                   {signature.lifeStage === "hatchling" ? " — a hatchling is too small for any harness" : ""}
                 </p>
+                <figure className="roost-study" data-testid="roost-study">
+                  <ArtImage
+                    src={signatureStudySrc(
+                      signature.lifeStage,
+                      signature.physicalState,
+                    )}
+                    className="roost-study-art"
+                    alt=""
+                  />
+                  <figcaption className="muted tiny">
+                    Field study ·{" "}
+                    {signature.lifeStage === "hatchling"
+                      ? "wake-clutch hatchling"
+                      : "roost wyrm"}
+                  </figcaption>
+                </figure>
                 <div className="roost-actions">
                   <button type="button" onClick={() => void observeLivingDragon?.(signature.id)}>Watch the roost</button>
                   <button type="button" onClick={() => void setDragonHarness?.(signature.id, "yard")}>Yard</button>
@@ -335,6 +370,11 @@ export function CastleView({
                 void nameHatchling?.(hatchName);
               }}
             >
+              <ArtImage
+                src={ALPHA_HATCHLING_ART}
+                className="clutch-hatchling-art"
+                alt=""
+              />
               <h3>An abandoned clutch survived the Scar</h3>
               <p className="muted tiny">Name the hatchling. This begins the relationship — there is no Bond button.</p>
               <label>
@@ -414,7 +454,7 @@ export function CastleView({
                 ? siltKnowledge == null || siltKnowledge.state === "rumored"
                   ? "The crossing is contested. Survey it, and codify why the wyrm holds the bank before yielding it."
                   : siltKnowledge.state === "supported"
-                    ? "The silt is understood. Codify ford signaling, then yield the spawning bank — permanently."
+                    ? "The silt is understood. Record ford signaling, then yield the spawning bank — permanently."
                     : "The bank can be yielded — a permanent surrender, marked on the map."
                 : "The crossing is sanctuary ground. The wyrm may now accept terms."}
           </p>
@@ -484,7 +524,7 @@ export function CastleView({
           </p>
         </div>
       </div>
-      <CityGrid key={city.id} city={city} jobs={jobs} now={now} doBuild={doBuild} />
+      <CityGrid key={city.id} city={city} jobs={jobs} now={now} unlockDefs={unlockDefs} doBuild={doBuild} />
 
       <div className="castle-columns">
         <div>
@@ -535,6 +575,12 @@ export function CastleView({
                 cost[k as keyof Resources] = Math.floor((v ?? 0) * (lvl + 1));
               }
               const affordable = canAfford(city.resources, cost);
+              const short = shortfallText(city.resources, cost);
+              const reason = maxed
+                ? "Fully studied."
+                : short
+                  ? `Needs more — ${short}.`
+                  : null;
               return (
                 <button
                   key={r.id}
@@ -543,17 +589,18 @@ export function CastleView({
                   title={
                     maxed
                       ? "Fully studied"
-                      : `Level ${lvl + 1} cost: ${Object.entries(cost)
-                          .filter(([, v]) => (v ?? 0) > 0)
-                          .map(([k, v]) => `${v} ${k}`)
-                          .join(", ")}`
+                      : `Level ${lvl + 1} cost: ${costText(cost)}`
                   }
                   onClick={() => void doResearch(r.id)}
                 >
-                  {r.name}
+                  <span className="study-name">{r.name}</span>
                   <span className="muted tiny">
-                    {maxed ? " · mastered" : lvl > 0 ? ` · to level ${lvl + 1}` : ""}
+                    {maxed ? "mastered" : `to level ${lvl + 1}`}
                   </span>
+                  {!maxed && costText(cost) && (
+                    <span className="study-cost">{costText(cost)}</span>
+                  )}
+                  {reason && <span className="action-hint">{reason}</span>}
                 </button>
               );
             })}
@@ -578,17 +625,37 @@ export function CastleView({
               const cost = unitTrainCost(u, count);
               const affordable = canAfford(city.resources, cost);
               const manpower = (u.pop ?? 1) * count;
-              const enoughPeople =
-                (city.availableManpower ?? 0) >= manpower;
+              const enoughPeople = (city.availableManpower ?? 0) >= manpower;
+              const gate = unlockDefs.find(
+                (ud) => ud.kind === "unit" && ud.unlocks.includes(u.id),
+              );
               const locked = !unitUnlocked(u, unlockDefs, city.research);
+              const short = shortfallText(city.resources, cost);
+              const reason = locked
+                ? gate
+                  ? `Requires ${researchName(gate.research_id)} level ${gate.research_level}.`
+                  : "Requires further study."
+                : !enoughPeople
+                  ? `Needs ${fmtNum(manpower)} manpower — ${fmtNum(city.availableManpower ?? 0)} available.`
+                  : short
+                    ? `Needs more — ${short}.`
+                    : null;
               return (
                 <li key={u.id} className="muster-row">
                   <div className="muster-info">
                     <strong>{troopName(u.id, city.kind)}</strong>
                     <span className="muted tiny">
                       owned {fmtNum(city.stacks[u.id] ?? 0)}
-                      {locked ? " · requires further study" : ""}
+                      {locked && gate
+                        ? ` · requires ${researchName(gate.research_id)} ${gate.research_level}`
+                        : locked
+                          ? " · requires further study"
+                          : ""}
                     </span>
+                    <span className="muster-cost">
+                      {count}× · {costText(cost)}
+                    </span>
+                    {reason && <span className="action-hint">{reason}</span>}
                   </div>
                   <div className="muster-controls">
                     <label className="city-visually-hidden" htmlFor={`muster-${u.id}`}>
@@ -597,6 +664,7 @@ export function CastleView({
                     <input
                       id={`muster-${u.id}`}
                       type="number"
+                      inputMode="numeric"
                       min={1}
                       max={999}
                       value={count}
@@ -610,14 +678,8 @@ export function CastleView({
                         locked || !affordable || !enoughPeople
                       }
                       title={
-                        locked
-                          ? "Requires further study"
-                          : !enoughPeople
-                            ? "Not enough available manpower"
-                            : `Cost: ${Object.entries(cost)
-                                .filter(([, v]) => (v ?? 0) > 0)
-                                .map(([k, v]) => `${v} ${k}`)
-                                .join(", ")}`
+                        reason ??
+                        `Train ${count} for ${costText(cost)}`
                       }
                       onClick={() => void doTrain(u.id, count)}
                     >

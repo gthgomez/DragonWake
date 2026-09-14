@@ -18,6 +18,7 @@ import {
   getUnitById,
   getUnitCost,
   getResearch,
+  getResearchUnlocks,
   canonTechId,
   canonResourceId,
   isUnitUnlocked,
@@ -1415,8 +1416,18 @@ export class World {
       );
     }
     if (!isBuildingUnlocked(buildingType, city.research)) {
+      const gate = getResearchUnlocks().find(
+        (u) => u.kind === "building" && u.unlocks.includes(buildingType),
+      );
+      const study = gate
+        ? getResearch().find((r) => r.id === gate.research_id)?.name
+        : undefined;
       throw Object.assign(
-        new Error(`${def.name} requires further research`),
+        new Error(
+          study
+            ? `${def.name} requires ${study} level ${gate!.research_level}`
+            : `${def.name} requires further research`,
+        ),
         { code: "BUILDING_LOCKED" },
       );
     }

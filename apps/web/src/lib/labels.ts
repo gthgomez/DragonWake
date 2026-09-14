@@ -57,6 +57,67 @@ export function prettify(id: string): string {
     .join(" ");
 }
 
+/** Resource keys in player language (lowercase for inline cost/shortfall text). */
+export function resourceLabel(key: string): string {
+  const map: Record<string, string> = {
+    food: "food",
+    wood: "wood",
+    stone: "stone",
+    ore: "ore",
+    crownmark: "crownmarks",
+    chronite: "Chronite",
+  };
+  return map[key] ?? prettify(key).toLowerCase();
+}
+
+// ── Lifecycle / state nouns (no raw enums reach the player) ─────────────────
+
+export function presenceStateLabel(state?: string): string {
+  const map: Record<string, string> = {
+    dormant: "Dormant",
+    stirring: "Stirring",
+    awakened: "Awakened",
+    bonded: "Charter earned",
+    battle_ready: "Battle ready",
+  };
+  const key = (state ?? "dormant").toLowerCase();
+  return map[key] ?? prettify(state ?? "dormant");
+}
+
+export function lifeStageLabel(stage?: string): string {
+  const map: Record<string, string> = {
+    hatchling: "Hatchling",
+    wyrmling: "Wyrmling",
+    juvenile: "Juvenile",
+    adult: "Adult",
+    elder: "Elder",
+  };
+  const key = (stage ?? "").toLowerCase();
+  return map[key] ?? prettify(stage || "unknown");
+}
+
+export function physicalStateLabel(state?: string): string {
+  const key = (state ?? "").toLowerCase();
+  if (key === "healthy") return "healthy";
+  if (key === "wounded") return "wounded";
+  return key ? key.replace(/_/g, " ") : "unknown";
+}
+
+export function temperamentLabel(state?: string): string {
+  return state ? prettify(state) : "unknown";
+}
+
+export function knowledgeStateLabel(state?: string): string {
+  const map: Record<string, string> = {
+    observed: "Observed",
+    supported: "Supported",
+    proven: "Proven",
+    unknown: "Unknown",
+  };
+  const key = (state ?? "").toLowerCase();
+  return map[key] ?? prettify(state || "unknown");
+}
+
 // ── World nouns ─────────────────────────────────────────────────────────────
 
 export function cityKindLabel(kind: string): string {
@@ -243,8 +304,16 @@ export function translateError(e: unknown): string {
     }`;
   }
   // Cost/supply errors carry useful numbers — keep them, lightly cleaned.
-  if (code === "NO_RES" || code === "RESEARCH_COST" || code === "RECRUIT_COST") {
+  if (
+    code === "NO_RES" ||
+    code === "RESEARCH_COST" ||
+    code === "RECRUIT_COST"
+  ) {
     return raw.replace(/^cannot afford /, "").replace(/;/g, " · ") || "Not enough resources.";
+  }
+  // Building gates name the required study — keep the server's detail.
+  if (code === "BUILDING_LOCKED") {
+    return raw || ERROR_COPY.BUILDING_LOCKED;
   }
   return raw || "That could not be done.";
 }

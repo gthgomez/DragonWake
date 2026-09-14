@@ -7,7 +7,7 @@ test.describe("Alpha R2 awakening", () => {
     await page.getByRole("button", { name: "Enter realm" }).click();
 
     await expect(page.getByTestId("dragon-presence")).toBeVisible();
-    await expect(page.getByText("Dormant", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dormant" })).toBeVisible();
     await expect(
       page.getByText(/Build the Dragon Watch and bring back your first sign/),
     ).toBeVisible();

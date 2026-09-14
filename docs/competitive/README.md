@@ -13,6 +13,7 @@ docs/competitive/
     sources/                         ← per-competitor evidence (atomic claims)
         dragons-of-atlantis.md
         reign-of-atlantis.md
+        upkeep-genre-survey.md       ← cross-game topic file (Gate 1 partial, 2026-09-14)
     audits/                          ← dated campaign analyses
         dragonwake-current-product.md
         blind-playtest.md

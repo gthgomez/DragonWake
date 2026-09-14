@@ -337,7 +337,7 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
   const fenNotes = page.locator("div.readiness-req", {
     has: page.getByTestId("field-notes-fen_silt"),
   });
-  await fenNotes.getByRole("button", { name: "Codify" }).click();
+  await fenNotes.getByRole("button", { name: "Record findings" }).click();
   await expect(page.getByText(/ford signaling/i).first()).toBeVisible({
     timeout: 30_000,
   });

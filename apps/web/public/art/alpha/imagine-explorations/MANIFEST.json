@@ -5,7 +5,7 @@
   "provider": "grok-imagine image_edit",
   "date": "2026-09-12",
   "vale_drake_untouched": true,
-  "wired_into": "CityGrid via alphaBuildings.ts with SVG glyph fallback",
+  "wired_into": "City raster growth via alphaBuildings.ts (CityGrid); dragon studies via alphaDragons.ts (Castle presence/roost/clutch + Bestiary); stills gallery in the dev sprite preview harness",
   "files": [
     {
       "file": "buildings/bld-keep.png",

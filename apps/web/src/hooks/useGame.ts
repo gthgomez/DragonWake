@@ -80,6 +80,13 @@ export function useGame() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [eventSince, setEventSince] = useState(0);
   const [unreadReports, setUnreadReports] = useState(0);
+  const [lastResult, setLastResult] = useState<{
+    message: string;
+    reportId: string | null;
+    type: string | null;
+    winner: string | null;
+    at: number;
+  } | null>(null);
   const [commanders, setCommanders] = useState<Commander[]>([]);
   const [commandersReady, setCommandersReady] = useState(false);
   const [marchLeaderId, setMarchLeaderId] = useState("");
@@ -343,6 +350,15 @@ export function useGame() {
             void loadReports().catch(() => undefined);
             void refreshMarches(token).catch(() => undefined);
           }
+          if (e.type === "report") {
+            setLastResult({
+              message: e.message,
+              reportId: (e.data?.reportId as string) ?? null,
+              type: (e.data?.type as string) ?? null,
+              winner: (e.data?.winner as string | null) ?? null,
+              at: e.at ?? Date.now(),
+            });
+          }
           if (e.type === "queue_complete" || e.type === "march_return") {
             void refreshMe(token).catch(() => undefined);
             void refreshQueues(token, cityId).catch(() => undefined);
@@ -453,6 +469,7 @@ export function useGame() {
     now,
     unreadReports,
     setUnreadReports,
+    lastResult,
 
     // form state + setters
     displayName,

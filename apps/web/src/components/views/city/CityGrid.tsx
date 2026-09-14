@@ -4,9 +4,9 @@ import type { ReactElement, ReactNode } from "react";
 import "./city.css";
 
 import { alphaBuildingSrc } from "../../../lib/alphaBuildings";
-import { canAfford, fmtEta, fmtNum } from "../../../lib/format";
-import { buildingDef, buildingName, type BuildingLite } from "../../../lib/labels";
-import type { City, QueueJob } from "../../../lib/types";
+import { canAfford, fmtEta, fmtNum, shortfallText } from "../../../lib/format";
+import { buildingDef, buildingName, researchName, type BuildingLite } from "../../../lib/labels";
+import type { City, QueueJob, ResearchUnlock } from "../../../lib/types";
 import type { IconName } from "../../../ui/icons";
 import { Icon } from "../../../ui/icons";
 
@@ -17,6 +17,7 @@ type CityGridProps = {
   city: City;
   jobs: QueueJob[];
   now: number;
+  unlockDefs: ResearchUnlock[];
   doBuild: (buildingType: string, slotIndex?: number) => Promise<void>;
 };
 
@@ -349,7 +350,7 @@ function CostRow({
 /* City grid                                                           */
 /* ------------------------------------------------------------------ */
 
-export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
+export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps) {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 
   useEffect(() => {
@@ -630,12 +631,27 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                   city.resources,
                   cost,
                 );
+                const gate = unlockDefs.find(
+                  (u) => u.kind === "building" && u.unlocks.includes(def.id),
+                );
+                const locked =
+                  Boolean(gate) &&
+                  (city.research[gate!.research_id] ?? 0) < gate!.research_level;
+                const short = shortfallText(
+                  city.resources,
+                  cost as Partial<Record<string, number>>,
+                );
+                const reason = locked
+                  ? `Requires ${researchName(gate!.research_id)} level ${gate!.research_level}.`
+                  : short
+                    ? `Needs more — ${short}.`
+                    : null;
                 return (
                   <button
                     key={def.id}
                     type="button"
                     className="city-pick"
-                    disabled={!affordable}
+                    disabled={!affordable || locked}
                     onClick={() => void doBuild(def.id, buildSlot)}
                     title={def.purpose}
                   >
@@ -654,6 +670,7 @@ export function CityGrid({ city, jobs, now, doBuild }: CityGridProps) {
                         ? `about ${fmtEta(def.build_sec_L1 * 1000)}`
                         : ""}
                     </span>
+                    {reason && <span className="action-hint">{reason}</span>}
                   </button>
                 );
               })}

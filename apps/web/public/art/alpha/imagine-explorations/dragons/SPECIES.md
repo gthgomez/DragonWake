@@ -23,3 +23,16 @@ Vale Drake production files are untouched.
 DoA/HTTYD used as **naming and ecology** (species as animals, not elements).
 Silhouette stays DragonWake: four-legged, torn gold-family membranes, amber
 eyes, late-medieval paint, no neon breath.
+
+## Wiring (Alpha)
+
+`src/lib/alphaDragons.ts` maps these stills into the game without replacing
+certified Vale Drake production art:
+
+- Wild-ecology studies with a canon Bestiary id (`ash_drake`,
+  `ironback_wyrm`, `ridgeback_wyvern`) show in the Bestiary entry.
+- `wakeclutch-hatchling.png` illustrates the clutch naming form and the
+  roost "field study" while the signature dragon is a hatchling.
+- `wyrm-roost-perch/wounded` are the roost "field study" for older stages.
+- `../plates/roost-presence.png` is the Castle Dragon Presence plate.
+- All stills are also listed in the dev sprite preview harness gallery.
