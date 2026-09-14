@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { fmtTime, formatIntel } from "../../lib/format";
+import { fmtTime, formatIntelForPlayer } from "../../lib/format";
 import type {
   AllianceInfo,
   AllianceSummary,
@@ -57,17 +57,12 @@ function errorText(e: unknown): string {
 }
 
 /**
- * Player-readable summary of shared scout intel. Reuses the canonical
- * `formatIntel` (also used by the War ledger) so raw payload keys and ids
- * never reach the player; `formatIntel`'s JSON last-resort is suppressed.
+ * Player-readable summary of shared scout intel. Delegates to
+ * `formatIntelForPlayer` so raw payload keys and ids never reach the player,
+ * whatever shape the payload arrives in (object, array, or scalar).
  */
 function sharedIntelText(intel: unknown): string {
-  if (typeof intel === "string") return intel;
-  if (!intel || typeof intel !== "object") return "";
-  const record = intel as Record<string, unknown>;
-  if (typeof record.summary === "string" && record.summary) return record.summary;
-  const formatted = formatIntel(record);
-  return formatted.trim().startsWith("{") ? "" : formatted;
+  return formatIntelForPlayer(intel);
 }
 
 export function AllianceView({

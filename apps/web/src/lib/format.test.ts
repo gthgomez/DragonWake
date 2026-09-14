@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   canAfford,
   costText,
+  formatIntel,
+  formatIntelForPlayer,
   resourceShortfall,
   shortfallText,
 } from "./format";
@@ -32,5 +34,43 @@ describe("availability helpers", () => {
   it("agrees with canAfford on the same inputs", () => {
     expect(canAfford(res, { food: 500 })).toBe(false);
     expect(canAfford(res, { food: 100 })).toBe(true);
+  });
+});
+
+describe("intel formatting", () => {
+  it("formats a known intel kind unchanged", () => {
+    expect(
+      formatIntel({
+        kind: "camp",
+        level: 4,
+        threatBand: "high",
+        exampleComp: "3 spears",
+      }),
+    ).toBe("Level 4 camp · threat high · mustering roughly 3 spears");
+    expect(
+      formatIntelForPlayer({
+        kind: "wilderness",
+        resourceType: "iron_hills",
+        level: 2,
+      }),
+    ).toBe("Iron Hills (level 2) · unclaimed");
+  });
+
+  it("falls back to the server summary for an unknown kind", () => {
+    const payload = { kind: "empty", summary: "Nothing but dust here." };
+    expect(formatIntel(payload)).toBe("");
+    expect(formatIntelForPlayer(payload)).toBe("Nothing but dust here.");
+  });
+
+  it("never renders raw JSON for unknown array or object kinds", () => {
+    const unknownObject = { kind: "mystery", secretId: "abc123" };
+    expect(formatIntelForPlayer(unknownObject)).toBe("");
+    expect(formatIntelForPlayer(unknownObject)).not.toContain("secretId");
+
+    const unknownArray = [{ kind: "mystery", secretId: "abc123" }];
+    expect(formatIntelForPlayer(unknownArray)).toBe("");
+
+    expect(formatIntelForPlayer(42)).toBe("");
+    expect(formatIntelForPlayer(null)).toBe("");
   });
 });

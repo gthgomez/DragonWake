@@ -1,7 +1,7 @@
 import "../../styles/reports.css";
 import {
   fmtTime,
-  formatIntel,
+  formatIntelForPlayer,
   lossList,
   lootList,
   postureLabel,
@@ -38,19 +38,13 @@ function headlineIcon(type?: string): IconName {
 }
 
 /**
- * Player-readable scout intel. Uses the canonical `formatIntel` single-line
- * text for known kinds. Unknown kinds (e.g. "empty"/"coords") would otherwise
- * hit `formatIntel`'s JSON last-resort and dump raw ids/camelCase keys into
- * the dispatch; those payloads carry a server-authored `summary`, so prefer
- * it and never print JSON in the player flow.
+ * Player-readable scout intel. Delegates to `formatIntelForPlayer`, which
+ * prefers the canonical single-line `formatIntel` output and otherwise falls
+ * back to the server-authored `summary`, never dumping raw JSON into the
+ * dispatch.
  */
 function intelText(intel: BattleReport["result"]["intel"]): string {
-  if (!intel) return "";
-  if (typeof intel === "string") return intel;
-  const formatted = formatIntel(intel);
-  if (!formatted.trim().startsWith("{")) return formatted;
-  const summary = (intel as Record<string, unknown>).summary;
-  return typeof summary === "string" && summary ? summary : "";
+  return formatIntelForPlayer(intel);
 }
 
 export function WarView({

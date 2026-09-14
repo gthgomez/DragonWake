@@ -111,6 +111,12 @@ export function lootList(loot?: Partial<Resources>): string {
 
 export { postureLabel } from "./labels";
 
+/** True when text still reads as a raw JSON payload rather than prose. */
+function looksLikeJson(text: string): boolean {
+  const t = text.trim();
+  return t.startsWith("{") || t.startsWith("[");
+}
+
 export function formatIntel(intel: BattleReport["result"]["intel"]): string {
   if (!intel) return "";
   if (typeof intel === "string") return intel;
@@ -133,7 +139,23 @@ export function formatIntel(intel: BattleReport["result"]["intel"]): string {
       intel.ownerName ? ` · held by ${intel.ownerName}` : " · unclaimed"
     }`;
   }
-  return JSON.stringify(intel);
+  return "";
+}
+
+/**
+ * Player-facing intel text. Uses the canonical `formatIntel` line when it is
+ * real prose; if that is empty or still looks like JSON, falls back to the
+ * server-authored `summary`. Raw JSON (object, array, or scalar payload) is
+ * never rendered.
+ */
+export function formatIntelForPlayer(intel: unknown): string {
+  if (typeof intel === "string") return looksLikeJson(intel) ? "" : intel;
+  if (!intel || typeof intel !== "object") return "";
+  const record = intel as Record<string, unknown>;
+  const formatted = formatIntel(record);
+  if (formatted.trim() && !looksLikeJson(formatted)) return formatted;
+  const summary = record.summary;
+  return typeof summary === "string" && summary.trim() ? summary : "";
 }
 
 export function reportHeadline(r: BattleReport, youId: string): string {
