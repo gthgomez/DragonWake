@@ -12,6 +12,7 @@ import {
   cityKindLabel,
   CROWNMARK_LABEL,
   currencyBlurb,
+  dracolithLabel,
   DRACOLITH_LABEL,
   lifeStageLabel,
   physicalStateLabel,
@@ -956,7 +957,7 @@ export function CastleView({
                   {q.done ? "✓ " : "○ "}
                   {q.title}{" "}
                   <span className="muted">
-                    +{q.rewardDracolith} {DRACOLITH_LABEL}
+                    +{dracolithLabel(q.rewardDracolith)}
                   </span>
                 </div>
                 {q.done && !q.claimed ? (

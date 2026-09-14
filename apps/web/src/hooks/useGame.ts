@@ -95,12 +95,15 @@ export function useFoodStatus(): FoodStatus | null {
   );
 }
 
-/** Newest notices kept on screen at once (F3: was 5). */
+/** Newest notices kept on screen at once. */
 const TOAST_MAX_VISIBLE = 3;
-/** How long a notice stays before it clears (F3: was 6_000). */
-const TOAST_TTL_MS = 4_000;
-/** Repeat of the newest message inside this window refreshes, not stacks. */
-const TOAST_DEDUPE_MS = 3_000;
+/**
+ * How long a notice stays before it clears. Kept at the pre-remediation 6s:
+ * distinct events must remain observable (e.g. two identical queue-completion
+ * notices in a row), and the in-flow rail — not a short TTL — is what
+ * guarantees toasts cannot overlap content.
+ */
+const TOAST_TTL_MS = 6_000;
 
 export function useGame() {
   const [token, setToken] = useState<string | null>(
@@ -294,11 +297,8 @@ export function useGame() {
     (message: string, kind: Toast["kind"] = "info") => {
       const id = Date.now() + Math.floor(Math.random() * 1000);
       setToasts((t) => {
-        const last = t[t.length - 1];
-        if (last && last.message === message && id - last.id < TOAST_DEDUPE_MS) {
-          // Refresh the existing slip's TTL instead of stacking a clone.
-          return [...t.slice(0, -1), { ...last, id, kind }];
-        }
+        // Distinct events stack up to the cap. Do not collapse repeated
+        // messages: two identical completion notices are both real events.
         return [...t.slice(-(TOAST_MAX_VISIBLE - 1)), { id, message, kind }];
       });
       window.setTimeout(() => {
@@ -314,21 +314,25 @@ export function useGame() {
       const name =
         shopCatalog.find((i) => i.id === itemId)?.name ?? "Steward's wares";
       setError(null);
+      // Only the mutation is fatal; refreshes are best-effort so a successful
+      // purchase is never reported as a failure (which would invite a
+      // double-charging retry).
       try {
         await api<{ itemId: string; dracolith: number }>(
           "/api/v1/shop/buy",
           token,
           { method: "POST", body: JSON.stringify({ itemId }) },
         );
-        await refreshMe(token);
-        await refreshInventory(token);
-        setStatus(`Bought ${name}`);
-        pushToast(`Bought ${name}`, "ok");
       } catch (e) {
         const msg = translateError(e);
         setError(msg);
         pushToast(msg, "err");
+        return;
       }
+      setStatus(`Bought ${name}`);
+      pushToast(`Bought ${name}`, "ok");
+      void refreshInventory(token);
+      void refreshMe(token).catch(() => {});
     },
     [token, shopCatalog, refreshMe, refreshInventory, pushToast],
   );
@@ -338,6 +342,10 @@ export function useGame() {
       if (!token) return;
       const name =
         shopCatalog.find((i) => i.id === itemId)?.name ?? "Steward's wares";
+      // Scope the speedup to the selected settlement, matching the UI gate and
+      // copy ("here" / "in this settlement"). Falls back to player-wide when no
+      // city is selected, preserving the older behavior.
+      const selectedCityId = city?.id ?? cityId ?? undefined;
       setError(null);
       try {
         await api<{
@@ -346,19 +354,20 @@ export function useGame() {
           applied: { finishesAt?: number; protectionUntil?: number };
         }>("/api/v1/shop/use", token, {
           method: "POST",
-          body: JSON.stringify({ itemId }),
+          body: JSON.stringify({ itemId, cityId: selectedCityId }),
         });
-        await refreshMe(token);
-        await refreshInventory(token);
-        setStatus(`${name} applied`);
-        pushToast(`${name} applied`, "ok");
       } catch (e) {
         const msg = translateError(e);
         setError(msg);
         pushToast(msg, "err");
+        return;
       }
+      setStatus(`${name} applied`);
+      pushToast(`${name} applied`, "ok");
+      void refreshInventory(token);
+      void refreshMe(token).catch(() => {});
     },
-    [token, shopCatalog, refreshMe, refreshInventory, pushToast],
+    [token, shopCatalog, refreshMe, refreshInventory, pushToast, city?.id, cityId],
   );
 
   async function loadMap(focus = mapFocus) {

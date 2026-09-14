@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  dracolithLabel,
   knowledgeStateLabel,
   lifeStageLabel,
   physicalStateLabel,
@@ -37,5 +38,12 @@ describe("lifecycle labels", () => {
     expect(shopEffectLabel("shield_sec", 43200)).toBe(
       "Extends protection 12h",
     );
+  });
+
+  it("singularizes a one-Dracolith count", () => {
+    expect(dracolithLabel(1)).toBe("1 Dracolith");
+    expect(dracolithLabel(2)).toBe("2 Dracoliths");
+    expect(dracolithLabel(0)).toBe("0 Dracoliths");
+    expect(dracolithLabel(1000)).toBe("1,000 Dracoliths");
   });
 });

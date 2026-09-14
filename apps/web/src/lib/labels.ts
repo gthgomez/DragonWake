@@ -75,6 +75,17 @@ export function resourceLabel(key: string): string {
 /** The earned premium currency. No purchase path (no IAP). */
 export const DRACOLITH_LABEL = "Dracoliths";
 
+/**
+ * Count-aware Dracolith label: "1 Dracolith" but "2 Dracoliths".
+ * Backward-compatible with the plain `DRACOLITH_LABEL` export.
+ */
+export function dracolithLabel(n: number): string {
+  const count = Math.floor(Number(n ?? 0));
+  return `${count.toLocaleString("en-US")} ${
+    count === 1 ? "Dracolith" : "Dracoliths"
+  }`;
+}
+
 /** The in-realm resource minted by settlements — not a premium currency. */
 export const CROWNMARK_LABEL = "Crownmarks";
 

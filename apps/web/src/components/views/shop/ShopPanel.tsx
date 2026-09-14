@@ -1,8 +1,8 @@
 import { useState } from "react";
 
-import { fmtNum } from "../../../lib/format";
 import {
   CROWNMARK_LABEL,
+  dracolithLabel,
   DRACOLITH_LABEL,
   shopEffectLabel,
   shopEffectSentence,
@@ -24,7 +24,7 @@ type ShopPanelProps = {
 /** Inline reason a purchase is blocked, or null when it can proceed. */
 function buyBlockedReason(item: ShopItem, balance: number): string | null {
   if (balance < item.dracolith) {
-    return `You need ${fmtNum(item.dracolith - balance)} more ${DRACOLITH_LABEL} — Daily Deeds pay them out.`;
+    return `You need ${dracolithLabel(item.dracolith - balance)} more — Daily Deeds pay them out.`;
   }
   return null;
 }
@@ -76,7 +76,7 @@ export function ShopPanel({
       <summary>
         Steward's Wares{" "}
         <span className="muted tiny">
-          · {fmtNum(player.dracolith)} {DRACOLITH_LABEL}
+          · {dracolithLabel(player.dracolith)}
         </span>
         <span className="muted tiny shop-earn-inline">
           {" "}
@@ -123,7 +123,7 @@ export function ShopPanel({
                 <div className="shop-item-head">
                   <span className="shop-item-name">{item.name}</span>
                   <span className="shop-item-cost">
-                    {fmtNum(item.dracolith)} {DRACOLITH_LABEL}
+                    {dracolithLabel(item.dracolith)}
                   </span>
                 </div>
                 <p className="shop-item-effect">
