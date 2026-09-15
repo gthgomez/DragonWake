@@ -115,20 +115,32 @@ test("AGES Vale Drake Visual Family Runtime Certification", async ({ page, reque
   const roostArtSrc = await roostArt.getAttribute("src");
   expect(roostArtSrc).toContain("vale_drake_roost.png");
 
-  const roostArtLoaded = await roostArt.evaluate((img: HTMLImageElement) => {
-    return img.complete && img.naturalWidth > 0 && img.naturalHeight > 0;
-  });
-  expect(roostArtLoaded).toBe(true);
+  await expect
+    .poll(
+      () =>
+        roostArt.evaluate(
+          (img: HTMLImageElement) =>
+            img.complete && img.naturalWidth > 0 && img.naturalHeight > 0,
+        ),
+      { timeout: 15_000 },
+    )
+    .toBe(true);
 
   // Verify Roost Portrait Thumbnail
   const portraitThumb = page.getByTestId("roost-portrait-thumbnail");
   await expect(portraitThumb).toBeVisible();
   const thumbSrc = await portraitThumb.getAttribute("src");
   expect(thumbSrc).toContain("vale_drake_portrait.png");
-  const thumbLoaded = await portraitThumb.evaluate((img: HTMLImageElement) => {
-    return img.complete && img.naturalWidth > 0 && img.naturalHeight > 0;
-  });
-  expect(thumbLoaded).toBe(true);
+  await expect
+    .poll(
+      () =>
+        portraitThumb.evaluate(
+          (img: HTMLImageElement) =>
+            img.complete && img.naturalWidth > 0 && img.naturalHeight > 0,
+        ),
+      { timeout: 15_000 },
+    )
+    .toBe(true);
 
   await page.getByRole("button", { name: "Watch the roost" }).click();
   await expect(page.getByTestId("dragon-chronicle")).toBeVisible();
@@ -159,10 +171,16 @@ test("AGES Vale Drake Visual Family Runtime Certification", async ({ page, reque
   const injuredSrc = await injuredArt.getAttribute("src");
   expect(injuredSrc).toContain("vale_drake_injured.png");
 
-  const injuredLoaded = await injuredArt.evaluate((img: HTMLImageElement) => {
-    return img.complete && img.naturalWidth > 0 && img.naturalHeight > 0;
-  });
-  expect(injuredLoaded).toBe(true);
+  await expect
+    .poll(
+      () =>
+        injuredArt.evaluate(
+          (img: HTMLImageElement) =>
+            img.complete && img.naturalWidth > 0 && img.naturalHeight > 0,
+        ),
+      { timeout: 15_000 },
+    )
+    .toBe(true);
 
   await roostSec.scrollIntoViewIfNeeded();
   await shot("03-roost-wounded-valedrake");
