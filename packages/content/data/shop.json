@@ -1,38 +1,38 @@
 [
   {
-    "id": "speedup_1m",
-    "name": "Rider Dispatch",
-    "chronite": 1,
-    "effect": {
-      "type": "speedup_sec",
-      "seconds": 60
-    }
-  },
-  {
     "id": "speedup_1h",
     "name": "Relay Riders",
-    "chronite": 10,
+    "dracolith": 20,
     "effect": {
       "type": "speedup_sec",
       "seconds": 3600
     }
   },
   {
-    "id": "shield_1h",
-    "name": "Garrison Alert",
-    "chronite": 3,
+    "id": "speedup_8h",
+    "name": "Writ of the Long March",
+    "dracolith": 100,
     "effect": {
-      "type": "shield_sec",
-      "seconds": 3600
+      "type": "speedup_sec",
+      "seconds": 28800
     }
   },
   {
     "id": "shield_12h",
-    "name": "Truce Banner",
-    "chronite": 25,
+    "name": "Garrison Alert",
+    "dracolith": 60,
     "effect": {
       "type": "shield_sec",
       "seconds": 43200
+    }
+  },
+  {
+    "id": "shield_3d",
+    "name": "Grand Truce",
+    "dracolith": 360,
+    "effect": {
+      "type": "shield_sec",
+      "seconds": 259200
     }
   }
 ]

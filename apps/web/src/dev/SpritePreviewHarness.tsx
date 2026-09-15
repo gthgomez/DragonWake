@@ -11,6 +11,8 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import { ALPHA_BUILDING_ART } from "../lib/alphaBuildings";
+import { ALPHA_DRAGON_STILLS } from "../lib/alphaDragons";
 import {
   type SpriteRuntimeManifest,
   type SpriteAnimationEvent,
@@ -673,6 +675,71 @@ export const SpritePreviewHarness: React.FC<SpritePreviewHarnessProps> = ({ mani
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Alpha art stills gallery */}
+      <div
+        data-testid="alpha-stills-gallery"
+        style={{
+          background: "#161b24",
+          border: "1px solid #2d3748",
+          borderRadius: "8px",
+          padding: "20px",
+          marginTop: "32px",
+        }}
+      >
+        <h3 style={{ margin: "0 0 4px 0", fontSize: "16px", color: "#f3f4f6" }}>
+          Alpha Art Stills (AlphaDesign edit-chain)
+        </h3>
+        <p style={{ margin: "0 0 16px 0", color: "#9ca3af", fontSize: "13px" }}>
+          Still candidates wired into the game UI. City buildings scale by tier;
+          dragon studies feed the Castle roost and Bestiary.
+        </p>
+
+        <h4 style={{ margin: "0 0 8px 0", fontSize: "13px", color: "#d1d5db" }}>City buildings</h4>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "24px" }}>
+          {Object.entries(ALPHA_BUILDING_ART).map(([id, src]) => (
+            <figure key={id} data-testid={`alpha-still-${id}`} style={{ margin: 0, width: "132px" }}>
+              <div
+                style={{
+                  height: "92px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "#0b0f17",
+                  border: "1px solid #1f2937",
+                  borderRadius: "6px",
+                }}
+              >
+                <img src={src} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+              </div>
+              <figcaption style={{ fontSize: "11px", color: "#9ca3af", marginTop: "4px" }}>{id}</figcaption>
+            </figure>
+          ))}
+        </div>
+
+        <h4 style={{ margin: "0 0 8px 0", fontSize: "13px", color: "#d1d5db" }}>Dragon studies & plates</h4>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+          {ALPHA_DRAGON_STILLS.map((still) => (
+            <figure key={still.id} data-testid={`alpha-still-${still.id}`} style={{ margin: 0, width: "160px" }}>
+              <div
+                style={{
+                  height: "100px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background:
+                    "repeating-conic-gradient(#1f2937 0% 25%, #111827 0% 50%) 50% / 16px 16px",
+                  border: "1px solid #1f2937",
+                  borderRadius: "6px",
+                }}
+              >
+                <img src={still.src} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+              </div>
+              <figcaption style={{ fontSize: "11px", color: "#9ca3af", marginTop: "4px" }}>{still.label}</figcaption>
+            </figure>
+          ))}
         </div>
       </div>
     </div>

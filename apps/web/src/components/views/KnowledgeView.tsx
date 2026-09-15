@@ -1,5 +1,8 @@
 import { Fragment } from "react";
 import "../../styles/reports.css";
+import { speciesArtSrc } from "../../lib/alphaDragons";
+import { knowledgeStateLabel } from "../../lib/labels";
+import { ArtImage } from "../../ui/ArtImage";
 import { Icon } from "../../ui/icons";
 import type { BestiaryEntryDef } from "../../lib/types";
 
@@ -95,7 +98,17 @@ export function KnowledgeView({
   codifyDragonKnowledge,
 }: KnowledgeViewProps) {
   const formulaRows = formulaEntries(formulas);
-  const studiedCount = bestiaryEntries.filter(
+  // The server can hold multiple records for an entry; render each creature
+  // once so the Bestiary never shows the same card twice.
+  const seenEntries = new Set<string>();
+  const uniqueEntries = bestiaryEntries.filter((e) => {
+    const id = String(e.entryId ?? "");
+    if (!id) return true;
+    if (seenEntries.has(id)) return false;
+    seenEntries.add(id);
+    return true;
+  });
+  const studiedCount = uniqueEntries.filter(
     (e) => (e.observationLevel ?? 0) >= 1,
   ).length;
 
@@ -192,51 +205,68 @@ export function KnowledgeView({
       )}
 
       <h3 className="codex-heading">Bestiary</h3>
-      {bestiaryEntries.length > 0 ? (
+      {uniqueEntries.length > 0 ? (
         <div className="bestiary-grid">
-          {bestiaryEntries.map((entry: any, i: number) => {
+          {uniqueEntries.map((entry: any, i: number) => {
             const def = bestiaryDefs.find((d) => d.id === entry.entryId);
             const obs = entry.observationLevel ?? 0;
             const enc = entry.encounterCount ?? 0;
             const next = nextThreshold(enc);
             const known = obs >= 1;
             const weakness = def?.confirmed_weakness ?? def?.suspected_weakness;
+            const art = known && def ? speciesArtSrc(def.id) : undefined;
             return (
               <div
                 key={entry.entryId ?? i}
                 className={`bestiary-entry ${known ? "bestiary-known" : "bestiary-rumor"}`}
               >
-                <div className="bestiary-subject">
-                  <Icon name="dragon" size={16} />
-                  {known
-                    ? (def?.subject ?? entry.entryId)
-                    : "Unidentified creature"}
+                <div className="bestiary-media">
+                  {art ? (
+                    <ArtImage
+                      src={art}
+                      className="bestiary-art"
+                      alt=""
+                      fallback={<Icon name="dragon" size={30} />}
+                    />
+                  ) : (
+                    <span className="bestiary-art-fallback" aria-hidden="true">
+                      <Icon name="dragon" size={30} />
+                    </span>
+                  )}
                 </div>
-                <div className="bestiary-level">
-                  Study {obs}/4 · {enc} encounter{enc === 1 ? "" : "s"}
-                  {next ? ` · ${next - enc} more to deeper study` : " · fully studied"}
+                <div className="bestiary-body">
+                  <div className="bestiary-subject">
+                    <Icon name="dragon" size={16} />
+                    {known
+                      ? (def?.subject ?? entry.entryId)
+                      : "Unidentified creature"}
+                  </div>
+                  <div className="bestiary-level">
+                    Study {obs}/4 · {enc} encounter{enc === 1 ? "" : "s"}
+                    {next ? ` · ${next - enc} more to deeper study` : " · fully studied"}
+                  </div>
+                  {known && def?.habitat && (
+                    <div className="bestiary-facts">
+                      Haunts: {def.habitat}
+                    </div>
+                  )}
+                  {known && def?.known_attacks?.length ? (
+                    <div className="bestiary-facts">
+                      Known attacks: {def.known_attacks.join(", ")}
+                    </div>
+                  ) : null}
+                  {known && weakness && (
+                    <div className="bestiary-facts">
+                      Weakness (as known): {weakness}
+                    </div>
+                  )}
+                  {!known && (
+                    <div className="bestiary-facts muted tiny">
+                      Rumors only — more encounters will give this creature a
+                      name.
+                    </div>
+                  )}
                 </div>
-                {known && def?.habitat && (
-                  <div className="bestiary-facts">
-                    Haunts: {def.habitat}
-                  </div>
-                )}
-                {known && def?.known_attacks?.length ? (
-                  <div className="bestiary-facts">
-                    Known attacks: {def.known_attacks.join(", ")}
-                  </div>
-                ) : null}
-                {known && weakness && (
-                  <div className="bestiary-facts">
-                    Weakness (as known): {weakness}
-                  </div>
-                )}
-                {!known && (
-                  <div className="bestiary-facts muted tiny">
-                    Rumors only — more encounters will give this creature a
-                    name.
-                  </div>
-                )}
               </div>
             );
           })}
@@ -418,14 +448,14 @@ export function KnowledgeView({
           {livingDragons.knowledge.map((k: any) => (
             <div key={k.questionId} className="readiness-req">
               <span>
-                {QUESTION_TITLES[k.questionId] ?? k.questionId} — {k.state}
+                {QUESTION_TITLES[k.questionId] ?? k.questionId} — {knowledgeStateLabel(k.state)}
                 {k.state === "proven" && CAPABILITY_TEXT[k.questionId] ? (
                   <span className="muted tiny"> · {CAPABILITY_TEXT[k.questionId]}</span>
                 ) : null}
               </span>
               {k.state === "supported" && (
                 <button type="button" onClick={() => void codifyDragonKnowledge?.(k.questionId)}>
-                  Codify
+                  Record findings
                 </button>
               )}
               {k.state === "observed" && (

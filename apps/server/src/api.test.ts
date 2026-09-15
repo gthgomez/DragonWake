@@ -51,7 +51,7 @@ describe("HTTP API two-session demo path", () => {
         units: { bowman: 300, levy: 200 },
         brineholdUnlock: true,
         skipProtection: true,
-        chronite: 100,
+        dracolith: 100,
       }),
     });
     await json(app, "/api/v1/admin/grant", {
@@ -181,13 +181,13 @@ describe("HTTP API two-session demo path", () => {
     world.tick();
     expect(pm.battleReportId).toBeTruthy();
 
-    // Shop chronite
+    // Shop with Dracoliths
     const buy = await json(app, "/api/v1/shop/buy", {
       method: "POST",
       token: tokenA,
-      body: JSON.stringify({ itemId: "speedup_1m" }),
+      body: JSON.stringify({ itemId: "speedup_1h" }),
     });
-    expect(buy.body.itemId).toBe("speedup_1m");
+    expect(buy.body.itemId).toBe("speedup_1h");
 
     // Codex formulas
     const formulas = await json(app, "/api/v1/content/formulas");
@@ -378,5 +378,99 @@ describe("Commanders API (locked shape)", () => {
     });
     expect(foreign.res.status).toBe(400);
     expect(foreign.body.error.code).toBe("NO_COMMANDER");
+  });
+});
+
+describe("Shop API (catalog, buy, use)", () => {
+  it("buys with Dracoliths and applies a shield via POST /shop/use", async () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const app = createApp(world);
+    const guest = await json(app, "/api/v1/auth/guest", {
+      method: "POST",
+      body: JSON.stringify({ displayName: "ShopApi", faction: "northern_kingdom" }),
+    });
+    const token = guest.body.token as string;
+    // Dracoliths are a scarce premium faucet — no starting balance.
+    expect(guest.body.player.dracolith).toBe(0);
+
+    // Catalog is content-driven.
+    const catalog = await json(app, "/api/v1/shop/catalog");
+    expect(catalog.body.catalog.map((i: { id: string }) => i.id)).toContain(
+      "shield_12h",
+    );
+
+    const broke = await json(app, "/api/v1/shop/buy", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ itemId: "shield_12h" }),
+    });
+    expect(broke.res.status).toBe(400);
+    expect(broke.body.error.code).toBe("NO_DRACOLITH");
+
+    await json(app, "/api/v1/admin/grant", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ dracolith: 60 }),
+    });
+    const buy = await json(app, "/api/v1/shop/buy", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ itemId: "shield_12h" }),
+    });
+    expect(buy.res.status).toBe(200);
+    expect(buy.body.dracolith).toBe(0);
+
+    const inv = await json(app, "/api/v1/inventory", { token });
+    expect(inv.body.items.shield_12h).toBe(1);
+
+    const before = world.players.get(guest.body.player.id)!.protectionUntil!;
+    const use = await json(app, "/api/v1/shop/use", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ itemId: "shield_12h" }),
+    });
+    expect(use.res.status).toBe(200);
+    expect(use.body.effect).toEqual({ type: "shield_sec", seconds: 43200 });
+    expect(use.body.applied.protectionUntil).toBe(before + 43200_000);
+
+    const again = await json(app, "/api/v1/shop/use", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ itemId: "shield_12h" }),
+    });
+    expect(again.body.error.code).toBe("NO_ITEM");
+  });
+
+  it("rejects unauthenticated use and reports ITEM_UNUSABLE", async () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const app = createApp(world);
+    const anon = await json(app, "/api/v1/shop/use", {
+      method: "POST",
+      body: JSON.stringify({ itemId: "speedup_1h" }),
+    });
+    expect(anon.res.status).toBe(401);
+
+    const guest = await json(app, "/api/v1/auth/guest", {
+      method: "POST",
+      body: JSON.stringify({ displayName: "ShopUseApi" }),
+    });
+    const token = guest.body.token as string;
+    await json(app, "/api/v1/admin/grant", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ dracolith: 20 }),
+    });
+    await json(app, "/api/v1/shop/buy", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ itemId: "speedup_1h" }),
+    });
+    const unusable = await json(app, "/api/v1/shop/use", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ itemId: "speedup_1h" }),
+    });
+    expect(unusable.res.status).toBe(400);
+    expect(unusable.body.error.code).toBe("ITEM_UNUSABLE");
   });
 });

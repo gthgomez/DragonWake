@@ -204,6 +204,13 @@ button.linkish {
   font-size: 0.8rem;
 }
 
+/* Food net can be negative under troop upkeep (Option S, soft upkeep). */
+.res-rate + .res-rate { margin-top: 0.1rem; }
+.res-rate-alert {
+  color: var(--warn-text, #e0b97a);
+}
+.res-rate-alert::before { content: "⚠ "; }
+
 .err {
   color: var(--err);
 }
@@ -452,7 +459,10 @@ code {
 }
 
 .toast {
-  pointer-events: auto;
+  /* Toasts are non-interactive notices; they must never intercept clicks on
+     the surface beneath them (the certified journey's Improve button sits
+     under the stack). Re-enable per-element if a toast ever gets a control. */
+  pointer-events: none;
   padding: 0.55rem 0.75rem;
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -547,11 +557,39 @@ code {
   gap: 0.75rem;
 }
 .bestiary-entry {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
   padding: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg-card);
 }
+.bestiary-media {
+  flex: 0 0 116px;
+  width: 116px;
+  aspect-ratio: 16 / 10;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(185, 141, 74, 0.28);
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(232, 199, 119, 0.12), rgba(0, 0, 0, 0.35));
+  color: #b99a5e;
+}
+.bestiary-art {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.bestiary-art-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+.bestiary-body { flex: 1 1 auto; min-width: 0; }
 .bestiary-subject {
   font-weight: 600;
   text-transform: capitalize;
@@ -749,13 +787,78 @@ button:disabled {
 }
 .comp-item-over { border-color: var(--err, #d1705f); }
 .comp-name { font-weight: 600; }
-.comp-controls { display: flex; gap: 4px; align-items: center; }
+.comp-controls { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
 .comp-controls button {
   min-width: 34px; min-height: 34px; padding: 2px 8px;
+  flex: 0 0 auto;
 }
 .comp-controls input {
   width: 64px; min-height: 34px; text-align: center;
+  flex: 1 1 auto; min-width: 56px;
 }
+
+/* ── Action legibility (Lab Slice A) ───────────────────────────────────────
+   Every blocked action states its reason inline; confirm steps are visible. */
+.action-hint {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--warn-text, #e0b97a);
+}
+.study-name { display: block; font-weight: 600; }
+.study-cost { display: block; margin-top: 0.15rem; font-size: 0.76rem; color: var(--muted); }
+.muster-cost { display: block; margin-top: 0.1rem; font-size: 0.76rem; color: var(--muted); }
+.composer-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  color: var(--warn-text, #e0b97a);
+}
+.composer-hint-armed {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--gold-text, #e8c777);
+  border-radius: 6px;
+  background: rgba(232, 199, 119, 0.12);
+  color: var(--gold-text, #e8c777);
+  font-weight: 600;
+}
+button.confirm-armed {
+  outline: 2px solid var(--gold-text, #e8c777);
+  outline-offset: 1px;
+  animation: confirm-pulse 900ms ease-in-out infinite alternate;
+}
+@keyframes confirm-pulse {
+  from { box-shadow: 0 0 0 0 rgba(232, 199, 119, 0.0); }
+  to { box-shadow: 0 0 0 4px rgba(232, 199, 119, 0.28); }
+}
+@media (prefers-reduced-motion: reduce) {
+  button.confirm-armed { animation: none; }
+}
+.dispatch-result {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.7rem 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line, #3a3128);
+  border-radius: 8px;
+  background: var(--panel-2, #241d16);
+}
+.dispatch-result strong { display: block; }
+.dispatch-result p { margin: 0.1rem 0 0; }
+.dispatch-result button { margin-left: auto; flex: 0 0 auto; }
+.dispatch-result-mark {
+  display: grid; place-items: center;
+  flex: 0 0 auto;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--line, #3a3128);
+  font-weight: 700;
+}
+.dispatch-result.is-victory { border-color: rgba(141, 255, 176, 0.4); }
+.dispatch-result.is-victory .dispatch-result-mark { color: var(--ok, #8ed59f); border-color: rgba(141, 255, 176, 0.5); }
+.dispatch-result.is-defeat { border-color: rgba(215, 121, 105, 0.45); }
+.dispatch-result.is-defeat .dispatch-result-mark { color: var(--err, #d1705f); border-color: rgba(215, 121, 105, 0.5); }
 
 .tile-detail {
   margin: 0.75rem 0;
@@ -835,6 +938,20 @@ button:disabled {
 }
 .dragon-presence-copy h3 { margin: 0.05rem 0 0.2rem; color: #f0d58c; }
 .dragon-presence-copy p { margin: 0.2rem 0; }
+.dragon-presence-plate {
+  grid-column: 3;
+  justify-self: end;
+  align-self: center;
+  width: 172px;
+  height: 97px;
+  object-fit: cover;
+  border: 1px solid rgba(232, 199, 119, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+.dragon-presence.dragon-presence-with-plate {
+  grid-template-columns: 116px minmax(0, 1fr) 176px;
+}
 .dragon-status-rail {
   display: flex;
   flex-wrap: wrap;
@@ -942,6 +1059,35 @@ button:disabled {
   min-width: 0;
 }
 .roost-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0; }
+.roost-study {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.55rem 0;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid rgba(232, 199, 119, 0.22);
+  border-radius: 6px;
+  background: rgba(15, 12, 10, 0.5);
+}
+.roost-study-art {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.roost-study figcaption { display: block; }
+.clutch-hatchling-art {
+  display: block;
+  width: min(100%, 320px);
+  aspect-ratio: 16 / 8;
+  object-fit: contain;
+  margin: 0.2rem 0 0.5rem;
+  border: 1px solid rgba(232, 199, 119, 0.28);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(232, 199, 119, 0.12), rgba(0, 0, 0, 0.35));
+}
 .chronicle ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
 .chronicle li { font-size: 0.85rem; color: var(--muted); }
 .field-notes { margin: 0.3rem 0 0; padding-left: 1.1rem; }
@@ -959,8 +1105,91 @@ button:disabled {
 .r2-objective.complete { border-color: rgba(141,255,176,0.3); color: var(--ok); }
 .r2-objective p { margin: 0.15rem 0 0; }
 @media (max-width: 560px) { .r2-objective-grid { grid-template-columns: 1fr; } }
+@media (max-width: 720px) {
+  .dragon-presence.dragon-presence-with-plate {
+    grid-template-columns: 78px minmax(0, 1fr);
+  }
+  .dragon-presence-plate {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    width: 100%;
+    height: 132px;
+    object-fit: cover;
+  }
+}
+@media (max-width: 560px) {
+  .bestiary-entry { flex-direction: column; }
+  .bestiary-media {
+    flex-basis: auto;
+    width: 100%;
+    aspect-ratio: 16 / 7;
+  }
+}
 @media (max-width: 480px) {
   .dragon-presence { align-items: flex-start; }
   .dragon-presence-glyph { width: 46px; height: 46px; }
   .dragon-status-rail > span:not(.dragon-state-pill) { border-left: 0; padding-left: 0; }
+}
+
+/* ── Steward's Wares (Castle shop) ─────────────────────────────────────── */
+.shop-panel {
+  margin: 1rem 0 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-card) 85%, #000);
+}
+.shop-panel > summary {
+  cursor: pointer;
+  color: var(--gold-text, #e8c777);
+  font-weight: 600;
+}
+.shop-panel > summary:hover { color: var(--accent-hot); }
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.6rem;
+  margin: 0.6rem 0 0.9rem;
+}
+.shop-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2, #241d16);
+}
+.shop-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.shop-item-name { font-weight: 600; }
+.shop-item-cost {
+  color: var(--gold-text, #e8c777);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.shop-item-effect {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.shop-item button { align-self: flex-start; }
+.shop-inventory-head { margin: 0.9rem 0 0.25rem; font-size: 1rem; }
+.shop-inventory { list-style: none; padding: 0; margin: 0; }
+.shop-use {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  max-width: 22rem;
+  text-align: right;
+}
+@media (max-width: 560px) {
+  .shop-item-head { flex-direction: column; align-items: flex-start; }
+  .shop-use { max-width: none; }
 }

@@ -73,6 +73,8 @@ const WILD_RELATION: Record<string, string> = {
 
 export function LandsView({ city, assignPlot, upgradePlot }: LandsViewProps) {
   const rates = city.productionPerHour;
+  const foodUpkeep = city.foodUpkeepPerHour ?? 0;
+  const foodNet = (rates?.food ?? 0) - foodUpkeep;
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [pendingType, setPendingType] = useState<PlotTypeId>("farm");
 
@@ -93,6 +95,33 @@ export function LandsView({ city, assignPlot, upgradePlot }: LandsViewProps) {
             The estates that feed and supply your keep. Stake new ground or
             work it more intensively.
           </p>
+          {rates && (
+            <p className="lands-food-context" data-testid="lands-food-context">
+              <span
+                className={`res-rate ${city.starving ? "res-rate-alert" : ""}`}
+                data-testid="lands-food-upkeep"
+              >
+                −{fmtNum(foodUpkeep)}/h food upkeep · net{" "}
+                {foodNet >= 0 ? "+" : "−"}
+                {fmtNum(Math.abs(foodNet))}/h
+              </span>
+            </p>
+          )}
+          {city.starving ? (
+            <p className="action-hint" data-testid="lands-food-warning">
+              The stores run dry — feed the host first. Stake or improve
+              farmland, or send fewer troops to war, before the realm goes
+              hungry.
+            </p>
+          ) : (
+            rates &&
+            foodNet < 0 && (
+              <p className="action-hint" data-testid="lands-food-warning">
+                The host eats more than the land yields — net food is falling.
+                Stake or improve farmland, or reduce the muster.
+              </p>
+            )
+          )}
         </div>
       </header>
 

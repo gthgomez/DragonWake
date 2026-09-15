@@ -1,0 +1,128 @@
+/*
+ * IMPL-CASTLE remediation styles (F1 shop earn-path, F6 build/research
+ * feedback, F7 currency clarity).
+ *
+ * Additive only. Loaded after styles.css via CastleView.tsx, so equal-
+ * specificity rules here win. Never redefines the base :root vocabulary.
+ */
+
+/* ── F1/F7: Steward's Wares earn-path ─────────────────────────────────── */
+
+.shop-earn-inline {
+  font-style: italic;
+  white-space: normal;
+}
+
+.shop-earn-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.9rem;
+  margin: 0.6rem 0 0.4rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border-ornate, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.shop-earn-note p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.shop-earn-link {
+  flex: 0 0 auto;
+  cursor: pointer;
+  border: 1px solid var(--border-ornate-strong, var(--border));
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  background: transparent;
+  color: var(--gold-text, #e8c777);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.shop-earn-link:hover {
+  color: var(--accent-hot);
+  border-color: var(--accent-hot);
+}
+
+.shop-item-detail {
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* ── F7: currency clarity in the resource rail ────────────────────────── */
+
+.res-kind {
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.2;
+}
+
+.res-premium {
+  border-color: var(--border-ornate, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.res-premium .res-head {
+  color: var(--gold-text, #e8c777);
+}
+
+.res-blurb {
+  margin: -0.35rem 0 0.75rem;
+  line-height: 1.35;
+}
+
+/* ── F6: build result feedback (banner + selected-plot inline) ────────── */
+
+.city-build-result {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--ok, #6c8f5a);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ok, #6c8f5a) 14%, transparent);
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.city-build-result svg {
+  flex: 0 0 auto;
+  color: var(--ok, #6c8f5a);
+}
+
+.city-build-result-inline {
+  margin: 0.35rem 0;
+}
+
+/* ── F6: research status + current level ──────────────────────────────── */
+
+.study-status {
+  margin: 0 0 0.5rem;
+  line-height: 1.35;
+}
+
+.study-level {
+  display: block;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── F1: Daily Deeds is a scroll/focus target ─────────────────────────── */
+
+.daily-deeds {
+  scroll-margin-top: 1rem;
+  border-radius: 8px;
+  outline: none;
+}
+
+.daily-deeds:focus-visible {
+  outline: 2px solid var(--accent-hot);
+  outline-offset: 3px;
+}

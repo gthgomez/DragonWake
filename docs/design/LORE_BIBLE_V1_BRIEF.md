@@ -191,7 +191,7 @@ the three books, many incomplete or wrong. Do not finish a taxonomy.
 
 Not gacha. The current shop is deterministic speedups and protection.
 
-But Chronite / Blink / Jump imply everyday time magic, which conflicts with
+But Dracoliths / Blink / Jump imply everyday time magic, which conflicts with
 rare, mysterious magic.
 
 The Bible should record a **provisional** stance:

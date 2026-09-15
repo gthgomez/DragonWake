@@ -5,7 +5,8 @@
   "provider": "grok-imagine image_edit",
   "date": "2026-09-12",
   "vale_drake_untouched": true,
-  "wired_into": "CityGrid via alphaBuildings.ts with SVG glyph fallback",
+  "wired_into": "CityGrid via alphaBuildings.ts behind VITE_ALPHA_CITY_ART, with SVG glyph fallback",
+  "tier_variants": "Each buildings/<stem>.png also ships <stem>-bronze.png and <stem>-gold.png (24 variant PNGs) from the same edit chain; files[] documents the 22 base edit-chain outputs, 46 PNGs on disk total.",
   "files": [
     {
       "file": "buildings/bld-keep.png",

@@ -5,7 +5,7 @@ Multiplayer web MMORTS MVP beta (async city builder + map combat).
 ## Player-honest Alpha status (2026-09-05, landed on main via PR #7)
 
 The final resource domain is
-Food, Wood, Stone, Ore, and Crownmarks; Chronite remains separate. Older
+Food, Wood, Stone, Ore, and Crownmarks; Dracoliths remain separate. Older
 aquatic and intermediate saves are canonicalized at the persistence/input
 boundary. See `docs/design/M2_FINAL_RESOURCE_CUTOVER.md` and
 `docs/design/PAST_WORK_PRESERVATION_LEDGER.md`.
@@ -105,7 +105,10 @@ Highlights:
 - **Language**: no API URLs, raw ids, UUID fragments, or server prose in the
   player flow; internal codes stay in console diagnostics.
 
-Out of scope / prototype remains: shop UI, alliances depth, and haul UX.
+Out of scope / prototype remains: alliances depth (now with an empty state,
+auto-loaded banner list, and member roster, but no new social mechanics) and
+haul UX. The Steward's Wares shop is implemented — see the remediation note
+below.
 CI runs the server suite with `REQUIRE_PG=1` against a PostgreSQL 16
 service, so persistence coverage is required there, not optional. The
 former Sovereign machinery has been removed from live product paths; only
@@ -113,6 +116,42 @@ migration/history references remain.
 
 Do not start content-heavy mobile UI against the current aquatic / elemental
 content model.
+
+### Audit remediation (branch `fix/audit-remediation`, 2026-09-14)
+
+A Competitive Product Lab remediation pass landed on `fix/audit-remediation`
+(off `feat/imagine-alpha-city-pack` @ `67ab23a`), addressing eight audit
+findings without changing balance or content IDs:
+
+- **Shop** — Steward's Wares is open and now teaches that Dracoliths are
+  earned (not bought) from the Daily Deeds, with a link to them and a
+  per-item "You need N more Dracoliths" shortfall on blocked buys; no IAP and
+  no faucet/price change.
+- **Food upkeep** — soft army food upkeep exists, and is now surfaced as a
+  persistent topbar ledger (production / upkeep / net + low-food warning) on
+  every tab, plus upkeep context on Lands. The marching-army upkeep rule is
+  unchanged — it is one of two open owner decisions listed in
+  `docs/proposals/AUDIT_REMEDIATION_DECISIONS.md` and
+  `docs/CURRENT_STATE.md`.
+- **Feedback and navigation** — toasts render in an in-flow, bounded notice
+  rail (cap 3, 4 s TTL, `pointer-events: none`); selecting a Realm tile
+  surfaces the detail + march composer; build/research show in-place results;
+  Alliance has an empty state, auto-loaded banner list, and member roster;
+  Dracolith vs Crownmarks naming is clarified.
+
+Beyond those findings, the adversarial/polish passes also removed raw-JSON
+leaks from the player flow (Alliance shared intel and War scout/dispatch
+intel now render the canonical formatted text / server summary) and made the
+`alpha-r2` spec repeatable plus the Castle research status settlement-keyed.
+
+Two balance decisions remain open pending owner ratification (marching-army
+upkeep; Dracolith faucet/first price) — see
+`docs/proposals/AUDIT_REMEDIATION_DECISIONS.md`. The first-dragon reveal (F8)
+is **spec-only**, not implemented. Verified green on this branch: `pnpm -r
+typecheck`, web 28/28, server 214 tests (4 PostgreSQL skips), and the full
+Playwright suite repeatably green (20 passed / 1 skipped / 0 failed on
+consecutive runs against the persistent DB). A human blind replay is still
+required (see `docs/competitive/audits/blind-playtest.md`).
 
 ## Stack
 
@@ -181,6 +220,7 @@ Env flags (`.env`):
 | `DEV_SKIP_TUTORIAL=1` | Skip tutorial steps |
 | `DATABASE_URL` | Postgres URL for schema verify |
 | `VITE_API_URL` | Web → API base (default `http://localhost:3001`) |
+| `VITE_ALPHA_CITY_ART=1` | Opt in to quarantined alpha city raster art (default: SVG glyph fallback) |
 
 ### Admin grant (dev)
 
@@ -188,7 +228,7 @@ Env flags (`.env`):
 POST /api/v1/admin/grant
 Authorization: Bearer <session token>
 x-admin-token: <ADMIN_TOKEN>
-{ "units": { "levy": 200 }, "brineholdUnlock": true, "chronite": 100, "skipProtection": true }
+{ "units": { "levy": 200 }, "brineholdUnlock": true, "dracolith": 100, "skipProtection": true }
 ```
 
 ## ACCEPTANCE_MVP manual path (M1–M11)
@@ -350,4 +390,4 @@ Copyright is retained by the project owner. This notice does not grant
 permission to redistribute, modify, sublicense, sell, commercially exploit, or
 create derivative works from the game or its original code and content, except
 where required by applicable law. Third-party dependencies and fonts remain
-under their own licenses.
+under their own licenses. See [LICENSE](LICENSE).

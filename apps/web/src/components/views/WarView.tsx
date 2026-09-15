@@ -1,7 +1,7 @@
 import "../../styles/reports.css";
 import {
   fmtTime,
-  formatIntel,
+  formatIntelForPlayer,
   lossList,
   lootList,
   postureLabel,
@@ -35,6 +35,16 @@ function headlineIcon(type?: string): IconName {
   if (type === "pvp" || type === "pvp_blocked") return "crown";
   if (type === "occupy") return "shield";
   return "sword";
+}
+
+/**
+ * Player-readable scout intel. Delegates to `formatIntelForPlayer`, which
+ * prefers the canonical single-line `formatIntel` output and otherwise falls
+ * back to the server-authored `summary`, never dumping raw JSON into the
+ * dispatch.
+ */
+function intelText(intel: BattleReport["result"]["intel"]): string {
+  return formatIntelForPlayer(intel);
 }
 
 export function WarView({
@@ -161,7 +171,7 @@ export function WarView({
                   <div className="rpt-intel">
                     <span className="rpt-intel-label">Scout's intelligence</span>
                     <p className="rpt-intel-text">
-                      {formatIntel(r.result.intel)}
+                      {intelText(r.result.intel)}
                     </p>
                   </div>
                 )}

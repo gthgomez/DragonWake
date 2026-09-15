@@ -1,23 +1,51 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { canAfford, fmtNum, unitTrainCost } from "../../lib/format";
-import { cityKindLabel, unitName } from "../../lib/labels";
+import "../../styles/remediation-castle.css";
+
+import {
+  ALPHA_HATCHLING_ART,
+  ALPHA_ROOST_PRESENCE_PLATE,
+  signatureStudySrc,
+} from "../../lib/alphaDragons";
+import { canAfford, costText, fmtEta, fmtNum, shortfallText, unitTrainCost } from "../../lib/format";
+import {
+  cityKindLabel,
+  CROWNMARK_LABEL,
+  currencyBlurb,
+  dracolithLabel,
+  DRACOLITH_LABEL,
+  lifeStageLabel,
+  physicalStateLabel,
+  presenceStateLabel,
+  researchName,
+  temperamentLabel,
+  unitName,
+} from "../../lib/labels";
+import { ArtImage } from "../../ui/ArtImage";
 import { Icon, type IconName } from "../../ui/icons";
 import type {
   City,
   DailyQuest,
   March,
+  Player,
   QueueJob,
   ResearchDef,
   ResearchUnlock,
   Resources,
+  ShopItem,
   UnitDef,
 } from "../../lib/types";
 import { CityGrid } from "./city/CityGrid";
+import { ShopPanel } from "./shop/ShopPanel";
 
 type CastleViewProps = {
   city: City;
   cities: City[];
+  player: Player;
+  shopCatalog: ShopItem[];
+  inventory: Record<string, number>;
+  buyShopItem: (itemId: string) => Promise<void>;
+  useShopItem: (itemId: string) => Promise<void>;
   setCityId: (cityId: string) => void;
   units: UnitDef[];
   researchDefs: ResearchDef[];
@@ -97,6 +125,11 @@ function musterPriority(u: UnitDef): number {
 export function CastleView({
   city,
   cities,
+  player,
+  shopCatalog,
+  inventory,
+  buyShopItem,
+  useShopItem,
   setCityId,
   units,
   researchDefs,
@@ -127,6 +160,8 @@ export function CastleView({
   pactFenWyrm,
 }: CastleViewProps) {
   const rates = city.productionPerHour;
+  const foodUpkeep = city.foodUpkeepPerHour ?? 0;
+  const foodNet = (rates?.food ?? 0) - foodUpkeep;
   const [confirmFound, setConfirmFound] = useState(false);
   const [hatchName, setHatchName] = useState("");
   const signature = livingDragons?.dragons?.find((d: any) => d.kind === "signature");
@@ -173,6 +208,53 @@ export function CastleView({
   // Reset the found confirmation when the keep exists or selection changes.
   useEffect(() => setConfirmFound(false), [city.id, hasMarcherKeep]);
 
+  // F1: the shop points here so a new player can find the Dracolith faucet.
+  const dailyDeedsRef = useRef<HTMLElement | null>(null);
+  const goToDailyDeeds = () => {
+    const el = dailyDeedsRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.focus({ preventScroll: true });
+  };
+
+  // F6: research feedback beyond the toast. Purely derived from state the
+  // client already has — a running job is "researching to level N", and a
+  // level that just rose is the last result. No server or balance change.
+  const researchJobs = useMemo(() => {
+    const m = new Map<string, QueueJob>();
+    for (const j of jobs) {
+      if (j.kind === "research") m.set(String(j.payload.techId), j);
+    }
+    return m;
+  }, [jobs]);
+
+  const [lastResearch, setLastResearch] = useState<{
+    cityId: string;
+    id: string;
+    level: number;
+  } | null>(null);
+  const prevResearchRef = useRef<{
+    cityId: string;
+    levels: Record<string, number>;
+  } | null>(null);
+  useEffect(() => {
+    const levels = city.research ?? {};
+    const prev = prevResearchRef.current;
+    if (!prev || prev.cityId !== city.id) {
+      // A different settlement's study history is not this keep's history —
+      // drop the previous keep's "last completed" line on the city switch.
+      prevResearchRef.current = { cityId: city.id, levels: { ...levels } };
+      setLastResearch(null);
+      return;
+    }
+    let result: { id: string; level: number } | null = null;
+    for (const [id, lvl] of Object.entries(levels)) {
+      if ((prev.levels[id] ?? 0) < lvl) result = { id, level: lvl };
+    }
+    prevResearchRef.current = { cityId: city.id, levels: { ...levels } };
+    if (result) setLastResearch({ cityId: city.id, ...result });
+  }, [city.research, city.id]);
+
   return (
     <section className="card castle-view">
       <header className="castle-head">
@@ -202,8 +284,8 @@ export function CastleView({
         )}
       </header>
 
-      <section className="dragon-presence" data-testid="dragon-presence" aria-label="Dragon Presence">
-        <div className={`dragon-presence-glyph dragon-state-${dragonPresence?.state ?? "dormant"}`}>
+      <section className="dragon-presence dragon-presence-with-plate" data-testid="dragon-presence" aria-label="Dragon Presence">
+        <div className={`dragon-presence-glyph dragon-state-${String(dragonPresence?.state ?? "dormant").toLowerCase()}`}>
           <img
             src="/art/dragons/vale_drake/vale_drake_icon.png"
             alt="Vale Drake Icon"
@@ -223,10 +305,10 @@ export function CastleView({
           <p>{dragonPresence?.summary ?? "A vast, sleeping presence lies beneath the kingdom's oldest foundations."}</p>
           <p className="muted tiny"><strong>Next:</strong> {dragonPresence?.nextMilestone ?? "Build the Dragon Watch and bring back your first sign from the realm."}</p>
           <div className="dragon-status-rail" data-testid="dragon-status-rail" aria-label="Dragon status">
-            <span className="dragon-state-pill"><span className="dragon-state-dot" />{dragonPresence?.state ?? "dormant"}</span>
+            <span className="dragon-state-pill"><span className="dragon-state-dot" />{presenceStateLabel(dragonPresence?.state)}</span>
             {signature ? (
               <>
-                <span><strong>{signature.lifeStage}</strong> · life stage</span>
+                <span><strong>{lifeStageLabel(signature.lifeStage)}</strong> · life stage</span>
                 <span><strong>{signature.roostEmpty ? "On the approaches" : "In the roost"}</strong></span>
                 <span><strong>{signature.chronicle?.length ?? 0}</strong> Chronicle entries</span>
               </>
@@ -235,6 +317,11 @@ export function CastleView({
             )}
           </div>
         </div>
+        <ArtImage
+          src={ALPHA_ROOST_PRESENCE_PLATE}
+          className="dragon-presence-plate"
+          alt=""
+        />
       </section>
 
       {city.kind === "capital" && (
@@ -276,8 +363,8 @@ export function CastleView({
                   <p className="muted tiny">The roost is empty. {signature.givenName} is on the approaches (Home Guard).</p>
                 ) : (
                   <p className="muted tiny">
-                    {signature.lifeStage} · {signature.physicalState}
-                    {signature.woundId ? ` · ${String(signature.woundId).replace(/_/g, " ")}` : ""} · {signature.temperament}
+                    {lifeStageLabel(signature.lifeStage)} · {physicalStateLabel(signature.physicalState)}
+                    {signature.woundId ? ` · ${String(signature.woundId).replace(/_/g, " ")}` : ""} · {temperamentLabel(signature.temperament)}
                     {signature.vaneTells ? ` · ${signature.vaneTells}` : ""}
                   </p>
                 )}
@@ -288,6 +375,22 @@ export function CastleView({
                     : "none"}
                   {signature.lifeStage === "hatchling" ? " — a hatchling is too small for any harness" : ""}
                 </p>
+                <figure className="roost-study" data-testid="roost-study">
+                  <ArtImage
+                    src={signatureStudySrc(
+                      signature.lifeStage,
+                      signature.physicalState,
+                    )}
+                    className="roost-study-art"
+                    alt=""
+                  />
+                  <figcaption className="muted tiny">
+                    Field study ·{" "}
+                    {signature.lifeStage === "hatchling"
+                      ? "wake-clutch hatchling"
+                      : "roost wyrm"}
+                  </figcaption>
+                </figure>
                 <div className="roost-actions">
                   <button type="button" onClick={() => void observeLivingDragon?.(signature.id)}>Watch the roost</button>
                   <button type="button" onClick={() => void setDragonHarness?.(signature.id, "yard")}>Yard</button>
@@ -335,6 +438,11 @@ export function CastleView({
                 void nameHatchling?.(hatchName);
               }}
             >
+              <ArtImage
+                src={ALPHA_HATCHLING_ART}
+                className="clutch-hatchling-art"
+                alt=""
+              />
               <h3>An abandoned clutch survived the Scar</h3>
               <p className="muted tiny">Name the hatchling. This begins the relationship — there is no Bond button.</p>
               <label>
@@ -414,7 +522,7 @@ export function CastleView({
                 ? siltKnowledge == null || siltKnowledge.state === "rumored"
                   ? "The crossing is contested. Survey it, and codify why the wyrm holds the bank before yielding it."
                   : siltKnowledge.state === "supported"
-                    ? "The silt is understood. Codify ford signaling, then yield the spawning bank — permanently."
+                    ? "The silt is understood. Record ford signaling, then yield the spawning bank — permanently."
                     : "The bank can be yielded — a permanent surrender, marked on the map."
                 : "The crossing is sanctuary ground. The wyrm may now accept terms."}
           </p>
@@ -440,9 +548,33 @@ export function CastleView({
             {rates && (
               <span className="res-rate">+{fmtNum(rates[k])}/h</span>
             )}
+            {k === "food" && foodUpkeep > 0 && (
+              <span
+                className={`res-rate ${city.starving ? "res-rate-alert" : ""}`}
+                data-testid="food-upkeep"
+              >
+                −{fmtNum(foodUpkeep)}/h upkeep · net{" "}
+                {foodNet >= 0 ? "+" : "−"}
+                {fmtNum(Math.abs(foodNet))}/h
+              </span>
+            )}
+            {k === "crownmark" && (
+              <span className="res-kind muted tiny">realm resource</span>
+            )}
           </li>
         ))}
+        {/* F7: Dracoliths are not a realm resource — they are earned, and the
+            row says so here as well as in the Steward's Wares. */}
+        <li className="res-premium" data-testid="res-dracolith">
+          <strong className="res-head">
+            <Icon name="crown" size={16} />
+            {DRACOLITH_LABEL}
+          </strong>
+          <span className="res-val">{fmtNum(player.dracolith)}</span>
+          <span className="res-kind muted tiny">earned premium · Daily Deeds</span>
+        </li>
       </ul>
+      <p className="muted tiny res-blurb">{currencyBlurb()}</p>
 
       <h3>The Settlement</h3>
       <section className="keep-progression" aria-label="Keep progression">
@@ -484,7 +616,7 @@ export function CastleView({
           </p>
         </div>
       </div>
-      <CityGrid key={city.id} city={city} jobs={jobs} now={now} doBuild={doBuild} />
+      <CityGrid key={city.id} city={city} jobs={jobs} now={now} unlockDefs={unlockDefs} doBuild={doBuild} />
 
       <div className="castle-columns">
         <div>
@@ -517,6 +649,24 @@ export function CastleView({
           </div>
 
           <h3>Studies</h3>
+          <p
+            className="muted tiny study-status"
+            data-testid="research-status"
+            aria-live="polite"
+          >
+            {researchJobs.size > 0
+              ? `Research under way: ${[...researchJobs.entries()]
+                  .map(([id, j]) => {
+                    const target = (city.research[id] ?? 0) + 1;
+                    return `${researchName(id)} → level ${target} (${fmtEta(
+                      Math.max(0, j.finishesAt - now),
+                    )} left)`;
+                  })
+                  .join("; ")}.`
+              : lastResearch && lastResearch.cityId === city.id
+                ? `Last completed: ${researchName(lastResearch.id)} reached level ${lastResearch.level}.`
+                : "No study under way — choose a study below to advance the realm."}
+          </p>
           {Object.keys(city.research).length > 0 && (
             <ul className="study-list">
               {Object.entries(city.research).map(([k, v]) => (
@@ -530,11 +680,18 @@ export function CastleView({
             {researchDefs.map((r) => {
               const lvl = city.research[r.id] ?? 0;
               const maxed = Boolean(r.max_level && lvl >= r.max_level);
+              const running = researchJobs.get(r.id);
               const cost: Partial<Resources> = {};
               for (const [k, v] of Object.entries(r.cost ?? {})) {
                 cost[k as keyof Resources] = Math.floor((v ?? 0) * (lvl + 1));
               }
               const affordable = canAfford(city.resources, cost);
+              const short = shortfallText(city.resources, cost);
+              const reason = maxed
+                ? "Fully studied."
+                : short
+                  ? `Needs more — ${short}.`
+                  : null;
               return (
                 <button
                   key={r.id}
@@ -543,17 +700,27 @@ export function CastleView({
                   title={
                     maxed
                       ? "Fully studied"
-                      : `Level ${lvl + 1} cost: ${Object.entries(cost)
-                          .filter(([, v]) => (v ?? 0) > 0)
-                          .map(([k, v]) => `${v} ${k}`)
-                          .join(", ")}`
+                      : `Level ${lvl + 1} cost: ${costText(cost)}`
                   }
                   onClick={() => void doResearch(r.id)}
                 >
-                  {r.name}
-                  <span className="muted tiny">
-                    {maxed ? " · mastered" : lvl > 0 ? ` · to level ${lvl + 1}` : ""}
+                  <span className="study-name">{r.name}</span>
+                  <span className="study-level muted tiny">
+                    {maxed ? `mastered at level ${lvl}` : `now level ${lvl}`}
                   </span>
+                  <span className="muted tiny">
+                    {maxed
+                      ? "mastered"
+                      : running
+                        ? `researching to level ${lvl + 1} — ${fmtEta(
+                            Math.max(0, running.finishesAt - now),
+                          )} left`
+                        : `to level ${lvl + 1}`}
+                  </span>
+                  {!maxed && costText(cost) && (
+                    <span className="study-cost">{costText(cost)}</span>
+                  )}
+                  {reason && <span className="action-hint">{reason}</span>}
                 </button>
               );
             })}
@@ -572,23 +739,51 @@ export function CastleView({
             Muster Yard raises both limits; Commanders remain a separate leadership
             constraint.
           </p>
+          {city.starving && (
+            <p className="action-hint" data-testid="starving-banner">
+              The stores run dry — feed the host first. Population growth is
+              paused and no new company can be mustered until Food recovers.
+            </p>
+          )}
           <ul className="muster-list">
             {trainable.map((u) => {
               const count = countFor(u.id);
               const cost = unitTrainCost(u, count);
               const affordable = canAfford(city.resources, cost);
               const manpower = (u.pop ?? 1) * count;
-              const enoughPeople =
-                (city.availableManpower ?? 0) >= manpower;
+              const enoughPeople = (city.availableManpower ?? 0) >= manpower;
+              const gate = unlockDefs.find(
+                (ud) => ud.kind === "unit" && ud.unlocks.includes(u.id),
+              );
               const locked = !unitUnlocked(u, unlockDefs, city.research);
+              const short = shortfallText(city.resources, cost);
+              const reason = city.starving
+                ? "The stores run dry — feed the host first."
+                : locked
+                ? gate
+                  ? `Requires ${researchName(gate.research_id)} level ${gate.research_level}.`
+                  : "Requires further study."
+                : !enoughPeople
+                  ? `Needs ${fmtNum(manpower)} manpower — ${fmtNum(city.availableManpower ?? 0)} available.`
+                  : short
+                    ? `Needs more — ${short}.`
+                    : null;
               return (
                 <li key={u.id} className="muster-row">
                   <div className="muster-info">
                     <strong>{troopName(u.id, city.kind)}</strong>
                     <span className="muted tiny">
                       owned {fmtNum(city.stacks[u.id] ?? 0)}
-                      {locked ? " · requires further study" : ""}
+                      {locked && gate
+                        ? ` · requires ${researchName(gate.research_id)} ${gate.research_level}`
+                        : locked
+                          ? " · requires further study"
+                          : ""}
                     </span>
+                    <span className="muster-cost">
+                      {count}× · {costText(cost)}
+                    </span>
+                    {reason && <span className="action-hint">{reason}</span>}
                   </div>
                   <div className="muster-controls">
                     <label className="city-visually-hidden" htmlFor={`muster-${u.id}`}>
@@ -597,6 +792,7 @@ export function CastleView({
                     <input
                       id={`muster-${u.id}`}
                       type="number"
+                      inputMode="numeric"
                       min={1}
                       max={999}
                       value={count}
@@ -607,17 +803,14 @@ export function CastleView({
                     <button
                       type="button"
                       disabled={
-                        locked || !affordable || !enoughPeople
+                        Boolean(city.starving) ||
+                        locked ||
+                        !affordable ||
+                        !enoughPeople
                       }
                       title={
-                        locked
-                          ? "Requires further study"
-                          : !enoughPeople
-                            ? "Not enough available manpower"
-                            : `Cost: ${Object.entries(cost)
-                                .filter(([, v]) => (v ?? 0) > 0)
-                                .map(([k, v]) => `${v} ${k}`)
-                                .join(", ")}`
+                        reason ??
+                        `Train ${count} for ${costText(cost)}`
                       }
                       onClick={() => void doTrain(u.id, count)}
                     >
@@ -730,31 +923,57 @@ export function CastleView({
         </p>
       )}
 
-      <h3>Daily Deeds</h3>
-      {dailyQuests.length === 0 ? (
-        <p className="muted">No deeds posted today.</p>
-      ) : (
-        <ul className="quest-list">
-          {dailyQuests.map((q) => (
-            <li key={q.id} className="plot-row">
-              <div>
-                {q.done ? "✓ " : "○ "}
-                {q.title}{" "}
-                <span className="muted">+{q.rewardChronite} Chronite</span>
-              </div>
-              {q.done && !q.claimed ? (
-                <button type="button" onClick={() => void claimQuest(q.id)}>
-                  Claim
-                </button>
-              ) : q.claimed ? (
-                <span className="muted">Claimed</span>
-              ) : (
-                <span className="muted">In progress</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <ShopPanel
+        player={player}
+        catalog={shopCatalog}
+        inventory={inventory}
+        hasActiveQueue={jobs.length > 0}
+        onBuy={buyShopItem}
+        onUse={useShopItem}
+        onGoToDailyDeeds={goToDailyDeeds}
+      />
+
+      <section
+        className="daily-deeds"
+        id="daily-deeds"
+        data-testid="daily-deeds"
+        aria-label="Daily Deeds"
+        tabIndex={-1}
+        ref={dailyDeedsRef}
+      >
+        <h3>Daily Deeds</h3>
+        <p className="muted tiny">
+          {DRACOLITH_LABEL} are earned here — each deed pays 1 or 2 on claim, and
+          there is no purchase path. {CROWNMARK_LABEL} are a realm resource and
+          do not buy Steward's Wares.
+        </p>
+        {dailyQuests.length === 0 ? (
+          <p className="muted">No deeds posted today.</p>
+        ) : (
+          <ul className="quest-list">
+            {dailyQuests.map((q) => (
+              <li key={q.id} className="plot-row">
+                <div>
+                  {q.done ? "✓ " : "○ "}
+                  {q.title}{" "}
+                  <span className="muted">
+                    +{dracolithLabel(q.rewardDracolith)}
+                  </span>
+                </div>
+                {q.done && !q.claimed ? (
+                  <button type="button" onClick={() => void claimQuest(q.id)}>
+                    Claim
+                  </button>
+                ) : q.claimed ? (
+                  <span className="muted">Claimed</span>
+                ) : (
+                  <span className="muted">In progress</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </section>
   );
 }

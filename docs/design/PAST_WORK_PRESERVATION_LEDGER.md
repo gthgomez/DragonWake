@@ -18,7 +18,7 @@ create needless migration risk.
 | Alliance/social warfare | Alliance and chat foundations exist; coordination and war depth are shallow. | Social warfare is a future layer. | DEFERRED | Alliance campaign |
 | Later combat ideas | Formations, terrain resolution, siege depth, morale, dragon anatomy, anti-dragon weapons, and resolver redesign are preserved as later work. | Dragons do not erase conventional warfare. | DEFERRED | Combat campaign |
 | Endgame/live game | Arena, bosses, events, market, deeper alliance war, hardcore realms, and broad endgame remain future scope. | Alpha R2 ends before live-game breadth. | DEFERRED | Endgame campaign |
-| Shop/monetization naming | Chronite remains separate; generic legacy shop naming is not expanded here. | Crownmarks are normal currency, Chronite is convenience currency. | DEFERRED | Monetization freeze |
+| Shop/monetization naming | Dracoliths remain separate (renamed to Dracoliths 2026-09-14); generic legacy shop naming is not expanded here. | Crownmarks are normal currency, Dracoliths are the premium earned currency. | DEFERRED | Monetization freeze |
 | Lore Bible | Lore Bible v1 remains incomplete; no irreversible canon was invented for closure. | The dragon mystery remains intentionally bounded. | PARTIAL | Lore campaign |
 | Final resource domain | Aquatic → intermediate medieval → final Food/Wood/Stone/Ore/Crownmarks migration is implemented at shared, content, server, PG, cargo, and UI boundaries. | Players see Food, Wood, Stone, Ore, Crownmarks. | IMPLEMENTED | Migration maintenance |
 

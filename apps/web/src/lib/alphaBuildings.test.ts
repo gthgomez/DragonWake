@@ -1,6 +1,27 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ALPHA_BUILDING_ART, alphaBuildingSrc } from "./alphaBuildings";
+import {
+  ALPHA_BUILDING_ART,
+  alphaBuildingArtEnabled,
+  alphaBuildingSrc,
+} from "./alphaBuildings";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe("alphaBuildingArtEnabled", () => {
+  it("keeps candidate art opt-in unless the flag is exactly \"1\"", () => {
+    vi.stubEnv("VITE_ALPHA_CITY_ART", "0");
+    expect(alphaBuildingArtEnabled()).toBe(false);
+
+    vi.stubEnv("VITE_ALPHA_CITY_ART", "true");
+    expect(alphaBuildingArtEnabled()).toBe(false);
+
+    vi.stubEnv("VITE_ALPHA_CITY_ART", "1");
+    expect(alphaBuildingArtEnabled()).toBe(true);
+  });
+});
 
 describe("alphaBuildingSrc", () => {
   it("maps keep and buildable city types to alpha rasters", () => {
