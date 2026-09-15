@@ -27,7 +27,9 @@ async function waitForBuilding(page: Page, label: RegExp) {
 }
 
 async function research(page: Page, label: string, levelText: RegExp) {
-  await page.getByRole("button", { name: new RegExp(`^${label}(?: ·|$)`) }).click();
+  // Research buttons now also show their cost/level inline, so match the name
+  // prefix rather than the old " · " separated format.
+  await page.getByRole("button", { name: new RegExp(`^${label}\\b`) }).click();
   await expect(page.getByText(levelText)).toBeVisible({ timeout: 20_000 });
 }
 

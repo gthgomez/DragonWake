@@ -383,7 +383,7 @@ export function processDragonWounds(world: World, now: number): void {
       d.woundUntil = null;
       d.locationKind = d.kind === "signature" ? "roost" : "home_waters";
       putDragon(world, d);
-      addChronicle(world, d.id, "recovered", "The wound closed. Rest, not Chronite, did the work.");
+      addChronicle(world, d.id, "recovered", "The wound closed. Rest, not Dracoliths, did the work.");
       world.pushEvent(d.ownerPlayerId, "info", `${d.givenName ?? d.epithet} has recovered.`, {
         kind: "dragon_recovered",
         dragonId: d.id,

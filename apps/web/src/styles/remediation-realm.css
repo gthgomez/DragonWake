@@ -1,0 +1,46 @@
+/*
+   F4 — Realm action-panel discoverability.
+   Selecting a tile used to leave the tile detail + march composer below the
+   entire 40x40 map, so a player had to scroll past the world to act. RealmView
+   now scrolls the orders panel into view on selection (see revealOrders in
+   RealmView.tsx); this file carries the scroll affordance and the phone-width
+   touch-ups for that panel.
+
+   This file is imported from RealmView.tsx, which loads after styles.css, so
+   it may refine Realm presentation. It must not redefine shared tokens or
+   restyle selectors outside the realm.
+*/
+
+/* `scroll-margin-top` leaves breathing room above the panel when
+   scrollIntoView lands it. The soft ring makes the freshly-surfaced detail
+   read as the active surface rather than more map furniture. */
+.tile-detail.realm-orders {
+  scroll-margin-top: 0.75rem;
+  box-shadow: 0 0 0 1px rgba(233, 196, 120, 0.12);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* Fallback scroll target if a tile has no detail block. */
+.realm-composer {
+  scroll-margin-top: 0.75rem;
+}
+
+@media (max-width: 560px) {
+  /* Phone-width action rows wrap instead of clipping, and stay thumb-sized. */
+  .realm-composer .composer-actions button {
+    flex: 1 1 auto;
+    min-height: 40px;
+  }
+
+  .realm-composer .comp-grid {
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile-detail.realm-orders {
+    transition: none;
+  }
+}

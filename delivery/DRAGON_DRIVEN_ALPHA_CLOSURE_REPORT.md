@@ -80,7 +80,7 @@ The previous Alpha ended at expedition charter → Marcher Keep, with Presence `
 
 ## Signature dragon proof
 
-Named hatchling at Capital roost; Home/Away (Yard vs Home Guard empty roost); Wounded recovery without Chronite; Chronicle without POWER headline.
+Named hatchling at Capital roost; Home/Away (Yard vs Home Guard empty roost); Wounded recovery without Dracoliths (renamed to Dracoliths 2026-09-14); Chronicle without POWER headline.
 
 ## Domain dragon proof
 

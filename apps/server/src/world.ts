@@ -18,6 +18,8 @@ import {
   getUnitById,
   getUnitCost,
   getResearch,
+  getResearchUnlocks,
+  getShop,
   canonTechId,
   canonResourceId,
   isUnitUnlocked,
@@ -86,7 +88,7 @@ export type Player = {
   displayName: string;
   faction: Faction;
   guestToken: string;
-  chronite: number;
+  dracolith: number;
   playerLevel: number;
   protectionUntil: number | null;
   createdAt: number;
@@ -385,17 +387,17 @@ export const DAILY_QUEST_DEFS = [
   {
     id: "build",
     title: "Queue a construction",
-    rewardChronite: 2,
+    rewardDracolith: 1,
   },
   {
     id: "train",
     title: "Train troops",
-    rewardChronite: 2,
+    rewardDracolith: 1,
   },
   {
     id: "camp",
     title: "Attack a bandit camp",
-    rewardChronite: 5,
+    rewardDracolith: 2,
   },
 ] as const;
 
@@ -490,6 +492,15 @@ const BASE_OPERATION_CAPACITY = 4;
 const MAX_OPERATION_CAPACITY = 10;
 const BASE_TROOPS_PER_MARCH = 500;
 const TROOPS_PER_MUSTER_LEVEL = 100;
+
+// ── Food upkeep (Option S, soft) ────────────────────────────────────────────
+// Every unit of a company's `pop` eats this much Food per hour. Standing
+// troops therefore couple the economy to the army. Under-payment is SOFT:
+// no desertion — growth pauses and training is blocked (see isCityStarving).
+// The "Rationing" research is the genre-standard pressure-release lever.
+export const FOOD_UPKEEP_PER_POP_PER_HOUR = 1;
+export const RATIONING_UPKEEP_REDUCTION_PER_LEVEL = 0.05;
+export const RATIONING_UPKEEP_REDUCTION_CAP = 0.5;
 
 const UNIT_HOLDING_REQUIREMENTS: Record<string, CityKind> = {
   light_cavalry: "marcher_keep",
@@ -740,6 +751,31 @@ export function productionPerHour(city: City): ResourceBag {
   };
 }
 
+/**
+ * Food eaten per hour by a city's standing companies (soft-upkeep model).
+ * Derived from each unit's existing `pop`, reduced by the Rationing research.
+ * Marching troops are already removed from `city.stacks`, so this is the
+ * present garrison.
+ */
+export function cityFoodUpkeepPerHour(city: City): number {
+  let pop = 0;
+  for (const [unitId, count] of Object.entries(city.stacks ?? {})) {
+    if (!count || count <= 0) continue;
+    pop += (getUnitById(unitId)?.pop ?? 1) * count;
+  }
+  const level = Math.min(10, Math.max(0, city.research?.rationing ?? 0));
+  const reduction = Math.min(
+    RATIONING_UPKEEP_REDUCTION_CAP,
+    RATIONING_UPKEEP_REDUCTION_PER_LEVEL * level,
+  );
+  return pop * FOOD_UPKEEP_PER_POP_PER_HOUR * (1 - reduction);
+}
+
+/** A city is starving when it has upkeep to pay and no Food to pay it. */
+export function isCityStarving(city: City): boolean {
+  return (city.resources?.food ?? 0) <= 0 && cityFoodUpkeepPerHour(city) > 0;
+}
+
 /** Pure resource tick used by sim + tests. */
 export function tickCityResources(
   city: City,
@@ -787,11 +823,31 @@ export function tickCityResources(
       frac[key] = gain;
     }
   };
-  accrue("food", rates.food + wildFood);
+  // Food is net of troop upkeep. Unlike the other resources it can be
+  // negative, so it gets sign-aware fractional carry and clamps at zero.
+  const upkeep = cityFoodUpkeepPerHour(city);
+  const foodNetPerHour = rates.food + wildFood - upkeep;
+  {
+    const carry = (frac.food ?? 0) + foodNetPerHour * hours;
+    if (carry >= 0) {
+      const whole = Math.floor(carry);
+      next.food += whole;
+      frac.food = carry - whole;
+    } else {
+      const owed = Math.ceil(-carry);
+      const paid = Math.min(next.food, owed);
+      next.food -= paid;
+      // Forgive residual debt once the stores are empty (no negative food).
+      frac.food = next.food <= 0 ? 0 : carry + paid;
+    }
+  }
   accrue("wood", rates.wood + wildTimber);
   accrue("stone", rates.stone + wildStone);
   accrue("ore", rates.ore + wildIron);
   accrue("crownmark", rates.crownmark);
+
+  // Soft starvation: stores are dry and there is upkeep to pay. No desertion.
+  const starving = next.food <= 0 && upkeep > 0;
 
   // Population growth: grows based on habitation building levels.
   // Proportional with fractional carry — the old Math.max(1, …) granted
@@ -803,7 +859,7 @@ export function tickCityResources(
   const maxPop = city.maxPopulation || computeMaxPopulation(city);
   let newPop = city.population;
   let popFraction = city.popFraction ?? 0;
-  if (habitationLevels > 0 && newPop < maxPop) {
+  if (habitationLevels > 0 && newPop < maxPop && !starving) {
     const growthTotal =
       newPop * POPULATION_GROWTH_RATE * hours * habitationLevels +
       popFraction;
@@ -1192,7 +1248,8 @@ export class World {
       displayName: name,
       faction,
       guestToken,
-      chronite: 50,
+      // Premium currency: Dracoliths are scarce — no starting balance.
+      dracolith: 0,
       playerLevel: 1,
       protectionUntil: now + NEW_PLAYER_PROTECTION_MS,
       createdAt: now,
@@ -1415,8 +1472,18 @@ export class World {
       );
     }
     if (!isBuildingUnlocked(buildingType, city.research)) {
+      const gate = getResearchUnlocks().find(
+        (u) => u.kind === "building" && u.unlocks.includes(buildingType),
+      );
+      const study = gate
+        ? getResearch().find((r) => r.id === gate.research_id)?.name
+        : undefined;
       throw Object.assign(
-        new Error(`${def.name} requires further research`),
+        new Error(
+          study
+            ? `${def.name} requires ${study} level ${gate!.research_level}`
+            : `${def.name} requires further research`,
+        ),
         { code: "BUILDING_LOCKED" },
       );
     }
@@ -1628,6 +1695,13 @@ export class World {
     const unit = getUnitById(unitId);
     if (!unit) {
       throw Object.assign(new Error("unknown unit"), { code: "BAD_UNIT" });
+    }
+    // Soft starvation blocks mustering — no troop loss, just no new companies.
+    if (isCityStarving(city)) {
+      throw Object.assign(
+        new Error("the stores run dry — feed the host first"),
+        { code: "STARVING" },
+      );
     }
     // Enforce research unlock gates (PG-INV-003)
     if (!isUnitUnlocked(unitId, city.research)) {
@@ -2004,6 +2078,16 @@ export class World {
       ore: Math.floor(rates.ore + wildBonus.ore),
       crownmark: Math.floor(rates.crownmark + wildBonus.crownmark),
     };
+  }
+
+  /** Food per hour eaten by this city's standing companies. */
+  foodUpkeepPerHour(city: City): number {
+    return cityFoodUpkeepPerHour(city);
+  }
+
+  /** Soft-starvation state: dry stores with upkeep outstanding. */
+  isStarving(city: City): boolean {
+    return isCityStarving(city);
   }
 
   /** Per-type wilderness resource bonus for a player. */
@@ -3496,7 +3580,7 @@ export class World {
     body: {
       resources?: Partial<ResourceBag>;
       units?: Record<string, number>;
-      chronite?: number;
+      dracolith?: number;
       skipProtection?: boolean;
       brineholdUnlock?: boolean;
       stonekeelUnlock?: boolean;
@@ -3531,8 +3615,8 @@ export class World {
       city.usedManpower = recalculateManpower(city);
       this.putCity(city.id, city);
     }
-    if (body.chronite) {
-      player.chronite += body.chronite;
+    if (body.dracolith) {
+      player.dracolith += body.dracolith;
       this.putPlayer(player.id, player);
     }
     if (body.skipProtection) {
@@ -3971,7 +4055,7 @@ export class World {
     return DAILY_QUEST_DEFS.map((def) => ({
       id: def.id,
       title: def.title,
-      rewardChronite: def.rewardChronite,
+      rewardDracolith: def.rewardDracolith,
       done: !!d.done[def.id],
       claimed: !!d.claimed[def.id],
     }));
@@ -3980,7 +4064,7 @@ export class World {
   claimDailyQuest(
     playerId: string,
     questId: string,
-  ): { chronite: number; questId: string } {
+  ): { dracolith: number; questId: string } {
     const def = DAILY_QUEST_DEFS.find((q) => q.id === questId);
     if (!def) {
       throw Object.assign(new Error("unknown quest"), { code: "NO_QUEST" });
@@ -3999,9 +4083,9 @@ export class World {
       });
     }
     d.claimed[questId] = true;
-    player.chronite += def.rewardChronite;
+    player.dracolith += def.rewardDracolith;
     this.putPlayer(playerId, player);
-    return { chronite: player.chronite, questId };
+    return { dracolith: player.dracolith, questId };
   }
 
   /**
@@ -4081,26 +4165,89 @@ export class World {
     return msg;
   }
 
-  shopBuy(playerId: string, itemId: string): { itemId: string; chronite: number } {
+  shopBuy(playerId: string, itemId: string): { itemId: string; dracolith: number } {
     const player = this.players.get(playerId);
     if (!player) throw new Error("no player");
-    const catalog = [
-      { id: "speedup_1m", chronite: 1 },
-      { id: "speedup_1h", chronite: 10 },
-      { id: "shield_1h", chronite: 3 },
-      { id: "shield_12h", chronite: 25 },
-    ];
-    const item = catalog.find((c) => c.id === itemId);
+    // Catalog is content-driven (packages/content/data/shop.json).
+    const item = getShop().find((c) => c.id === itemId);
     if (!item) throw Object.assign(new Error("unknown item"), { code: "NO_ITEM" });
-    if (player.chronite < item.chronite) {
-      throw Object.assign(new Error("not enough chronite"), { code: "NO_CHRONITE" });
+    if (player.dracolith < item.dracolith) {
+      throw Object.assign(new Error("Not enough Dracoliths."), { code: "NO_DRACOLITH" });
     }
-    player.chronite -= item.chronite;
+    player.dracolith -= item.dracolith;
     this.putPlayer(player.id, player);
     const inv = this.inventory.get(playerId) ?? {};
     inv[itemId] = (inv[itemId] ?? 0) + 1;
     this.putInventory(playerId, inv);
-    return { itemId, chronite: player.chronite };
+    return { itemId, dracolith: player.dracolith };
+  }
+
+  /** Cap on how far one shield item may push protection from now (30 days). */
+  private static readonly SHIELD_CAP_MS = 30 * 24 * 60 * 60 * 1000;
+
+  /**
+   * Consume one owned shop item and apply its effect.
+   * `speedup_sec` shortens the soonest-finishing running queue job — scoped to
+   * `cityId` when provided (the selected settlement), otherwise player-wide;
+   * `shield_sec` extends the player's protection window (capped at 30 days).
+   * Throws NO_ITEM when not owned and ITEM_UNUSABLE when there is nothing to
+   * apply the effect to (no running job in scope, unknown effect type).
+   */
+  useShopItem(
+    playerId: string,
+    itemId: string,
+    cityId?: string,
+  ): {
+    itemId: string;
+    effect: { type: string; seconds: number };
+    applied: { finishesAt?: number; protectionUntil?: number };
+  } {
+    const player = this.players.get(playerId);
+    if (!player) throw new Error("no player");
+    const inv = this.inventory.get(playerId) ?? {};
+    const owned = inv[itemId] ?? 0;
+    if (owned <= 0) {
+      throw Object.assign(new Error("item not owned"), { code: "NO_ITEM" });
+    }
+    const item = getShop().find((c) => c.id === itemId);
+    if (!item) throw Object.assign(new Error("unknown item"), { code: "NO_ITEM" });
+
+    const type = item.effect.type;
+    const seconds = Number(item.effect.seconds ?? 0);
+    const now = this.now();
+    let applied: { finishesAt?: number; protectionUntil?: number };
+
+    if (type === "speedup_sec") {
+      // Soonest-finishing running job, scoped to the selected city when one is
+      // given; without a cityId, keep the historical player-wide behavior.
+      const job = [...this.jobs.values()]
+        .filter(
+          (j) =>
+            j.playerId === playerId &&
+            j.status === "running" &&
+            (cityId === undefined || j.cityId === cityId),
+        )
+        .sort((a, b) => a.finishesAt - b.finishesAt)[0];
+      if (!job) {
+        throw Object.assign(new Error("nothing to speed up"), { code: "ITEM_UNUSABLE" });
+      }
+      job.finishesAt = Math.max(now, job.finishesAt - seconds * 1000);
+      this.putJob(job.id, job);
+      applied = { finishesAt: job.finishesAt };
+    } else if (type === "shield_sec") {
+      const base = Math.max(now, player.protectionUntil ?? now);
+      const capped = Math.min(base + seconds * 1000, now + World.SHIELD_CAP_MS);
+      player.protectionUntil = capped;
+      this.putPlayer(player.id, player);
+      applied = { protectionUntil: capped };
+    } else {
+      throw Object.assign(new Error("item effect cannot be applied"), { code: "ITEM_UNUSABLE" });
+    }
+
+    inv[itemId] = owned - 1;
+    if (inv[itemId] <= 0) delete inv[itemId];
+    this.putInventory(playerId, inv);
+    return { itemId, effect: { type, seconds }, applied };
   }
 
   mapViewport(x0: number, y0: number, x1: number, y1: number) {

@@ -8,23 +8,23 @@ Competitor research is not a pile of miscellaneous screenshots: compare
 
 | Category | Comparable state definition | DoA evidence | Reign evidence | DragonWake capture |
 | --- | --- | --- | --- | --- |
-| City / kingdom | Capital view, early-mid development | pending | pending | pending |
-| World map | Realm view with visible targets | pending | pending | pending |
-| First dragon | The moment the player first acquires/encounters a dragon | pending | pending | pending |
-| Dragon management | Dragon detail/roost/equipment surface | pending | pending | pending |
-| Research | Research tree/panel mid-progression | pending | pending | pending |
-| Troops | Training/composition surface | pending | pending | pending |
-| Combat | Battle in progress or resolution | pending | pending | pending |
-| Combat report | Post-battle report surface | pending | pending | pending |
-| Quests | Active objectives surface | pending | pending | pending |
-| Rewards | Reward/grant moment | pending | pending | pending |
-| Alliance | Alliance surface with members visible | pending | pending | pending |
-| Events | Event surface (if present) | pending | pending | pending |
-| Player identity | Profile/name/heraldry surface | pending | pending | pending |
-| Progression | Level/power progression display | pending | pending | pending |
-| Inventory | Item/resources surface | pending | pending | pending |
-| PvE target | Camp/wilderness target panel | pending | pending | pending |
-| PvP target | Enemy settlement target panel | pending | pending | pending |
+| City / kingdom | Capital view, early-mid development | pending Gate 1 | pending Gate 1 | `2026-09-14_castle_desktop.png` · RUN 20260914-0405-synthA-gate2-ftue |
+| World map | Realm view with visible targets | pending Gate 1 | pending Gate 1 | `2026-09-14_realm_desktop.png` · same RUN |
+| First dragon | The moment the player first acquires/encounters a dragon | pending Gate 1 | pending Gate 1 | `blind/23-attack-dispatched.png` (clue toast only) · same RUN |
+| Dragon management | Dragon detail/roost/equipment surface | pending Gate 1 | pending Gate 1 | `blind/44-knowledge-after-watch2.png` · same RUN |
+| Research | Research tree/panel mid-progression | pending Gate 1 | pending Gate 1 | `blind/33-dragon-studies.png` · same RUN |
+| Troops | Training/composition surface | pending Gate 1 | pending Gate 1 | `blind/41-train-final.png` · same RUN |
+| Combat | Battle in progress or resolution | pending Gate 1 | pending Gate 1 | `blind/22-attack-muster90.png` · same RUN |
+| Combat report | Post-battle report surface | pending Gate 1 | pending Gate 1 | `blind/24-war-battle-report.png` · same RUN |
+| Quests | Active objectives surface | pending Gate 1 | pending Gate 1 | `2026-09-14_castle-fold_desktop.png` · same RUN |
+| Rewards | Reward/grant moment | pending Gate 1 | pending Gate 1 | `blind/13-objective5.png` · same RUN |
+| Alliance | Alliance surface with members visible | pending Gate 1 | pending Gate 1 | `blind/37-alliance.png` · same RUN |
+| Events | Event surface (if present) | pending Gate 1 | pending Gate 1 | not present in Gate 2 session |
+| Player identity | Profile/name/heraldry surface | pending Gate 1 | pending Gate 1 | `blind/38-settings.png` · same RUN |
+| Progression | Level/power progression display | pending Gate 1 | pending Gate 1 | `2026-09-14_knowledge_desktop.png` · same RUN |
+| Inventory | Item/resources surface | pending Gate 1 | pending Gate 1 | `2026-09-14_castle_desktop.png` · same RUN |
+| PvE target | Camp/wilderness target panel | pending Gate 1 | pending Gate 1 | `blind/15-camp-selected.png` · same RUN |
+| PvP target | Enemy settlement target panel | pending Gate 1 | pending Gate 1 | `2026-09-14_realm_desktop.png` · same RUN |
 
 ## Conventions
 

@@ -3,7 +3,7 @@
 Dragon Wake now uses the final canonical resource domain:
 
 `food`, `wood`, `stone`, `ore`, `crownmark` — displayed as Food, Wood, Stone,
-Ore, and Crownmarks. Chronite remains separate.
+Ore, and Crownmarks. Dracoliths remain separate.
 
 The migration boundary accepts and canonicalizes both earlier generations:
 
