@@ -60,7 +60,8 @@ const PORT = Number(process.env.PORT ?? 3001);
 const HOST = process.env.HOST ?? "0.0.0.0";
 
 const world = new World({
-  devFastTime: process.env.DEV_FAST_TIME !== "0",
+  // opt-in: a bare production start must run at real pacing
+  devFastTime: process.env.DEV_FAST_TIME === "1",
   skipTutorial: process.env.DEV_SKIP_TUTORIAL === "1",
 });
 

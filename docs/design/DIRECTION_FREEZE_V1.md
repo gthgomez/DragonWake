@@ -1,6 +1,12 @@
 # Dragon Wake — Direction Freeze v1.0
 
-Status: **FROZEN**
+Status: **FROZEN** — historical freeze text.
+
+Amended by [`DIRECTION_FREEZE_V1_1.md`](./DIRECTION_FREEZE_V1_1.md).
+v1.0 remains the original freeze. Where v1.0 and v1.1 conflict,
+**v1.1 wins**. Do not casually rewrite this file.
+
+---
 
 Dragon Wake is a persistent medieval fantasy strategy game centered on a world
 shaped by the real existence of dragons.

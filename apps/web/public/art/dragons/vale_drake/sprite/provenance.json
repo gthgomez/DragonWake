@@ -1,0 +1,24 @@
+{
+  "asset_id": "dragon_vale_drake",
+  "backend": "spritegen",
+  "backend_commit": "",
+  "backend_version": "2.1.0",
+  "candidate_pack_id": "vale_drake_v1_7_candidate",
+  "dispositions": {
+    "attack": "ACCEPT",
+    "idle": "ACCEPT",
+    "walk": "WARN_CONDITIONAL"
+  },
+  "export_target": "web",
+  "frame_counts": {
+    "attack": 4,
+    "idle": 8,
+    "walk": 24
+  },
+  "locomotion_anchor_sha256": "",
+  "runtime_status": "PREVIEW_ONLY",
+  "schema_version": "1.7.0",
+  "source_master_sha256": "46923e09ae4ffbba12dcb021424076ed56bb58931fdfb0d836c8237c860a0ded",
+  "source_request_hash": "c27d4c357b709393495e1377fd315b468e8c9dc5fba5e04d86bd3958c20106d6",
+  "v1_6_manifest_sha256": "d992e4c2636ec89144eaf4d7181864e332547991a10e91f7ff85d2fc56654dc7"
+}

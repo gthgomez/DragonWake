@@ -73,10 +73,35 @@ export const allianceJoinSchema = z
     message: "allianceId or tag required",
   });
 
+export const hatchlingNameSchema = z.object({
+  name: z.string().trim().min(2).max(24),
+});
+
+export const dragonIdSchema = z.object({
+  dragonId: z.string().uuid(),
+});
+
+export const harnessSchema = z.object({
+  dragonId: z.string().uuid(),
+  role: z.enum(["yard", "home_guard"]),
+});
+
+export const scarEncounterSchema = z.object({
+  composition: z.record(z.string(), z.number().int().min(0).max(1_000_000)).default({}),
+});
+
+export const knowledgeCodifySchema = z.object({
+  questionId: z.enum(["vane_reading", "fen_silt"]),
+});
+
+export const stationSchema = z.object({
+  where: z.enum(["ford", "home"]),
+});
+
 export const adminGrantSchema = z.object({
   resources: inboundResourceBagSchema.optional(),
   units: z.record(z.string(), z.number().int().min(0)).optional(),
-  chronite: z.number().int().min(0).optional(),
+  dracolith: z.number().int().min(0).optional(),
   skipProtection: z.boolean().optional(),
   brineholdUnlock: z.boolean().optional(),
   stonekeelUnlock: z.boolean().optional(),
@@ -90,6 +115,7 @@ export const adminGrantSchema = z.object({
     })
     .optional(),
   bestiaryEncounters: z.record(z.string(), z.number()).optional(),
+  dragonState: z.enum(["healthy", "wounded"]).optional(),
 });
 
 export type ParseOk<T> = { ok: true; data: T };

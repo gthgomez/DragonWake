@@ -187,6 +187,56 @@
   height: 100%;
 }
 
+/* Alpha test rasters are already isometric; do not billboard-unrotate them.
+   The compound selector keeps this filter from being overridden by the later
+   `.city-sprite` rule in the CLOSED_MOCKUP_V1 block. */
+.city-sprite.city-sprite-art {
+  width: 128%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -58%);
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.62));
+}
+
+.city-sprite-art.city-tier-bronze {
+  width: 140%;
+}
+
+.city-sprite-art.city-tier-gold {
+  width: 154%;
+}
+
+.city-sprite-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.city-art-thumb {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--border-ornate) 60%, transparent);
+  background: color-mix(in srgb, var(--stone-2) 70%, #000);
+  overflow: hidden;
+}
+
+.city-art-thumb img,
+.city-pick-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.city-pick-art {
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 0.2rem;
+}
+
 /* gentle idle float on the selected building only */
 .city-selected .city-sprite-inner {
   animation: city-float 2.8s ease-in-out infinite;
@@ -311,7 +361,8 @@
 
 .city-cost-row {
   display: flex;
-  gap: 0.9rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
 }
 
 .city-cost {
@@ -362,8 +413,13 @@
 
 .city-pick-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr) lets the columns shrink with the panel; fixed 1fr kept
+     each button's min-content width and forced horizontal overflow on mobile. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.4rem;
+}
+@media (max-width: 480px) {
+  .city-pick-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .city-pick-grid button {

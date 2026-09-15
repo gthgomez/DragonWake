@@ -107,7 +107,7 @@ export type ResearchDef = {
 export type ShopItem = {
   id: string;
   name: string;
-  chronite: number;
+  dracolith: number;
   effect: { type: string; seconds?: number; [key: string]: unknown };
 };
 

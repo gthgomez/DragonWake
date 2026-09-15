@@ -79,7 +79,7 @@ export type PlayerPublic = {
   id: string;
   displayName: string;
   faction: Faction;
-  chronite: number;
+  dracolith: number;
   playerLevel: number;
   protectionUntil: string | null;
 };

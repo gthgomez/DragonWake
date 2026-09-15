@@ -18,7 +18,11 @@ CREATE TABLE players (
   faction         TEXT NOT NULL CHECK (faction IN ('northern_kingdom','mountain_realm','forest_people','coastal_lords')),
   password_hash   TEXT, -- null for pure guest
   guest_token     TEXT UNIQUE,
-  chronite        BIGINT NOT NULL DEFAULT 0,
+  -- Premium currency (internal id singular "dracolith", displayed "Dracoliths").
+  -- Existing volumes created before the rename must run:
+  --   ALTER TABLE players RENAME COLUMN chronite TO dracolith;
+  -- (also applied idempotently by migrateExistingSchema in apps/server/src/pg.ts)
+  dracolith       BIGINT NOT NULL DEFAULT 0,
   player_level    INT NOT NULL DEFAULT 1,
   xp              BIGINT NOT NULL DEFAULT 0,
   protection_until TIMESTAMPTZ,
@@ -258,6 +262,35 @@ CREATE TABLE dragon_progress (
   charter_earned  BOOLEAN NOT NULL DEFAULT FALSE,
   camps_defeated  INT NOT NULL DEFAULT 0,
   scouts_sent     INT NOT NULL DEFAULT 0
+);
+
+-- Living dragons (separate from dragon_progress Presence projection).
+CREATE TABLE IF NOT EXISTS dragon_individuals (
+  id               UUID PRIMARY KEY,
+  realm_id         SMALLINT NOT NULL REFERENCES realms(id),
+  owner_player_id  UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  payload          JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS dragon_individuals_owner_idx ON dragon_individuals(owner_player_id);
+
+CREATE TABLE IF NOT EXISTS dragon_knowledge (
+  player_id    UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  question_id  TEXT NOT NULL,
+  payload      JSONB NOT NULL,
+  PRIMARY KEY (player_id, question_id)
+);
+
+CREATE TABLE IF NOT EXISTS dragon_world_verbs (
+  id       UUID PRIMARY KEY,
+  realm_id SMALLINT NOT NULL REFERENCES realms(id),
+  payload  JSONB NOT NULL
+);
+
+-- Pre-existing world features dragons change (Alpha: the Fen Crossing).
+CREATE TABLE IF NOT EXISTS map_features (
+  id       UUID PRIMARY KEY,
+  realm_id SMALLINT NOT NULL REFERENCES realms(id),
+  payload  JSONB NOT NULL
 );
 
 CREATE TABLE quest_progress (

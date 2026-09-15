@@ -18,6 +18,8 @@ import {
   getUnitById,
   getUnitCost,
   getResearch,
+  getResearchUnlocks,
+  getShop,
   canonTechId,
   canonResourceId,
   isUnitUnlocked,
@@ -40,6 +42,35 @@ import {
   type MarchIntent,
   type ResourceBag,
 } from "@dragonwake/shared";
+import type {
+  ChronicleEvent,
+  DragonIndividual,
+  KnowledgeEntry,
+  MapFeature,
+  WorldVerb,
+} from "./dragons/types.js";
+import {
+  clutchAvailable,
+  codifyKnowledge,
+  craftGuardHarness,
+  crossingAt,
+  ensureFenRivalry,
+  floodedAttackerGroups,
+  growHatchling,
+  livingPublic,
+  marchTravelFactor,
+  nameHatchling,
+  observeDragon,
+  pactFenWyrm,
+  processDragonWounds,
+  recordScarScoutingEvidence,
+  resolveDragonTerritoryEncounter,
+  scoutDragonIntel,
+  setHarness,
+  stationFenWyrm,
+  surveyFenCrossing,
+  yieldSpawningBank,
+} from "./dragons/living.js";
 
 export type Building = {
   slotIndex: number;
@@ -57,7 +88,7 @@ export type Player = {
   displayName: string;
   faction: Faction;
   guestToken: string;
-  chronite: number;
+  dracolith: number;
   playerLevel: number;
   protectionUntil: number | null;
   createdAt: number;
@@ -356,17 +387,17 @@ export const DAILY_QUEST_DEFS = [
   {
     id: "build",
     title: "Queue a construction",
-    rewardChronite: 2,
+    rewardDracolith: 1,
   },
   {
     id: "train",
     title: "Train troops",
-    rewardChronite: 2,
+    rewardDracolith: 1,
   },
   {
     id: "camp",
     title: "Attack a bandit camp",
-    rewardChronite: 5,
+    rewardDracolith: 2,
   },
 ] as const;
 
@@ -461,6 +492,15 @@ const BASE_OPERATION_CAPACITY = 4;
 const MAX_OPERATION_CAPACITY = 10;
 const BASE_TROOPS_PER_MARCH = 500;
 const TROOPS_PER_MUSTER_LEVEL = 100;
+
+// ── Food upkeep (Option S, soft) ────────────────────────────────────────────
+// Every unit of a company's `pop` eats this much Food per hour. Standing
+// troops therefore couple the economy to the army. Under-payment is SOFT:
+// no desertion — growth pauses and training is blocked (see isCityStarving).
+// The "Rationing" research is the genre-standard pressure-release lever.
+export const FOOD_UPKEEP_PER_POP_PER_HOUR = 1;
+export const RATIONING_UPKEEP_REDUCTION_PER_LEVEL = 0.05;
+export const RATIONING_UPKEEP_REDUCTION_CAP = 0.5;
 
 const UNIT_HOLDING_REQUIREMENTS: Record<string, CityKind> = {
   light_cavalry: "marcher_keep",
@@ -711,6 +751,31 @@ export function productionPerHour(city: City): ResourceBag {
   };
 }
 
+/**
+ * Food eaten per hour by a city's standing companies (soft-upkeep model).
+ * Derived from each unit's existing `pop`, reduced by the Rationing research.
+ * Marching troops are already removed from `city.stacks`, so this is the
+ * present garrison.
+ */
+export function cityFoodUpkeepPerHour(city: City): number {
+  let pop = 0;
+  for (const [unitId, count] of Object.entries(city.stacks ?? {})) {
+    if (!count || count <= 0) continue;
+    pop += (getUnitById(unitId)?.pop ?? 1) * count;
+  }
+  const level = Math.min(10, Math.max(0, city.research?.rationing ?? 0));
+  const reduction = Math.min(
+    RATIONING_UPKEEP_REDUCTION_CAP,
+    RATIONING_UPKEEP_REDUCTION_PER_LEVEL * level,
+  );
+  return pop * FOOD_UPKEEP_PER_POP_PER_HOUR * (1 - reduction);
+}
+
+/** A city is starving when it has upkeep to pay and no Food to pay it. */
+export function isCityStarving(city: City): boolean {
+  return (city.resources?.food ?? 0) <= 0 && cityFoodUpkeepPerHour(city) > 0;
+}
+
 /** Pure resource tick used by sim + tests. */
 export function tickCityResources(
   city: City,
@@ -758,11 +823,31 @@ export function tickCityResources(
       frac[key] = gain;
     }
   };
-  accrue("food", rates.food + wildFood);
+  // Food is net of troop upkeep. Unlike the other resources it can be
+  // negative, so it gets sign-aware fractional carry and clamps at zero.
+  const upkeep = cityFoodUpkeepPerHour(city);
+  const foodNetPerHour = rates.food + wildFood - upkeep;
+  {
+    const carry = (frac.food ?? 0) + foodNetPerHour * hours;
+    if (carry >= 0) {
+      const whole = Math.floor(carry);
+      next.food += whole;
+      frac.food = carry - whole;
+    } else {
+      const owed = Math.ceil(-carry);
+      const paid = Math.min(next.food, owed);
+      next.food -= paid;
+      // Forgive residual debt once the stores are empty (no negative food).
+      frac.food = next.food <= 0 ? 0 : carry + paid;
+    }
+  }
   accrue("wood", rates.wood + wildTimber);
   accrue("stone", rates.stone + wildStone);
   accrue("ore", rates.ore + wildIron);
   accrue("crownmark", rates.crownmark);
+
+  // Soft starvation: stores are dry and there is upkeep to pay. No desertion.
+  const starving = next.food <= 0 && upkeep > 0;
 
   // Population growth: grows based on habitation building levels.
   // Proportional with fractional carry — the old Math.max(1, …) granted
@@ -774,7 +859,7 @@ export function tickCityResources(
   const maxPop = city.maxPopulation || computeMaxPopulation(city);
   let newPop = city.population;
   let popFraction = city.popFraction ?? 0;
-  if (habitationLevels > 0 && newPop < maxPop) {
+  if (habitationLevels > 0 && newPop < maxPop && !starving) {
     const growthTotal =
       newPop * POPULATION_GROWTH_RATE * hours * habitationLevels +
       popFraction;
@@ -825,6 +910,14 @@ export class World {
   bestiary = new Map<string, { entryId: string; observationLevel: number; encounterCount: number }>();
   /** Dragon expedition readiness progress — keyed by playerId. */
   dragonProgress = new Map<string, DragonProgress>();
+  /** Living dragons — not Presence. Keyed by dragon id. */
+  dragonIndividuals = new Map<string, DragonIndividual>();
+  dragonChronicle = new Map<string, ChronicleEvent[]>();
+  /** Keyed by playerId:questionId */
+  dragonKnowledge = new Map<string, KnowledgeEntry>();
+  worldVerbs = new Map<string, WorldVerb>();
+  /** Pre-existing world features dragons change (Alpha: the Fen Crossing). */
+  mapFeatures = new Map<string, MapFeature>();
   usedTiles = new Set<string>();
   devFastTime: boolean;
   skipTutorial: boolean;
@@ -856,6 +949,10 @@ export class World {
     tutorials: new Set<string>(),
     bestiary: new Set<string>(),
     dragonProgress: new Set<string>(),
+    dragons: new Set<string>(),
+    dragonKnowledge: new Set<string>(),
+    worldVerbs: new Set<string>(),
+    mapFeatures: new Set<string>(),
     daily: new Set<string>(),
     alliances: new Set<string>(),
     /** Alliance ids whose membership rows changed (rewritten on save). */
@@ -924,6 +1021,29 @@ export class World {
   private putDragonProgress(key: string, progress: DragonProgress): void {
     this.dragonProgress.set(key, progress);
     this.dirty.dragonProgress.add(key);
+  }
+  touchCity(city: City): City {
+    return this.putCity(city.id, city);
+  }
+  touchDragonProgress(playerId: string, progress: DragonProgress): void {
+    this.putDragonProgress(playerId, progress);
+  }
+  recordStandaloneReport(playerId: string, result: Record<string, unknown>): BattleReport {
+    const report: BattleReport = {
+      id: randomUUID(),
+      realmId: this.realmId,
+      marchId: null,
+      attackerPlayerId: playerId,
+      defenderPlayerId: null,
+      result,
+      createdAt: this.now(),
+    };
+    this.putReport(report.id, report);
+    this.pushEvent(playerId, "report", "A dragon encounter was recorded.", {
+      reportId: report.id,
+      kind: String(result.kind ?? "dragon_encounter"),
+    });
+    return report;
   }
   private putDailyQuests(key: string, d: DailyProgress): void {
     this.dailyQuests.set(key, d);
@@ -1128,7 +1248,8 @@ export class World {
       displayName: name,
       faction,
       guestToken,
-      chronite: 50,
+      // Premium currency: Dracoliths are scarce — no starting balance.
+      dracolith: 0,
       playerLevel: 1,
       protectionUntil: now + NEW_PLAYER_PROTECTION_MS,
       createdAt: now,
@@ -1234,6 +1355,7 @@ export class World {
       }
     }
     this.processQueues(now);
+    processDragonWounds(this, now);
     this.processMarches(now);
     // Objective ladder auto-advances from authoritative state only.
     for (const t of this.tutorials.values()) {
@@ -1350,8 +1472,18 @@ export class World {
       );
     }
     if (!isBuildingUnlocked(buildingType, city.research)) {
+      const gate = getResearchUnlocks().find(
+        (u) => u.kind === "building" && u.unlocks.includes(buildingType),
+      );
+      const study = gate
+        ? getResearch().find((r) => r.id === gate.research_id)?.name
+        : undefined;
       throw Object.assign(
-        new Error(`${def.name} requires further research`),
+        new Error(
+          study
+            ? `${def.name} requires ${study} level ${gate!.research_level}`
+            : `${def.name} requires further research`,
+        ),
         { code: "BUILDING_LOCKED" },
       );
     }
@@ -1522,6 +1654,10 @@ export class World {
     const has = (kind: CityKind) =>
       this.citiesForPlayer(city.playerId).some((candidate) => candidate.kind === kind);
     const ownedWilds = this.ownedWildernessCount(city.playerId);
+    const dragonStudies = this.citiesForPlayer(city.playerId).reduce(
+      (max, candidate) => Math.max(max, candidate.research.dragon_studies ?? 0),
+      0,
+    );
     const gates: Record<string, boolean> = {
       brinehold_unlock:
         has("marcher_keep") && progress.campsDefeated >= 3 && ownedWilds >= 1,
@@ -1529,15 +1665,19 @@ export class World {
         has("brinehold") && progress.campTypesDefeated.size >= 2 && ownedWilds >= 1,
       cinderreach_unlock:
         has("stonekeel") && progress.scoutsSent >= 3 && ownedWilds >= 1,
+      // Galeari is the battle holding itself, so its charter cannot demand the
+      // BATTLE_READY state that only exists once Galeari is founded. The bond
+      // plus Dragon Studies III are the earned prerequisites; founding Galeari
+      // is what turns the presence BATTLE_READY.
       galeari_unlock:
-        has("cinderreach") && this.dragonPresence(city.playerId).state === "BATTLE_READY",
+        has("cinderreach") && progress.charterEarned && dragonStudies >= 3,
     };
     if (gates[techId] !== false) return;
     const messages: Record<string, string> = {
       brinehold_unlock: "Brinehold Charter requires a Marcher Keep, three camp victories, and one wilderness holding",
       stonekeel_unlock: "Stonekeel Charter requires Brinehold, two mastered camp types, and one wilderness holding",
       cinderreach_unlock: "Forest Frontier Charter requires Stonekeel, three scouting operations, and one wilderness holding",
-      galeari_unlock: "Dragon Site Charter requires Cinderreach and a battle-ready dragon presence",
+      galeari_unlock: "Dragon Site Charter requires Cinderreach, the expedition bond, and Dragon Studies III",
     };
     throw Object.assign(new Error(messages[techId] ?? "world prerequisite not met"), {
       code: "WORLD_PREREQ",
@@ -1555,6 +1695,13 @@ export class World {
     const unit = getUnitById(unitId);
     if (!unit) {
       throw Object.assign(new Error("unknown unit"), { code: "BAD_UNIT" });
+    }
+    // Soft starvation blocks mustering — no troop loss, just no new companies.
+    if (isCityStarving(city)) {
+      throw Object.assign(
+        new Error("the stores run dry — feed the host first"),
+        { code: "STARVING" },
+      );
     }
     // Enforce research unlock gates (PG-INV-003)
     if (!isUnitUnlocked(unitId, city.research)) {
@@ -1933,6 +2080,16 @@ export class World {
     };
   }
 
+  /** Food per hour eaten by this city's standing companies. */
+  foodUpkeepPerHour(city: City): number {
+    return cityFoodUpkeepPerHour(city);
+  }
+
+  /** Soft-starvation state: dry stores with upkeep outstanding. */
+  isStarving(city: City): boolean {
+    return isCityStarving(city);
+  }
+
   /** Per-type wilderness resource bonus for a player. */
   private ownedWildernessBonus(playerId: string): ResourceBag {
     const bonus: ResourceBag = { food: 0, wood: 0, stone: 0, ore: 0, crownmark: 0 };
@@ -2119,9 +2276,9 @@ export class World {
     if (progress.charterEarned) {
       return {
         state: "BONDED",
-        title: "Bonded",
-        summary: "The expedition returned with a living bond between your kingdom and the scarred wilds.",
-        nextMilestone: "Found a Marcher Keep, then pursue a specialized frontier holding.",
+        title: "Frontier charter earned",
+        summary: "The Scar expedition returned with a settlement charter — not a dragon. The wilds still hold living creatures.",
+        nextMilestone: "Found a Marcher Keep, then search the abandoned clutch if you survived the Scar.",
       };
     }
     if (readiness?.expeditionStage && readiness.expeditionStage > 0) {
@@ -2277,6 +2434,13 @@ export class World {
     const stageDef = expedition.stages.find((s) => s.stage === stageNumber);
     if (!stageDef) return null;
 
+    if (stageDef.type === "encounter") {
+      throw Object.assign(
+        new Error("the Scar must be faced as a real encounter, not a stage button"),
+        { code: "ENCOUNTER_REQUIRED" },
+      );
+    }
+
     const isLast = stageNumber >= expedition.stages.length;
     // Entering the next stage is gated on persistent gameplay counters.
     if (!isLast) {
@@ -2287,6 +2451,13 @@ export class World {
     progress.expeditionStage = isLast ? 0 : stageNumber + 1;
     if (isLast) progress.charterEarned = true;
     this.putDragonProgress(playerId, progress);
+
+    // Reaching the Scar ridge (stage 3 → the encounter stage) yields the
+    // vane tell observed from safety — world-sourced field notes, not a
+    // quest counter (Vision Council Round 4, Question B).
+    if (progress.expeditionStage === 4) {
+      recordScarScoutingEvidence(this, playerId);
+    }
 
     // Grant reward items
     const reward = stageDef.completion_reward;
@@ -2426,6 +2597,17 @@ export class World {
       if (wild?.ownerPlayerId === playerId) {
         throw Object.assign(new Error("wilderness already held"), { code: "ALREADY_OWNED" });
       }
+      const crossing = wild ? crossingAt(this, wild.x, wild.y) : undefined;
+      if (crossing) {
+        throw Object.assign(
+          new Error(
+            crossing.state === "sanctuary"
+              ? "sanctuary terms forbid working the bank at the Fen Crossing"
+              : "the Fen Crossing is contested — the wyrm denies the bank to every claim",
+          ),
+          { code: "CROSSING_FORBIDDEN" },
+        );
+      }
       if (this.ownedWildernessCount(playerId) >= this.wildernessCapacity(playerId)) {
         throw Object.assign(
           new Error(`wilderness capacity reached (${this.wildernessCapacity(playerId)}); abandon a holding before claiming another`),
@@ -2551,7 +2733,17 @@ export class World {
       0.7,
       1 - 0.03 * this.wildernessLogisticsLevel(playerId),
     );
-    const travelSec = Math.max(5, dist * 8 * musterFactor * crossroadsFactor);
+    const targetCity =
+      opts.targetType === "city" && opts.targetId
+        ? this.cities.get(opts.targetId)
+        : [...this.cities.values()].find((c) => c.mapX === opts.targetX && c.mapY === opts.targetY);
+    const verbFactor = marchTravelFactor(this, playerId, city, {
+      type: opts.targetType,
+      kind: targetCity?.kind,
+      x: opts.targetX,
+      y: opts.targetY,
+    }, opts.intent);
+    const travelSec = Math.max(5, dist * 8 * musterFactor * crossroadsFactor * verbFactor);
     const now = this.now();
     const march: March = {
       id: randomUUID(),
@@ -2893,7 +3085,7 @@ export class World {
             rulesVersion: COMBAT_RULES_VERSION,
             seed,
             attacker: {
-              groups: atkGroups,
+              groups: floodedAttackerGroups(atkGroups, defCity?.kind === "brinehold"),
               commander: marchCommander
                 ? {
                     leadership: marchCommander.leadership,
@@ -3009,7 +3201,12 @@ export class World {
         // Re-check at resolution time. Two legal departures can arrive after
         // another claim or after the owner fills their capacity; departure
         // validation alone cannot protect this persistent ownership boundary.
-        if (
+        const landingCrossing = crossingAt(this, wild.x, wild.y);
+        if (landingCrossing) {
+          // The crossing appeared (or was always) under the wyrm; no claim
+          // may land on its tile in either state.
+          wildernessClaimBlocked = true;
+        } else if (
           wild.ownerPlayerId !== march.playerId &&
           this.ownedWildernessCount(march.playerId) >=
             this.wildernessCapacity(march.playerId)
@@ -3298,6 +3495,9 @@ export class World {
           : {}),
         protected:
           !!owner?.protectionUntil && owner.protectionUntil > this.now(),
+        dragon: owner
+          ? scoutDragonIntel(this, owner.id, city.kind)
+          : null,
       };
     }
     return {
@@ -3380,7 +3580,7 @@ export class World {
     body: {
       resources?: Partial<ResourceBag>;
       units?: Record<string, number>;
-      chronite?: number;
+      dracolith?: number;
       skipProtection?: boolean;
       brineholdUnlock?: boolean;
       stonekeelUnlock?: boolean;
@@ -3394,6 +3594,7 @@ export class World {
       };
       /** Dev/test fixture: add bestiary encounters without battles. */
       bestiaryEncounters?: Record<string, number>;
+      dragonState?: "healthy" | "wounded";
     },
   ): void {
     const player = this.players.get(playerId);
@@ -3414,8 +3615,8 @@ export class World {
       city.usedManpower = recalculateManpower(city);
       this.putCity(city.id, city);
     }
-    if (body.chronite) {
-      player.chronite += body.chronite;
+    if (body.dracolith) {
+      player.dracolith += body.dracolith;
       this.putPlayer(player.id, player);
     }
     if (body.skipProtection) {
@@ -3470,6 +3671,92 @@ export class World {
         this.updateBestiary(playerId, entryId, Number(count) || 0);
       }
     }
+    if (body.dragonState) {
+      const d = [...this.dragonIndividuals.values()].find(
+        (x) => x.ownerPlayerId === playerId && x.kind === "signature",
+      );
+      if (d) {
+        d.physicalState = body.dragonState;
+        if (body.dragonState === "wounded") {
+          d.woundId = "strained_vane";
+          d.woundUntil = this.now() + 3600000;
+          d.locationKind = "recovering";
+        } else {
+          d.woundId = null;
+          d.woundUntil = null;
+          d.locationKind = "roost";
+        }
+        this.dragonIndividuals.set(d.id, d);
+        this.dirty.dragons.add(d.id);
+      }
+    }
+  }
+
+  livingState(playerId: string) {
+    return livingPublic(this, playerId);
+  }
+  nameHatchling(playerId: string, name: string) {
+    const d = nameHatchling(this, playerId, name);
+    void this.persist();
+    return d;
+  }
+  observeLivingDragon(playerId: string, dragonId: string) {
+    const d = observeDragon(this, playerId, dragonId);
+    void this.persist();
+    return d;
+  }
+  setDragonHarness(playerId: string, dragonId: string, role: "yard" | "home_guard") {
+    const d = setHarness(this, playerId, dragonId, role);
+    void this.persist();
+    return d;
+  }
+  growLivingDragon(playerId: string, dragonId: string) {
+    const d = growHatchling(this, playerId, dragonId);
+    void this.persist();
+    return d;
+  }
+  codifyDragonKnowledge(playerId: string, questionId: string) {
+    const k = codifyKnowledge(this, playerId, questionId);
+    void this.persist();
+    return k;
+  }
+  faceScarEncounter(playerId: string, composition: Record<string, number>) {
+    const r = resolveDragonTerritoryEncounter(this, playerId, composition);
+    void this.persist();
+    return r;
+  }
+  craftGuardHarness(playerId: string) {
+    const d = craftGuardHarness(this, playerId);
+    void this.persist();
+    return d;
+  }
+  beginFenRivalry(playerId: string) {
+    const d = ensureFenRivalry(this, playerId);
+    void this.persist();
+    return d;
+  }
+  surveyFenCrossing(playerId: string) {
+    const r = surveyFenCrossing(this, playerId);
+    void this.persist();
+    return r;
+  }
+  yieldSpawningBank(playerId: string) {
+    const f = yieldSpawningBank(this, playerId);
+    void this.persist();
+    return f;
+  }
+  pactLocalFenWyrm(playerId: string) {
+    const r = pactFenWyrm(this, playerId);
+    void this.persist();
+    return r;
+  }
+  stationLocalFenWyrm(playerId: string, where: "ford" | "home") {
+    const d = stationFenWyrm(this, playerId, where);
+    void this.persist();
+    return d;
+  }
+  clutchIsAvailable(playerId: string) {
+    return clutchAvailable(this, playerId);
   }
 
   foundMarcherKeep(playerId: string, name?: string): City {
@@ -3768,7 +4055,7 @@ export class World {
     return DAILY_QUEST_DEFS.map((def) => ({
       id: def.id,
       title: def.title,
-      rewardChronite: def.rewardChronite,
+      rewardDracolith: def.rewardDracolith,
       done: !!d.done[def.id],
       claimed: !!d.claimed[def.id],
     }));
@@ -3777,7 +4064,7 @@ export class World {
   claimDailyQuest(
     playerId: string,
     questId: string,
-  ): { chronite: number; questId: string } {
+  ): { dracolith: number; questId: string } {
     const def = DAILY_QUEST_DEFS.find((q) => q.id === questId);
     if (!def) {
       throw Object.assign(new Error("unknown quest"), { code: "NO_QUEST" });
@@ -3796,9 +4083,9 @@ export class World {
       });
     }
     d.claimed[questId] = true;
-    player.chronite += def.rewardChronite;
+    player.dracolith += def.rewardDracolith;
     this.putPlayer(playerId, player);
-    return { chronite: player.chronite, questId };
+    return { dracolith: player.dracolith, questId };
   }
 
   /**
@@ -3878,26 +4165,89 @@ export class World {
     return msg;
   }
 
-  shopBuy(playerId: string, itemId: string): { itemId: string; chronite: number } {
+  shopBuy(playerId: string, itemId: string): { itemId: string; dracolith: number } {
     const player = this.players.get(playerId);
     if (!player) throw new Error("no player");
-    const catalog = [
-      { id: "speedup_1m", chronite: 1 },
-      { id: "speedup_1h", chronite: 10 },
-      { id: "shield_1h", chronite: 3 },
-      { id: "shield_12h", chronite: 25 },
-    ];
-    const item = catalog.find((c) => c.id === itemId);
+    // Catalog is content-driven (packages/content/data/shop.json).
+    const item = getShop().find((c) => c.id === itemId);
     if (!item) throw Object.assign(new Error("unknown item"), { code: "NO_ITEM" });
-    if (player.chronite < item.chronite) {
-      throw Object.assign(new Error("not enough chronite"), { code: "NO_CHRONITE" });
+    if (player.dracolith < item.dracolith) {
+      throw Object.assign(new Error("Not enough Dracoliths."), { code: "NO_DRACOLITH" });
     }
-    player.chronite -= item.chronite;
+    player.dracolith -= item.dracolith;
     this.putPlayer(player.id, player);
     const inv = this.inventory.get(playerId) ?? {};
     inv[itemId] = (inv[itemId] ?? 0) + 1;
     this.putInventory(playerId, inv);
-    return { itemId, chronite: player.chronite };
+    return { itemId, dracolith: player.dracolith };
+  }
+
+  /** Cap on how far one shield item may push protection from now (30 days). */
+  private static readonly SHIELD_CAP_MS = 30 * 24 * 60 * 60 * 1000;
+
+  /**
+   * Consume one owned shop item and apply its effect.
+   * `speedup_sec` shortens the soonest-finishing running queue job — scoped to
+   * `cityId` when provided (the selected settlement), otherwise player-wide;
+   * `shield_sec` extends the player's protection window (capped at 30 days).
+   * Throws NO_ITEM when not owned and ITEM_UNUSABLE when there is nothing to
+   * apply the effect to (no running job in scope, unknown effect type).
+   */
+  useShopItem(
+    playerId: string,
+    itemId: string,
+    cityId?: string,
+  ): {
+    itemId: string;
+    effect: { type: string; seconds: number };
+    applied: { finishesAt?: number; protectionUntil?: number };
+  } {
+    const player = this.players.get(playerId);
+    if (!player) throw new Error("no player");
+    const inv = this.inventory.get(playerId) ?? {};
+    const owned = inv[itemId] ?? 0;
+    if (owned <= 0) {
+      throw Object.assign(new Error("item not owned"), { code: "NO_ITEM" });
+    }
+    const item = getShop().find((c) => c.id === itemId);
+    if (!item) throw Object.assign(new Error("unknown item"), { code: "NO_ITEM" });
+
+    const type = item.effect.type;
+    const seconds = Number(item.effect.seconds ?? 0);
+    const now = this.now();
+    let applied: { finishesAt?: number; protectionUntil?: number };
+
+    if (type === "speedup_sec") {
+      // Soonest-finishing running job, scoped to the selected city when one is
+      // given; without a cityId, keep the historical player-wide behavior.
+      const job = [...this.jobs.values()]
+        .filter(
+          (j) =>
+            j.playerId === playerId &&
+            j.status === "running" &&
+            (cityId === undefined || j.cityId === cityId),
+        )
+        .sort((a, b) => a.finishesAt - b.finishesAt)[0];
+      if (!job) {
+        throw Object.assign(new Error("nothing to speed up"), { code: "ITEM_UNUSABLE" });
+      }
+      job.finishesAt = Math.max(now, job.finishesAt - seconds * 1000);
+      this.putJob(job.id, job);
+      applied = { finishesAt: job.finishesAt };
+    } else if (type === "shield_sec") {
+      const base = Math.max(now, player.protectionUntil ?? now);
+      const capped = Math.min(base + seconds * 1000, now + World.SHIELD_CAP_MS);
+      player.protectionUntil = capped;
+      this.putPlayer(player.id, player);
+      applied = { protectionUntil: capped };
+    } else {
+      throw Object.assign(new Error("item effect cannot be applied"), { code: "ITEM_UNUSABLE" });
+    }
+
+    inv[itemId] = owned - 1;
+    if (inv[itemId] <= 0) delete inv[itemId];
+    this.putInventory(playerId, inv);
+    return { itemId, effect: { type, seconds }, applied };
   }
 
   mapViewport(x0: number, y0: number, x1: number, y1: number) {

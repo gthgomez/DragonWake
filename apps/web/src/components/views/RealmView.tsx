@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+
+import "../../styles/remediation-realm.css";
 
 import { fmtEta, fmtNum } from "../../lib/format";
 import {
@@ -20,6 +22,14 @@ import type {
 } from "../../lib/types";
 import { RealmMap, tileAt } from "./map/RealmMap";
 
+type LatestResult = {
+  message: string;
+  reportId: string | null;
+  type: string | null;
+  winner: string | null;
+  at: number;
+};
+
 type RealmViewProps = {
   city: City | null;
   player: Player;
@@ -39,6 +49,9 @@ type RealmViewProps = {
   loadMap: (focus?: MapFocus) => Promise<void>;
   setError: Dispatch<SetStateAction<string | null>>;
   recruitCommander: () => Promise<void>;
+  onAbandonWild: (wildId: string) => Promise<void>;
+  lastResult?: LatestResult | null;
+  onOpenReports?: () => void;
   sendMarch: (opts: {
     intent: "attack" | "occupy" | "scout" | "reinforce";
     target: {
@@ -73,11 +86,32 @@ export function RealmView({
   loadMap,
   setError,
   recruitCommander,
+  onAbandonWild,
+  lastResult,
+  onOpenReports,
   sendMarch,
 }: RealmViewProps) {
   const [confirmIntent, setConfirmIntent] = useState<string | null>(null);
+  const ordersRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => setConfirmIntent(null), [selectedTile?.x, selectedTile?.y]);
+
+  // An armed confirm is a safety step, not a mode — let it lapse so a later
+  // click can never act on a decision made minutes ago.
+  useEffect(() => {
+    if (!confirmIntent) return;
+    const t = window.setTimeout(() => setConfirmIntent(null), 6000);
+    return () => window.clearTimeout(t);
+  }, [confirmIntent]);
+
+  // ownership and camp state change while this view is closed (marches
+  // resolving in the background); refresh on entry so tile panels and the
+  // map never describe a realm that no longer exists
+  useEffect(() => {
+    void loadMap().catch((err) => setError(String(err.message ?? err)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Keep the composition consistent with owned stacks — companies lost in
   // battle or away on march must not leave the composer stuck in an
@@ -133,6 +167,14 @@ export function RealmView({
     const have = city?.stacks[e.id] ?? 0;
     return e.count > have;
   });
+
+  /** Why the dispatch buttons are unavailable, in player language. */
+  const dispatchReason =
+    totalSelected === 0
+      ? "Add companies to the march first."
+      : overSelected.length > 0
+        ? "You are sending more than you own — lower the highlighted counts."
+        : null;
 
   /** March-speed factor: Muster Yard levels (mirrors server rule). */
   const speedFactor = useMemo(() => {
@@ -198,6 +240,35 @@ export function RealmView({
     void sendMarch({ intent, target });
   };
 
+  // Selecting a tile must surface the detail + march composer so the player
+  // never has to scroll past the whole map to act (F4). If the orders panel is
+  // already fully on screen the player stays where they are; otherwise it
+  // scrolls to the top of the panel.
+  const revealOrders = () => {
+    window.requestAnimationFrame(() => {
+      const detail = ordersRef.current;
+      const composer = composerRef.current;
+      const anchor = detail ?? composer;
+      if (!anchor) return;
+      const viewportH =
+        window.innerHeight || document.documentElement.clientHeight;
+      const topVisible = detail
+        ? detail.getBoundingClientRect().top >= 0
+        : true;
+      const bottomVisible = composer
+        ? composer.getBoundingClientRect().bottom <= viewportH
+        : true;
+      if (topVisible && bottomVisible) return;
+      const reduceMotion = window.matchMedia?.(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      anchor.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+  };
+
   const setMax = (id: string) => {
     const have = city?.stacks[id] ?? 0;
     setComp((c) => ({ ...c, [id]: have }));
@@ -223,6 +294,37 @@ export function RealmView({
         </div>
       </header>
 
+      {lastResult && (
+        <div
+          className={`dispatch-result ${
+            lastResult.winner === "defender"
+              ? "is-defeat"
+              : lastResult.winner === "attacker"
+                ? "is-victory"
+                : ""
+          }`}
+          role="status"
+          data-testid="latest-dispatch"
+        >
+          <span className="dispatch-result-mark" aria-hidden="true">
+            {lastResult.winner === "defender"
+              ? "✕"
+              : lastResult.winner === "attacker"
+                ? "✓"
+                : "✉"}
+          </span>
+          <div>
+            <strong>Latest dispatch</strong>
+            <p className="muted tiny">{lastResult.message}</p>
+          </div>
+          {onOpenReports && (
+            <button type="button" onClick={onOpenReports}>
+              View report
+            </button>
+          )}
+        </div>
+      )}
+
       {mapData ? (
         <RealmMap
           player={player}
@@ -234,6 +336,10 @@ export function RealmView({
           onSelectTile={(tile) => {
             setSelectedTile(tile);
             setConfirmIntent(null);
+            revealOrders();
+            // marches resolve while other tabs are open; refresh so the
+            // inspected tile's ownership/camp state is never stale
+            void loadMap().catch((err) => setError(String(err.message ?? err)));
           }}
         />
       ) : (
@@ -300,7 +406,7 @@ export function RealmView({
       </details>
 
       {selectedTile && selectedInfo && (
-        <div className="tile-detail card-inset">
+        <div className="tile-detail card-inset realm-orders" ref={ordersRef}>
           {selectedInfo.kind === "camp" && (
             <>
               <h3>
@@ -356,7 +462,7 @@ export function RealmView({
         </div>
       )}
 
-      <div className="composer">
+      <div className="composer realm-composer" ref={composerRef}>
         <h3>Muster a March</h3>
         {!city ? (
           <p className="muted">No settlement.</p>
@@ -493,12 +599,24 @@ export function RealmView({
               </div>
             )}
 
+            {(dispatchReason || confirmIntent) && (
+              <p
+                className={`composer-hint ${
+                  confirmIntent ? "composer-hint-armed" : ""
+                }`}
+                data-testid="composer-hint"
+              >
+                {confirmIntent
+                  ? "Confirm armed — press the highlighted action again to send."
+                  : dispatchReason}
+              </p>
+            )}
             <div className="row composer-actions">
               {selectedInfo?.kind === "camp" && (
                 <>
                   <button
                     type="button"
-                    className="primary"
+                    className={`primary ${confirmIntent === "attack" ? "confirm-armed" : ""}`}
                     disabled={totalSelected === 0 || overSelected.length > 0}
                     onClick={() =>
                       confirmIntent === "attack"
@@ -517,6 +635,7 @@ export function RealmView({
                   </button>
                   <button
                     type="button"
+                    className={confirmIntent === "scout" ? "confirm-armed" : undefined}
                     disabled={totalSelected === 0 || overSelected.length > 0}
                     onClick={() =>
                       confirmIntent === "scout"
@@ -534,31 +653,42 @@ export function RealmView({
                 </>
               )}
               {selectedInfo?.kind === "wild" && (
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={
-                    totalSelected === 0 ||
-                    overSelected.length > 0 ||
-                    Boolean(selectedInfo.wild.ownerPlayerId === player.id)
-                  }
-                  onClick={() =>
-                    confirmIntent === "occupy"
-                      ? launch("occupy", {
-                          type: "wilderness",
-                          id: selectedInfo.wild.id,
-                          x: selectedInfo.wild.x,
-                          y: selectedInfo.wild.y,
-                        })
-                      : setConfirmIntent("occupy")
-                  }
-                >
-                  {confirmIntent === "occupy"
-                    ? "Confirm — send the settlers-at-arms"
-                    : selectedInfo.wild.ownerPlayerId
-                      ? "Contest this claim (attack)"
-                      : "Claim for the realm (occupy)"}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className={`primary ${confirmIntent === "occupy" ? "confirm-armed" : ""}`}
+                    disabled={
+                      totalSelected === 0 ||
+                      overSelected.length > 0 ||
+                      Boolean(selectedInfo.wild.ownerPlayerId === player.id)
+                    }
+                    onClick={() =>
+                      confirmIntent === "occupy"
+                        ? launch("occupy", {
+                            type: "wilderness",
+                            id: selectedInfo.wild.id,
+                            x: selectedInfo.wild.x,
+                            y: selectedInfo.wild.y,
+                          })
+                        : setConfirmIntent("occupy")
+                    }
+                  >
+                    {confirmIntent === "occupy"
+                      ? "Confirm — send the settlers-at-arms"
+                      : selectedInfo.wild.ownerPlayerId
+                        ? "Contest this claim (attack)"
+                        : "Claim for the realm (occupy)"}
+                  </button>
+                  {selectedInfo.wild.ownerPlayerId === player.id && (
+                    <button
+                      type="button"
+                      data-testid="abandon-wild"
+                      onClick={() => void onAbandonWild(selectedInfo.wild.id)}
+                    >
+                      Abandon this wildland
+                    </button>
+                  )}
+                </>
               )}
               {selectedInfo?.kind === "city" && (
                 <>
@@ -566,7 +696,7 @@ export function RealmView({
                     <>
                       <button
                         type="button"
-                        className="primary"
+                        className={`primary ${confirmIntent === "attack" ? "confirm-armed" : ""}`}
                         disabled={totalSelected === 0 || overSelected.length > 0}
                         onClick={() =>
                           confirmIntent === "attack"
@@ -585,6 +715,7 @@ export function RealmView({
                       </button>
                       <button
                         type="button"
+                        className={confirmIntent === "scout" ? "confirm-armed" : undefined}
                         disabled={totalSelected === 0 || overSelected.length > 0}
                         onClick={() =>
                           confirmIntent === "scout"
@@ -604,6 +735,7 @@ export function RealmView({
                   {selectedInfo.city.playerId === player.id && (
                     <button
                       type="button"
+                      className={confirmIntent === "reinforce" ? "confirm-armed" : undefined}
                       disabled={totalSelected === 0 || overSelected.length > 0}
                       onClick={() =>
                         confirmIntent === "reinforce"

@@ -1,5 +1,8 @@
 import { Fragment } from "react";
 import "../../styles/reports.css";
+import { speciesArtSrc } from "../../lib/alphaDragons";
+import { knowledgeStateLabel } from "../../lib/labels";
+import { ArtImage } from "../../ui/ArtImage";
 import { Icon } from "../../ui/icons";
 import type { BestiaryEntryDef } from "../../lib/types";
 
@@ -15,10 +18,25 @@ type KnowledgeViewProps = {
   completeDragonStage: (stageNumber: number) => Promise<void>;
   startDragonWarCouncil: () => Promise<void>;
   loadCodex: () => Promise<void>;
+  livingDragons?: any;
+  faceScarEncounter?: (composition: Record<string, number>) => Promise<void>;
+  cityStacks?: Record<string, number>;
+  codifyDragonKnowledge?: (questionId: string) => Promise<void>;
 };
 
 /** Encounter thresholds at which observation deepens (server rule). */
 const OBS_THRESHOLDS = [3, 7, 15, 30];
+
+const QUESTION_TITLES: Record<string, string> = {
+  vane_reading: "Vane Reading",
+  fen_silt: "Wet silt-pack",
+};
+
+/** Codified knowledge names a capability, never a percentage. */
+const CAPABILITY_TEXT: Record<string, string> = {
+  vane_reading: "keepers can read temperament tells",
+  fen_silt: "ford signaling — terms can be offered at the crossing",
+};
 
 const READINESS_HINTS: Record<string, string> = {
   bestiary_threshold:
@@ -74,9 +92,23 @@ export function KnowledgeView({
   completeDragonStage,
   startDragonWarCouncil,
   loadCodex,
+  livingDragons,
+  faceScarEncounter,
+  cityStacks = {},
+  codifyDragonKnowledge,
 }: KnowledgeViewProps) {
   const formulaRows = formulaEntries(formulas);
-  const studiedCount = bestiaryEntries.filter(
+  // The server can hold multiple records for an entry; render each creature
+  // once so the Bestiary never shows the same card twice.
+  const seenEntries = new Set<string>();
+  const uniqueEntries = bestiaryEntries.filter((e) => {
+    const id = String(e.entryId ?? "");
+    if (!id) return true;
+    if (seenEntries.has(id)) return false;
+    seenEntries.add(id);
+    return true;
+  });
+  const studiedCount = uniqueEntries.filter(
     (e) => (e.observationLevel ?? 0) >= 1,
   ).length;
 
@@ -173,51 +205,68 @@ export function KnowledgeView({
       )}
 
       <h3 className="codex-heading">Bestiary</h3>
-      {bestiaryEntries.length > 0 ? (
+      {uniqueEntries.length > 0 ? (
         <div className="bestiary-grid">
-          {bestiaryEntries.map((entry: any, i: number) => {
+          {uniqueEntries.map((entry: any, i: number) => {
             const def = bestiaryDefs.find((d) => d.id === entry.entryId);
             const obs = entry.observationLevel ?? 0;
             const enc = entry.encounterCount ?? 0;
             const next = nextThreshold(enc);
             const known = obs >= 1;
             const weakness = def?.confirmed_weakness ?? def?.suspected_weakness;
+            const art = known && def ? speciesArtSrc(def.id) : undefined;
             return (
               <div
                 key={entry.entryId ?? i}
                 className={`bestiary-entry ${known ? "bestiary-known" : "bestiary-rumor"}`}
               >
-                <div className="bestiary-subject">
-                  <Icon name="dragon" size={16} />
-                  {known
-                    ? (def?.subject ?? entry.entryId)
-                    : "Unidentified creature"}
+                <div className="bestiary-media">
+                  {art ? (
+                    <ArtImage
+                      src={art}
+                      className="bestiary-art"
+                      alt=""
+                      fallback={<Icon name="dragon" size={30} />}
+                    />
+                  ) : (
+                    <span className="bestiary-art-fallback" aria-hidden="true">
+                      <Icon name="dragon" size={30} />
+                    </span>
+                  )}
                 </div>
-                <div className="bestiary-level">
-                  Study {obs}/4 · {enc} encounter{enc === 1 ? "" : "s"}
-                  {next ? ` · ${next - enc} more to deeper study` : " · fully studied"}
+                <div className="bestiary-body">
+                  <div className="bestiary-subject">
+                    <Icon name="dragon" size={16} />
+                    {known
+                      ? (def?.subject ?? entry.entryId)
+                      : "Unidentified creature"}
+                  </div>
+                  <div className="bestiary-level">
+                    Study {obs}/4 · {enc} encounter{enc === 1 ? "" : "s"}
+                    {next ? ` · ${next - enc} more to deeper study` : " · fully studied"}
+                  </div>
+                  {known && def?.habitat && (
+                    <div className="bestiary-facts">
+                      Haunts: {def.habitat}
+                    </div>
+                  )}
+                  {known && def?.known_attacks?.length ? (
+                    <div className="bestiary-facts">
+                      Known attacks: {def.known_attacks.join(", ")}
+                    </div>
+                  ) : null}
+                  {known && weakness && (
+                    <div className="bestiary-facts">
+                      Weakness (as known): {weakness}
+                    </div>
+                  )}
+                  {!known && (
+                    <div className="bestiary-facts muted tiny">
+                      Rumors only — more encounters will give this creature a
+                      name.
+                    </div>
+                  )}
                 </div>
-                {known && def?.habitat && (
-                  <div className="bestiary-facts">
-                    Haunts: {def.habitat}
-                  </div>
-                )}
-                {known && def?.known_attacks?.length ? (
-                  <div className="bestiary-facts">
-                    Known attacks: {def.known_attacks.join(", ")}
-                  </div>
-                ) : null}
-                {known && weakness && (
-                  <div className="bestiary-facts">
-                    Weakness (as known): {weakness}
-                  </div>
-                )}
-                {!known && (
-                  <div className="bestiary-facts muted tiny">
-                    Rumors only — more encounters will give this creature a
-                    name.
-                  </div>
-                )}
               </div>
             );
           })}
@@ -319,7 +368,44 @@ export function KnowledgeView({
                         </span>
                       ) : null}
                     </span>
-                    {current && (
+                    {current && stage.type === "encounter" && (
+                      <>
+                        <button
+                          type="button"
+                          data-testid="face-the-scar"
+                          onClick={() => {
+                            // March the marshalled company: anchors hold the
+                            // line, bowmen ride behind it. The dragon is not
+                            // fought — it is survived.
+                            const composition: Record<string, number> = {};
+                            for (const id of [
+                              "levy",
+                              "pikeman",
+                              "shieldman",
+                              "halberdier",
+                              "dragon_slayer",
+                              "bowman",
+                              "longbowman",
+                              "crossbowman",
+                              "heavy_crossbowman",
+                            ]) {
+                              const n = cityStacks[id] ?? 0;
+                              if (n > 0) composition[id] = n;
+                            }
+                            const scouts = Math.min(5, cityStacks.scout ?? 0);
+                            if (scouts > 0) composition.scout = scouts;
+                            void faceScarEncounter?.(composition);
+                          }}
+                        >
+                          Face the Scar
+                        </button>
+                        <p className="muted tiny">
+                          Spears anchor the line; bowmen need spear cover; loose
+                          horses scatter. Survive, and the clutch is found.
+                        </p>
+                      </>
+                    )}
+                    {current && stage.type !== "encounter" && (
                       <button
                         type="button"
                         disabled={!(scoutsDone && campsDone)}
@@ -327,7 +413,7 @@ export function KnowledgeView({
                           void completeDragonStage(stage.stage)
                         }
                       >
-                        Accomplish this stage
+                        {stage.name}
                       </button>
                     )}
                   </div>
@@ -354,6 +440,42 @@ export function KnowledgeView({
         </div>
       ) : (
         <p className="muted">The expedition's banners are being counted…</p>
+      )}
+
+      {livingDragons?.knowledge?.length > 0 && (
+        <section data-testid="dragon-knowledge">
+          <h3 className="codex-heading">Dragon knowledge</h3>
+          {livingDragons.knowledge.map((k: any) => (
+            <div key={k.questionId} className="readiness-req">
+              <span>
+                {QUESTION_TITLES[k.questionId] ?? k.questionId} — {knowledgeStateLabel(k.state)}
+                {k.state === "proven" && CAPABILITY_TEXT[k.questionId] ? (
+                  <span className="muted tiny"> · {CAPABILITY_TEXT[k.questionId]}</span>
+                ) : null}
+              </span>
+              {k.state === "supported" && (
+                <button type="button" onClick={() => void codifyDragonKnowledge?.(k.questionId)}>
+                  Record findings
+                </button>
+              )}
+              {k.state === "observed" && (
+                <p className="muted tiny">
+                  Repeating the same kind of watching adds notes, not
+                  certainty — this needs a different kind of evidence.
+                </p>
+              )}
+              {k.notes?.length > 0 && (
+                <ul className="field-notes" data-testid={`field-notes-${k.questionId}`}>
+                  {k.notes.slice().reverse().map((n: any, i: number) => (
+                    <li key={i}>
+                      <em>{n.source}</em> ({String(n.kind).replace(/_/g, " ")}): {n.summary}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </section>
       )}
 
       <h3 className="codex-heading">Dragon Evidence</h3>

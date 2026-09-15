@@ -57,6 +57,128 @@ export function prettify(id: string): string {
     .join(" ");
 }
 
+/** Resource keys in player language (lowercase for inline cost/shortfall text). */
+export function resourceLabel(key: string): string {
+  const map: Record<string, string> = {
+    food: "food",
+    wood: "wood",
+    stone: "stone",
+    ore: "ore",
+    crownmark: "crownmarks",
+    dracolith: "Dracoliths",
+  };
+  return map[key] ?? prettify(key).toLowerCase();
+}
+
+// ── Currency (F7: Dracoliths are premium+earned; Crownmarks are a resource) ──
+
+/** The earned premium currency. No purchase path (no IAP). */
+export const DRACOLITH_LABEL = "Dracoliths";
+
+/**
+ * Count-aware Dracolith label: "1 Dracolith" but "2 Dracoliths".
+ * Backward-compatible with the plain `DRACOLITH_LABEL` export.
+ */
+export function dracolithLabel(n: number): string {
+  const count = Math.floor(Number(n ?? 0));
+  return `${count.toLocaleString("en-US")} ${
+    count === 1 ? "Dracolith" : "Dracoliths"
+  }`;
+}
+
+/** The in-realm resource minted by settlements — not a premium currency. */
+export const CROWNMARK_LABEL = "Crownmarks";
+
+/**
+ * One-line distinction between the two currencies, for the resource rail and
+ * the shop. Dracoliths are earned (Daily Deeds); Crownmarks are produced.
+ */
+export function currencyBlurb(): string {
+  return `${DRACOLITH_LABEL} are earned, never bought — Daily Deeds pay them out. ${CROWNMARK_LABEL} are a realm resource produced by your settlements, not a premium currency.`;
+}
+
+/** Compact duration for shop effects: "1h", "30m", "45s". */
+function effectDuration(seconds?: number): string {
+  const s = Math.max(0, Math.floor(seconds ?? 0));
+  if (s >= 3600 && s % 3600 === 0) return `${s / 3600}h`;
+  if (s >= 60 && s % 60 === 0) return `${s / 60}m`;
+  return `${s}s`;
+}
+
+/** Player language for a Steward's Wares effect type (compact; used in lists). */
+export function shopEffectLabel(type: string, seconds?: number): string {
+  if (type === "speedup_sec") {
+    return `Completes the soonest construction/research/training ${effectDuration(seconds)} faster`;
+  }
+  if (type === "shield_sec") {
+    return `Extends protection ${effectDuration(seconds)}`;
+  }
+  return prettify(type || "unknown effect");
+}
+
+/**
+ * Plain-language explanation of what a ware does in the realm, so item names
+ * such as "Relay Riders" read coherently next to their effect (F7).
+ */
+export function shopEffectSentence(type: string, seconds?: number): string {
+  const d = effectDuration(seconds);
+  if (type === "speedup_sec") {
+    return `Couriers ride ahead of the work queue: the next construction, research, or training job in this settlement finishes ${d} sooner.`;
+  }
+  if (type === "shield_sec") {
+    return `The watch is ordered to stand alert: protection from attack is extended by ${d}.`;
+  }
+  return prettify(type || "unknown effect");
+}
+
+// ── Lifecycle / state nouns (no raw enums reach the player) ─────────────────
+
+export function presenceStateLabel(state?: string): string {
+  const map: Record<string, string> = {
+    dormant: "Dormant",
+    stirring: "Stirring",
+    awakened: "Awakened",
+    bonded: "Charter earned",
+    battle_ready: "Battle ready",
+  };
+  const key = (state ?? "dormant").toLowerCase();
+  return map[key] ?? prettify(state ?? "dormant");
+}
+
+export function lifeStageLabel(stage?: string): string {
+  const map: Record<string, string> = {
+    hatchling: "Hatchling",
+    wyrmling: "Wyrmling",
+    juvenile: "Juvenile",
+    adult: "Adult",
+    elder: "Elder",
+  };
+  const key = (stage ?? "").toLowerCase();
+  return map[key] ?? prettify(stage || "unknown");
+}
+
+export function physicalStateLabel(state?: string): string {
+  const key = (state ?? "").toLowerCase();
+  if (key === "healthy") return "healthy";
+  if (key === "wounded") return "wounded";
+  return key ? key.replace(/_/g, " ") : "unknown";
+}
+
+export function temperamentLabel(state?: string): string {
+  return state ? prettify(state) : "unknown";
+}
+
+export function knowledgeStateLabel(state?: string): string {
+  const map: Record<string, string> = {
+    observed: "Observed",
+    supported: "Supported",
+    proven: "Proven",
+    unknown: "Unknown",
+  };
+  const key = (state ?? "").toLowerCase();
+  return map[key] ?? prettify(state || "unknown");
+}
+
 // ── World nouns ─────────────────────────────────────────────────────────────
 
 export function cityKindLabel(kind: string): string {
@@ -138,6 +260,7 @@ export function commanderStateLabel(state: string, woundedUntil: string | null):
 const ERROR_COPY: Record<string, string> = {
   NO_TROOPS: "You do not have enough available troops for this march.",
   NO_MANPOWER: "Your settlement lacks the people to muster that force. Raise more Homes or wait for the population to grow.",
+  STARVING: "The stores run dry — feed the host first. No new company can be mustered while the realm goes hungry.",
   NO_RES: "Not enough resources for that — your stores fall short.",
   RESEARCH_COST: "Not enough resources for that research — your stores fall short.",
   RECRUIT_COST: "Not enough resources to recruit that commander.",
@@ -183,14 +306,28 @@ const ERROR_COPY: Record<string, string> = {
   NO_ALLY: "That alliance could not be found.",
   QUEST_INCOMPLETE: "That deed is not yet done.",
   QUEST_CLAIMED: "That reward is already claimed.",
-  NO_CHRONITE: "Not enough Chronite.",
+  NO_DRACOLITH: "Not enough Dracoliths.",
   NO_ITEM: "That wares entry is unknown.",
+  ITEM_UNUSABLE: "That ware cannot be used right now — there is nothing to apply it to.",
   VALIDATION: "That request could not be understood.",
   NO_CITY: "That settlement could not be found.",
   NO_REPORT: "That report could not be found.",
   MARCH_FAIL: "The march could not be launched. Your army may have changed since you opened this panel.",
   EXPEDITION_FAIL: "The expedition cannot set out yet — every readiness requirement must be met first.",
   EXPEDITION_REQ: "The expedition is not ready for that stage yet — its requirements are not all met.",
+  ENCOUNTER_REQUIRED: "The Scar must be faced as a real encounter — send an army, do not press a stage button.",
+  ENCOUNTER_LOCKED: "The Scar encounter is the last stage of the expedition.",
+  NO_CLUTCH: "The abandoned clutch is found only after you survive the Scar.",
+  HAS_HATCHLING: "You have already named your hatchling.",
+  BAD_NAME: "Choose a name of two to twenty-four spoken letters.",
+  NO_DRAGON: "That living dragon is not yours to command.",
+  WOUNDED: "A wounded dragon cannot take Home Guard until it recovers.",
+  TOO_SOON: "Growth needs time in the roost, not only a button.",
+  NO_OBSERVE: "Watch the creature before that step.",
+  NOT_READY: "That knowledge is not yet supported.",
+  NO_PACT: "There is no Fen Wyrm pact to station.",
+  NO_MARCHER: "The river pact follows the human frontier keep.",
+  ALREADY_PACTED: "The territorial pact already stands.",
   DRAGON_NOT_READY: "The Dragon War Council unlocks only when the dragon is battle-ready.",
   DRAGON_COUNCIL_COST: "The Dragon War Council needs 1,000 food, 1,000 wood, and 600 stone.",
   DRAGON_HUNT_LOCKED: "A Wyrm-Scarred hunt requires a Dragon War Council plan; convene the Council in Knowledge first.",
@@ -230,8 +367,16 @@ export function translateError(e: unknown): string {
     }`;
   }
   // Cost/supply errors carry useful numbers — keep them, lightly cleaned.
-  if (code === "NO_RES" || code === "RESEARCH_COST" || code === "RECRUIT_COST") {
+  if (
+    code === "NO_RES" ||
+    code === "RESEARCH_COST" ||
+    code === "RECRUIT_COST"
+  ) {
     return raw.replace(/^cannot afford /, "").replace(/;/g, " · ") || "Not enough resources.";
+  }
+  // Building gates name the required study — keep the server's detail.
+  if (code === "BUILDING_LOCKED") {
+    return raw || ERROR_COPY.BUILDING_LOCKED;
   }
   return raw || "That could not be done.";
 }

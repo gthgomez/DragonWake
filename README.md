@@ -2,10 +2,10 @@
 
 Multiplayer web MMORTS MVP beta (async city builder + map combat).
 
-## Alpha R2 status (2026-09-02)
+## Player-honest Alpha status (2026-09-05, landed on main via PR #7)
 
-The Awakening closure work is active on PR #7. The final resource domain is
-Food, Wood, Stone, Ore, and Crownmarks; Chronite remains separate. Older
+The final resource domain is
+Food, Wood, Stone, Ore, and Crownmarks; Dracoliths remain separate. Older
 aquatic and intermediate saves are canonicalized at the persistence/input
 boundary. See `docs/design/M2_FINAL_RESOURCE_CUTOVER.md` and
 `docs/design/PAST_WORK_PRESERVATION_LEDGER.md`.
@@ -14,25 +14,54 @@ The current build includes a
 server-derived Dragon Presence lifecycle, Castle-first presentation, an
 authoritative Dragon campaign objective ladder, level-scaled wilderness
 benefits (production, logistics, scouting), and a player-accessible Forest
-Frontier Charter route through the existing settlement prerequisite chain.
+Frontier Charter route through the existing settlement prerequisite chain —
+through Galeari, whose charter circularity (Battle-ready required Galeari,
+which required Battle-ready) is now broken: the top holding is reachable
+through earned charters alone.
 
-Verification is green for server tests, TypeScript, and the production web
-build. Exact-head CI also covers PostgreSQL persistence. Full browser journey
-certification and live Postgres evidence remain release gates until run in the
-CI/runtime environment.
+**Certified player-honest:** a fresh guest completes the full first-session
+progression (onboard → build/upgrade → Lands → research → train → scout →
+camp victories → dragon evidence and Knowledge progression → Dragon
+Expedition → earned charter → found the Marcher Keep) through the real UI
+only — no `/admin/grant`, no fixtures, no dev unlocks. Admin/dev tooling
+remains for operators (admin-token gated in production, hidden dev panel).
+
+Verification at the merged head: combat 20/20; server suite 181/181 with
+`REQUIRE_PG=1` against live PostgreSQL (persistence incl. holding-ladder
+restart proven); Playwright 12/12 covering the full journey plus
+desktop/tablet/mobile and the wilderness claim → abandon → re-claim cycle.
+Early-game balance note: the level-2 camp pool no longer contains the
+bowman-mirror composition that made the mandatory level-2 victory an
+unrecoverable gamble for a fresh realm.
 
 ## Design authority
 
+Start at [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) for direction vs
+implemented vs next campaign.
+
+**Player-facing rule:** rendered player experience is an independent source
+of truth — implementation, tests, and reachable routes cannot certify
+product completeness. Player-facing gameplay/UX/visual/progression/
+competitor-parity work requires the
+[`docs/product/COMPETITIVE_PRODUCT_LAB.md`](docs/product/COMPETITIVE_PRODUCT_LAB.md)
+workflow (blind playtest → white-box audit → root-cause classification →
+one vertical slice → replay & before/after evidence). Competitor research
+persists under [`docs/competitive/`](docs/competitive/README.md).
+
 Read these before changing fiction, content IDs, or client presentation:
 
-1. [`docs/design/DIRECTION_FREEZE_V1.md`](docs/design/DIRECTION_FREEZE_V1.md) — **FROZEN** product + lore direction
-2. [`docs/design/CANON_AUTHORITY.md`](docs/design/CANON_AUTHORITY.md) — authority stack
-3. [`docs/design/CLOSED_MOCKUP_V1.md`](docs/design/CLOSED_MOCKUP_V1.md) — **ACTIVE** presentation contract for the closed vertical slice (player-facing language, surface contracts, terminology inventory)
-4. [`docs/design/LORE_BIBLE_V1_BRIEF.md`](docs/design/LORE_BIBLE_V1_BRIEF.md) — scope only; full Lore Bible v1 not written yet
-5. [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md) — Phase 0–7 sequence
+1. [`docs/design/DIRECTION_FREEZE_V1_1.md`](docs/design/DIRECTION_FREEZE_V1_1.md) — **FROZEN** current product-direction law (amends v1.0)
+2. [`docs/design/DRAGON_DRIVEN_EMPIRE_CANON.md`](docs/design/DRAGON_DRIVEN_EMPIRE_CANON.md) — primary product design (dragon-driven empire)
+3. [`docs/design/CANON_AUTHORITY.md`](docs/design/CANON_AUTHORITY.md) — authority stack
+4. [`docs/design/DIRECTION_FREEZE_V1.md`](docs/design/DIRECTION_FREEZE_V1.md) — original freeze text; binding where v1.1 is silent
+5. [`docs/design/CLOSED_MOCKUP_V1.md`](docs/design/CLOSED_MOCKUP_V1.md) — **ACTIVE** presentation contract for the closed vertical slice (player-facing language, surface contracts, terminology inventory)
+6. [`docs/design/LORE_BIBLE_V1_BRIEF.md`](docs/design/LORE_BIBLE_V1_BRIEF.md) — scope only; full Lore Bible v1 not written yet
+7. [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md) — Phase 0–7 sequence
 
 Current implementation is authoritative **only** where those documents do
-not contradict it.
+not contradict it. The Alpha is a certified MMORTS spine; it does **not**
+yet contain a living named dragon. Presence `BONDED` currently means the
+expedition charter is earned.
 
 Historical Dragons of Atlantis research
 (`C:\Workspace\research\dragons-of-atlantis\pre-implementation\`) is
@@ -76,12 +105,53 @@ Highlights:
 - **Language**: no API URLs, raw ids, UUID fragments, or server prose in the
   player flow; internal codes stay in console diagnostics.
 
-Out of scope / prototype remains: shop UI, alliances depth, haul UX, and
-Postgres runtime verification in CI. The former Sovereign machinery has been
-removed from live product paths; only migration/history references remain.
+Out of scope / prototype remains: alliances depth (now with an empty state,
+auto-loaded banner list, and member roster, but no new social mechanics) and
+haul UX. The Steward's Wares shop is implemented — see the remediation note
+below.
+CI runs the server suite with `REQUIRE_PG=1` against a PostgreSQL 16
+service, so persistence coverage is required there, not optional. The
+former Sovereign machinery has been removed from live product paths; only
+migration/history references remain.
 
 Do not start content-heavy mobile UI against the current aquatic / elemental
 content model.
+
+### Audit remediation (branch `fix/audit-remediation`, 2026-09-14)
+
+A Competitive Product Lab remediation pass landed on `fix/audit-remediation`
+(off `feat/imagine-alpha-city-pack` @ `67ab23a`), addressing eight audit
+findings without changing balance or content IDs:
+
+- **Shop** — Steward's Wares is open and now teaches that Dracoliths are
+  earned (not bought) from the Daily Deeds, with a link to them and a
+  per-item "You need N more Dracoliths" shortfall on blocked buys; no IAP and
+  no faucet/price change.
+- **Food upkeep** — soft army food upkeep exists, and is now surfaced as a
+  persistent topbar ledger (production / upkeep / net + low-food warning) on
+  every tab, plus upkeep context on Lands. The marching-army upkeep rule is
+  unchanged — it is one of two open owner decisions listed in
+  `docs/proposals/AUDIT_REMEDIATION_DECISIONS.md` and
+  `docs/CURRENT_STATE.md`.
+- **Feedback and navigation** — toasts render in an in-flow, bounded notice
+  rail (cap 3, 4 s TTL, `pointer-events: none`); selecting a Realm tile
+  surfaces the detail + march composer; build/research show in-place results;
+  Alliance has an empty state, auto-loaded banner list, and member roster;
+  Dracolith vs Crownmarks naming is clarified.
+
+Beyond those findings, the adversarial/polish passes also removed raw-JSON
+leaks from the player flow (Alliance shared intel and War scout/dispatch
+intel now render the canonical formatted text / server summary) and made the
+`alpha-r2` spec repeatable plus the Castle research status settlement-keyed.
+
+Two balance decisions remain open pending owner ratification (marching-army
+upkeep; Dracolith faucet/first price) — see
+`docs/proposals/AUDIT_REMEDIATION_DECISIONS.md`. The first-dragon reveal (F8)
+is **spec-only**, not implemented. Verified green on this branch: `pnpm -r
+typecheck`, web 28/28, server 214 tests (4 PostgreSQL skips), and the full
+Playwright suite repeatably green (20 passed / 1 skipped / 0 failed on
+consecutive runs against the persistent DB). A human blind replay is still
+required (see `docs/competitive/audits/blind-playtest.md`).
 
 ## Stack
 
@@ -90,7 +160,7 @@ content model.
 | Monorepo | pnpm workspaces + TypeScript |
 | Web | Vite + React |
 | Server | Hono (Node) + in-process sim |
-| DB | PostgreSQL 16 (optional; schema in `schema.sql`) |
+| DB | PostgreSQL 16 (required in CI via `REQUIRE_PG=1`; optional locally, in-memory fallback) |
 | Combat | `packages/combat` pure `resolveBattle` |
 
 ## Packages
@@ -101,7 +171,7 @@ apps/server       — API + sim loop (queues, marches, combat, alliances)
 packages/shared   — shared types
 packages/combat   — resolveBattle (deterministic)
 packages/content  — JSON game data
-docs/design       — Direction Freeze, canon authority, migration plan
+docs/design       — Direction Freeze v1.1, dragon-driven empire canon, authority, migration plan
 ```
 
 ## Prerequisites
@@ -113,7 +183,8 @@ docs/design       — Direction Freeze, canon authority, migration plan
 ## Setup
 
 ```powershell
-cd C:\Workspace\TideforgeEmpires
+git clone https://github.com/gthgomez/DragonWake.git
+cd DragonWake
 copy .env.example .env
 pnpm install
 ```
@@ -149,6 +220,7 @@ Env flags (`.env`):
 | `DEV_SKIP_TUTORIAL=1` | Skip tutorial steps |
 | `DATABASE_URL` | Postgres URL for schema verify |
 | `VITE_API_URL` | Web → API base (default `http://localhost:3001`) |
+| `VITE_ALPHA_CITY_ART=1` | Opt in to quarantined alpha city raster art (default: SVG glyph fallback) |
 
 ### Admin grant (dev)
 
@@ -156,7 +228,7 @@ Env flags (`.env`):
 POST /api/v1/admin/grant
 Authorization: Bearer <session token>
 x-admin-token: <ADMIN_TOKEN>
-{ "units": { "levy": 200 }, "brineholdUnlock": true, "chronite": 100, "skipProtection": true }
+{ "units": { "levy": 200 }, "brineholdUnlock": true, "dracolith": 100, "skipProtection": true }
 ```
 
 ## ACCEPTANCE_MVP manual path (M1–M11)
@@ -260,12 +332,20 @@ records of that era and no longer describe the default player flow.
 
 ## Next campaign
 
-This is a **domain-preserving migration**, not a rewrite and not a skin swap.
-See [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md).
+**Approved next campaign (after Alpha Closure lands):** DragonWake Visual
+Identity + Sprite/UI Polish. Living-dragon Alpha systems are implemented
+on `feat/dragon-driven-alpha-closure` (Scar encounter, named hatchling,
+roost/Chronicle, Fen Wyrm pact, Ford/Blockade). Do not build six dragons.
+
+This remains a **domain-preserving migration**, not a rewrite and not a
+skin swap. See [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md).
+Lore Bible v1 is still required for starting-region fiction and may run
+in parallel; it must not reopen Direction Freeze v1.1.
 
 | Phase | Focus | Status |
 |-------|--------|--------|
 | **0** | Authority freeze | **Done** (PR #1) |
+| — | **Dragon-driven empire design canon** (Direction Freeze v1.1) | **Done** (docs; this campaign) |
 | — | **CLOSED_MOCKUP_V1 presentation closure** | **Done (2026-08-30)** |
 | **1** | Lore Bible v1 (one region) | Not started |
 | **2** | Mechanical translation design (incl. Sovereign decision) | Blocked on 1; Sovereign deletion is complete and preserved compatibility paths are audited |
@@ -273,14 +353,14 @@ See [`docs/design/MIGRATION_PLAN.md`](docs/design/MIGRATION_PLAN.md).
 | **4** | Content conversion | Blocked on 2–3 |
 | **5** | Web vertical slice (castle → Codex → lesser dragon) | Partially proven by CLOSED_MOCKUP_V1 |
 | **6** | Mobile client against stabilized semantics | After 5 |
-| **7** | Dragon systems (expeditions, anatomy, bonding) | After 5 |
+| **7** | Dragon systems (Alpha Proof Slice: hatchling + Mirecrown) | **Next implementation** — [`DRAGON_ALPHA_PROOF_SLICE.md`](docs/design/DRAGON_ALPHA_PROOF_SLICE.md) |
 | **B0** | Residual closeout | **Done** |
 | **P0** | Playable polish | **Done** |
 | **S1.0–S1.1** | Freeze + **Stonekeel** citadel | **Done** |
 | **Phase 2.1** | Medieval retheme slice 1A (population/manpower, research gates, dragon foundation, camp variation) | **Landed** (`docs/VERTICAL_SLICE_1A_RESULTS.md`) |
 | **M4** | **Sovereign deletion** (army-leadership → Commanders; harness → dragon readiness) | **Done** (2026-08-27) |
 | **S1.2–S1.3** | **Forest Citadel** (cinderreach) + **Dragon Watch** (galeari) citadels | **Done** — medieval exclusive units (forest_ranger/warhound, dragon_slayer/ballista); demo-unlock walks the prereq chain |
-| **S1.4+** | Mnemolith (deferred), Arena, Tidebeast, Market… | Next |
+| **S1.4+** | Mnemolith **deprecated from the dragon-driven spine**; Arena, market, live-ops wait | Not next |
 
 P0 notes: `docs/P0_M1_M11_EVIDENCE.md` · events poll `GET /api/v1/events?since=` · SSE `/api/v1/events/stream` · CI `.github/workflows/ci.yml`
 
@@ -304,4 +384,10 @@ support was removed by the preserved M4 reconciliation work.
 
 ## License
 
-Private / unpublished — all rights reserved unless otherwise stated.
+License: Proprietary — source available for viewing; this project is not open source.
+
+Copyright is retained by the project owner. This notice does not grant
+permission to redistribute, modify, sublicense, sell, commercially exploit, or
+create derivative works from the game or its original code and content, except
+where required by applicable law. Third-party dependencies and fonts remain
+under their own licenses. See [LICENSE](LICENSE).

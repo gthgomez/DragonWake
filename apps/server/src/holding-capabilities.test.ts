@@ -36,19 +36,27 @@ describe("differentiated holding capabilities", () => {
     attackCamp(2);
 
     const scoutTarget = [...world.camps.values()].find((candidate) => candidate.level === 1)!;
-    const scout = world.createMarch(player.id, {
-      fromCityId: city.id, intent: "scout", targetType: "camp", targetId: scoutTarget.id,
-      targetX: scoutTarget.x, targetY: scoutTarget.y, composition: { bowman: 1 },
-    });
-    scout.arriveAt = 0;
-    world.landMarch(scout, world.now());
-    world.processMarches(world.now() + 100000);
+    const scout = (target: { id: string; x: number; y: number }) => {
+      const march = world.createMarch(player.id, {
+        fromCityId: city.id, intent: "scout", targetType: "camp", targetId: target.id,
+        targetX: target.x, targetY: target.y, composition: { bowman: 1 },
+      });
+      march.arriveAt = 0;
+      world.landMarch(march, world.now());
+      world.processMarches(world.now() + 100000);
+    };
+    scout(scoutTarget);
 
     expect(world.checkDragonReadiness(player.id).ready).toBe(true);
     expect(world.startExpedition(player.id, "first_dragon_expedition")).not.toBeNull();
-    for (let stage = 1; stage <= 4; stage += 1) {
-      expect(world.completeExpeditionStage(player.id, "first_dragon_expedition", stage)?.completed).toBe(stage === 4);
+    for (let stage = 1; stage <= 3; stage += 1) {
+      expect(world.completeExpeditionStage(player.id, "first_dragon_expedition", stage)?.completed).toBe(false);
     }
+    expect(() =>
+      world.completeExpeditionStage(player.id, "first_dragon_expedition", 4),
+    ).toThrow(/real encounter/);
+    const scar = world.faceScarEncounter(player.id, { levy: 40 });
+    expect(scar.charterEarned).toBe(true);
 
     expect(world.foundMarcherKeep(player.id, "Earned Keep").kind).toBe("marcher_keep");
     const wild = [...world.wilderness.values()][0]!;
@@ -64,6 +72,27 @@ describe("differentiated holding capabilities", () => {
     finish(charterJob);
     expect(city.research.brinehold_unlock).toBe(1);
     expect(world.foundBrinehold(player.id, "Earned Brinehold").kind).toBe("brinehold");
+
+    // Full ladder: every rung earned through ordinary world actions.
+    research("stonekeel_unlock");
+    expect(world.foundCitadel(player.id, "stonekeel").kind).toBe("stonekeel");
+
+    scout([...world.camps.values()].find((candidate) => candidate.level === 2)!);
+    scout([...world.camps.values()].find((candidate) => candidate.level === 3)!);
+
+    research("cinderreach_unlock");
+    expect(world.foundCitadel(player.id, "cinderreach").kind).toBe("cinderreach");
+
+    research("dragon_studies");
+    expect(city.research.dragon_studies).toBe(3);
+
+    research("galeari_unlock");
+    expect(world.foundCitadel(player.id, "galeari").kind).toBe("galeari");
+
+    // Founding the battle holding is what turns the presence BATTLE_READY,
+    // and the War Council is its immediate player-facing consequence.
+    expect(world.dragonPresence(player.id).state).toBe("BATTLE_READY");
+    expect(() => world.startDragonWarCouncil(player.id)).not.toThrow();
   });
 
   it("keeps specialist rosters at their authoritative holding", () => {

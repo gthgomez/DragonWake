@@ -7,8 +7,11 @@
  * - When REQUIRE_PG=1: suite **fails** if Postgres cannot connect.
  */
 import { beforeAll, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { PgStore } from "./pg-store.js";
+import { findSchemaPath, migrateExistingSchema, tryConnectPg } from "./pg.js";
 import { World } from "./world.js";
+import { FEN_SILT } from "./dragons/types.js";
 import { getBestiaryEntries, getShop } from "@dragonwake/content";
 
 const DATABASE_URL =
@@ -58,7 +61,7 @@ describe("PG persistence (shipped PgStore + World)", () => {
 
     const { player, city, token } = world1.createGuest(name, "northern_kingdom");
     expect(city.resources.food).toBeGreaterThan(0);
-    world1.adminGrant(player.id, { units: { bowman: 42 }, chronite: 7 });
+    world1.adminGrant(player.id, { units: { bowman: 42 }, dracolith: 7 });
     world1.adminGrant(player.id, { resources: { food: 1234 } });
 
     // Posture cooldown armed on world1 — an immediate second change must throw.
@@ -184,7 +187,7 @@ describe("PG persistence (shipped PgStore + World)", () => {
     const loadedPlayer = world2.players.get(player.id);
     expect(loadedPlayer).toBeTruthy();
     expect(loadedPlayer!.displayName).toBe(name);
-    expect(loadedPlayer!.chronite).toBeGreaterThanOrEqual(7);
+    expect(loadedPlayer!.dracolith).toBeGreaterThanOrEqual(7);
 
     const loadedCity = world2.cities.get(city.id);
     expect(loadedCity).toBeTruthy();
@@ -332,8 +335,8 @@ describe("PG persistence (shipped PgStore + World)", () => {
     world1.landMarch(occ, world1.now());
     expect(world1.wilderness.get(wild.id)!.ownerPlayerId).toBe(a.player.id);
 
-    // Shop / inventory / chronite
-    world1.adminGrant(a.player.id, { chronite: 500 });
+    // Shop / inventory / dracoliths
+    world1.adminGrant(a.player.id, { dracolith: 500 });
     const shopItem = getShop()[0]!;
     const bought = world1.shopBuy(a.player.id, shopItem.id);
     expect(bought.itemId).toBe(shopItem.id);
@@ -381,9 +384,9 @@ describe("PG persistence (shipped PgStore + World)", () => {
     // Wilderness claim survived.
     expect(world2.wilderness.get(wild.id)!.ownerPlayerId).toBe(a.player.id);
 
-    // Inventory + chronite survived.
+    // Inventory + dracoliths survived.
     expect(world2.inventory.get(a.player.id)?.[shopItem.id]).toBeGreaterThan(0);
-    expect(world2.players.get(a.player.id)!.chronite).toBe(bought.chronite);
+    expect(world2.players.get(a.player.id)!.dracolith).toBe(bought.dracolith);
 
     // Tutorial + bestiary survived.
     expect(world2.tutorials.get(a.player.id)!.step).toBe(expectedTutorial);
@@ -392,4 +395,279 @@ describe("PG persistence (shipped PgStore + World)", () => {
 
     await store2!.close();
   }, 20_000);
+
+  it("holding ladder progression survives restart (ordinary-player path)", async ({
+    skip,
+  }) => {
+    if (!canRun) {
+      skip(
+        probeError
+          ? `${probeError} (set REQUIRE_PG=1 to fail hard)`
+          : "Postgres not available",
+      );
+      return;
+    }
+
+    const store1 = await PgStore.connect(DATABASE_URL);
+    expect(store1).not.toBeNull();
+    const world1 = new World({ devFastTime: true, skipTutorial: true });
+    await world1.attachStore(store1!);
+    const { player, city } = world1.createGuest(
+      `Ladder_${Date.now()}`,
+      "northern_kingdom",
+    );
+    // Admin grants cover disposable starting resources/troops only — every
+    // charter, founding, and progression counter below is earned through
+    // ordinary world actions (camps, scouts, expedition, wilderness).
+    world1.adminGrant(player.id, {
+      resources: { food: 500000, wood: 500000, stone: 500000, ore: 500000, crownmark: 500000 },
+      units: { bowman: 20000 },
+    });
+
+    const finish = (job: { finishesAt: number }) => {
+      job.finishesAt = world1.now() - 1;
+      world1.processQueues(world1.now());
+    };
+    const research = (techId: string) => finish(world1.startResearch(city.id, player.id, techId));
+    const attackCamp = (level: number) => {
+      const camp = [...world1.camps.values()].find((c) => c.level === level)!;
+      const march = world1.createMarch(player.id, {
+        fromCityId: city.id, intent: "attack", targetType: "camp", targetId: camp.id,
+        targetX: camp.x, targetY: camp.y, composition: { bowman: 400 },
+      });
+      march.arriveAt = 0;
+      const report = world1.landMarch(march, world1.now())!;
+      world1.processMarches(world1.now() + 100000);
+      expect((report.result as { battle: { winner: string } }).battle.winner).toBe("attacker");
+    };
+    const scoutCamp = (level: number) => {
+      const camp = [...world1.camps.values()].find((c) => c.level === level)!;
+      const march = world1.createMarch(player.id, {
+        fromCityId: city.id, intent: "scout", targetType: "camp", targetId: camp.id,
+        targetX: camp.x, targetY: camp.y, composition: { bowman: 1 },
+      });
+      march.arriveAt = 0;
+      world1.landMarch(march, world1.now());
+      world1.processMarches(world1.now() + 100000);
+    };
+
+    research("dragon_studies");
+    research("dragon_studies");
+    finish(world1.startBuild(city.id, player.id, 2, "skyreost"));
+    finish(world1.startBuild(city.id, player.id, 2, "skyreost"));
+
+    for (let i = 0; i < 6; i += 1) attackCamp(1);
+    attackCamp(2);
+    scoutCamp(1);
+
+    expect(world1.checkDragonReadiness(player.id).ready).toBe(true);
+    expect(world1.startExpedition(player.id, "first_dragon_expedition")).not.toBeNull();
+    for (let stage = 1; stage <= 3; stage += 1) {
+      world1.completeExpeditionStage(player.id, "first_dragon_expedition", stage);
+    }
+    world1.faceScarEncounter(player.id, { levy: 40 });
+    world1.nameHatchling(player.id, "Ashwake");
+
+    expect(world1.foundMarcherKeep(player.id, "Restart Keep").kind).toBe("marcher_keep");
+    const wild = [...world1.wilderness.values()][0]!;
+    const occupation = world1.createMarch(player.id, {
+      fromCityId: city.id, intent: "occupy", targetType: "wilderness", targetId: wild.id,
+      targetX: wild.x, targetY: wild.y, composition: { bowman: 100 },
+    });
+    occupation.arriveAt = 0;
+    world1.landMarch(occupation, world1.now());
+    world1.processMarches(world1.now() + 100000);
+
+    research("brinehold_unlock");
+    expect(world1.foundBrinehold(player.id, "Restart Brinehold").kind).toBe("brinehold");
+    research("stonekeel_unlock");
+    expect(world1.foundCitadel(player.id, "stonekeel").kind).toBe("stonekeel");
+    scoutCamp(2);
+    scoutCamp(3);
+    research("cinderreach_unlock");
+    expect(world1.foundCitadel(player.id, "cinderreach").kind).toBe("cinderreach");
+    research("dragon_studies");
+    research("galeari_unlock");
+    expect(world1.foundCitadel(player.id, "galeari", "Restart Galeari").kind).toBe("galeari");
+    expect(world1.dragonPresence(player.id).state).toBe("BATTLE_READY");
+
+    const expectedKinds = ["capital", "marcher_keep", "brinehold", "stonekeel", "cinderreach", "galeari"];
+    const expectedGaleariStacks = world1
+      .citiesForPlayer(player.id)
+      .find((c) => c.kind === "galeari")!.stacks;
+
+    // Vision Council Round 4 state: crossing terms, pact, stationing, and
+    // evidence field notes must all survive a restart.
+    const fen = world1.beginFenRivalry(player.id);
+    world1.observeLivingDragon(player.id, fen.id);
+    world1.surveyFenCrossing(player.id);
+    world1.yieldSpawningBank(player.id);
+    world1.codifyDragonKnowledge(player.id, FEN_SILT);
+    world1.pactLocalFenWyrm(player.id);
+    world1.stationLocalFenWyrm(player.id, "ford");
+    const expectedCrossing = world1.livingState(player.id).crossings[0]!;
+
+    await world1.flush();
+    await store1!.close();
+
+    const store2 = await PgStore.connect(DATABASE_URL);
+    expect(store2).not.toBeNull();
+    const world2 = new World({ devFastTime: true, skipTutorial: true });
+    await world2.attachStore(store2!);
+
+    expect(world2.players.get(player.id)).toBeTruthy();
+    const ownedKinds = world2
+      .citiesForPlayer(player.id)
+      .map((c) => c.kind)
+      .sort();
+    expect(ownedKinds).toEqual([...expectedKinds].sort());
+
+    const loadedCapital = world2
+      .citiesForPlayer(player.id)
+      .find((c) => c.kind === "capital")!;
+    expect(loadedCapital.research.brinehold_unlock).toBe(1);
+    expect(loadedCapital.research.stonekeel_unlock).toBe(1);
+    expect(loadedCapital.research.cinderreach_unlock).toBe(1);
+    expect(loadedCapital.research.galeari_unlock).toBe(1);
+    expect(loadedCapital.research.dragon_studies).toBe(3);
+
+    // Presence is re-derived from persisted facts, not stored: the restarted
+    // world must independently reach BATTLE_READY.
+    expect(world2.dragonPresence(player.id).state).toBe("BATTLE_READY");
+    expect(world2.livingState(player.id).dragons[0]?.givenName).toBe("Ashwake");
+    expect(world2.livingState(player.id).dragons[0]?.lifeStage).toBe("hatchling");
+
+    // Round 4 state survives: sanctuary crossing, Away-at-ford wyrm,
+    // stationed verb, and field-note evidence (distinct kinds, not counters).
+    const reloadedLiving = world2.livingState(player.id);
+    expect(reloadedLiving.crossings[0]?.id).toBe(expectedCrossing.id);
+    expect(reloadedLiving.crossings[0]?.state).toBe("sanctuary");
+    const reloadedWyrm = reloadedLiving.dragons.find((d) => d.archetypeId === "fen_wyrm")!;
+    expect(reloadedWyrm.locationKind).toBe("ford");
+    expect(reloadedLiving.verbs[0]?.stationed).toBe(true);
+    expect(reloadedLiving.verbs[0]?.terms).toBe("spawning_bank_yielded");
+    const reloadedSilt = reloadedLiving.knowledge.find((k) => k.questionId === FEN_SILT)!;
+    expect(reloadedSilt.state).toBe("proven");
+    expect(reloadedSilt.notes.length).toBeGreaterThanOrEqual(2);
+    expect(reloadedSilt.notes.some((n) => n.kind === "scouting")).toBe(true);
+
+    // Holding-specific starter stacks survived (differentiated garrisons).
+    const loadedGaleari = world2
+      .citiesForPlayer(player.id)
+      .find((c) => c.kind === "galeari")!;
+    for (const [unitId, count] of Object.entries(expectedGaleariStacks)) {
+      expect(loadedGaleari.stacks[unitId]).toBe(count);
+    }
+
+    // The wilderness claim behind the charter ladder survived with its owner.
+    expect(world2.wilderness.get(wild.id)!.ownerPlayerId).toBe(player.id);
+
+    await store2!.close();
+  }, 30_000);
+
+  /**
+   * Schema-migration coverage (T7 boot path): a legacy volume whose premium
+   * currency lives in `chronite`, and a partially-migrated volume that has
+   * BOTH `chronite` and `dracolith`, must converge on `dracolith` with the
+   * balance preserved. Runs the shipped migrateExistingSchema in an isolated
+   * schema so the shared public tables (used by the other tests) are untouched.
+   */
+  it("migrates legacy chronite → dracolith without orphaning balances", async ({
+    skip,
+  }) => {
+    if (!canRun) {
+      skip(
+        probeError
+          ? `${probeError} (set REQUIRE_PG=1 to fail hard)`
+          : "Postgres not available",
+      );
+      return;
+    }
+
+    const schema = `mig_test_${Date.now().toString(36)}_${Math.random()
+      .toString(36)
+      .slice(2, 7)}`;
+    const client = await tryConnectPg(DATABASE_URL);
+    expect(client).not.toBeNull();
+    if (!client) return;
+
+    try {
+      // Isolate: create every table from schema.sql inside a throwaway schema.
+      // migrateExistingSchema issues unqualified DDL, and the migration's
+      // column lookups use current_schema(), so pointing search_path at the
+      // throwaway schema targets it consistently.
+      await client.query(`CREATE SCHEMA ${schema}`);
+      await client.query(`SET search_path TO ${schema}, public`);
+      // schema.sql includes CREATE EXTENSION IF NOT EXISTS "pgcrypto"; pin it to
+      // public first so it is never installed into (and later dropped with) the
+      // throwaway schema.
+      await client.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA public`);
+      const schemaPath = findSchemaPath();
+      expect(schemaPath).not.toBeNull();
+      await client.query(readFileSync(schemaPath!, "utf8"));
+
+      // Variant A — legacy volume: NO dracolith column, balance in chronite.
+      await client.query(`
+        ALTER TABLE players DROP COLUMN dracolith;
+        ALTER TABLE players ADD COLUMN chronite BIGINT NOT NULL DEFAULT 0;
+        INSERT INTO players (realm_id, display_name, faction, chronite)
+          VALUES (1, 'LegacyChronite', 'northern_kingdom', 1234);
+      `);
+      await migrateExistingSchema(client);
+
+      const renamedCols = await client.query(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_schema = current_schema() AND table_name = 'players'
+           AND column_name IN ('chronite','dracolith')
+         ORDER BY column_name`,
+      );
+      expect(renamedCols.rows.map((r) => r.column_name)).toEqual(["dracolith"]);
+      const renamed = await client.query(
+        `SELECT dracolith FROM players WHERE display_name = 'LegacyChronite'`,
+      );
+      expect(Number(renamed.rows[0].dracolith)).toBe(1234);
+
+      // Variant B — partial/manual migration: BOTH columns present and the
+      // legacy chronite value is larger. dracolith must absorb it, not stay 0.
+      await client.query(`
+        ALTER TABLE players ADD COLUMN chronite BIGINT NOT NULL DEFAULT 0;
+        UPDATE players SET dracolith = 0, chronite = 4321
+          WHERE display_name = 'LegacyChronite';
+      `);
+      await migrateExistingSchema(client);
+      const coalesced = await client.query(
+        `SELECT dracolith FROM players WHERE display_name = 'LegacyChronite'`,
+      );
+      expect(Number(coalesced.rows[0].dracolith)).toBe(4321);
+
+      // Variant C — both columns present with dracolith already larger: keep
+      // dracolith (never sum aliases) and still drop chronite.
+      await client.query(`
+        ALTER TABLE players ADD COLUMN chronite BIGINT NOT NULL DEFAULT 0;
+        UPDATE players SET dracolith = 9999, chronite = 12
+          WHERE display_name = 'LegacyChronite';
+      `);
+      await migrateExistingSchema(client);
+      const kept = await client.query(
+        `SELECT dracolith FROM players WHERE display_name = 'LegacyChronite'`,
+      );
+      expect(Number(kept.rows[0].dracolith)).toBe(9999);
+
+      // Idempotent: a clean dracolith-only schema is a no-op on re-run.
+      await migrateExistingSchema(client);
+      const finalCols = await client.query(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_schema = current_schema() AND table_name = 'players'
+           AND column_name IN ('chronite','dracolith')
+         ORDER BY column_name`,
+      );
+      expect(finalCols.rows.map((r) => r.column_name)).toEqual(["dracolith"]);
+    } finally {
+      try {
+        await client.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
+      } finally {
+        await client.end();
+      }
+    }
+  });
 });

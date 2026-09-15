@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { api } from "../lib/api";
 import { FACTION_META, type Toast } from "../lib/gameConfig";
@@ -19,12 +25,85 @@ import type {
   QueueJob,
   ResearchDef,
   ResearchUnlock,
+  ShopItem,
   TutorialState,
   UnitDef,
   WorldEventDto,
 } from "../lib/types";
-import { registerLabels } from "../lib/labels";
+import { registerLabels, translateError } from "../lib/labels";
 import { useGameActions } from "./useGameActions";
+
+/**
+ * Small external store for the selected city's food ledger.
+ *
+ * The persistent HUD (Shell) needs upkeep/net-food numbers on every tab, but
+ * Shell is a presentational component and, in the shared chrome, has no access
+ * to the `useGame()` instance App owns. Rather than duplicate polling, useGame
+ * publishes the numbers here and Shell subscribes via useFoodStatus(). Only
+ * changed values notify, so a Shell tab does not re-render on every 2s poll.
+ */
+export type FoodStatus = {
+  cityName: string;
+  /** Food produced per hour before upkeep. */
+  foodPerHour: number;
+  /** Troop food eaten per hour. */
+  upkeepPerHour: number;
+  /** foodPerHour - upkeepPerHour (may be negative). */
+  netPerHour: number;
+  /** Server-flagged famine: growth paused, mustering blocked. */
+  starving: boolean;
+};
+
+let foodStatusSnapshot: FoodStatus | null = null;
+const foodStatusListeners = new Set<() => void>();
+
+function sameFoodStatus(a: FoodStatus | null, b: FoodStatus | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.cityName === b.cityName &&
+    a.foodPerHour === b.foodPerHour &&
+    a.upkeepPerHour === b.upkeepPerHour &&
+    a.netPerHour === b.netPerHour &&
+    a.starving === b.starving
+  );
+}
+
+function publishFoodStatus(next: FoodStatus | null) {
+  if (sameFoodStatus(foodStatusSnapshot, next)) return;
+  foodStatusSnapshot = next;
+  for (const listener of foodStatusListeners) listener();
+}
+
+function subscribeFoodStatus(listener: () => void) {
+  foodStatusListeners.add(listener);
+  return () => {
+    foodStatusListeners.delete(listener);
+  };
+}
+
+function getFoodStatusSnapshot() {
+  return foodStatusSnapshot;
+}
+
+/** Subscribe to the selected city's food ledger (null before a city loads). */
+export function useFoodStatus(): FoodStatus | null {
+  return useSyncExternalStore(
+    subscribeFoodStatus,
+    getFoodStatusSnapshot,
+    getFoodStatusSnapshot,
+  );
+}
+
+/** Newest notices kept on screen at once. */
+const TOAST_MAX_VISIBLE = 3;
+/**
+ * How long a notice stays before it clears. Kept at the pre-remediation 6s:
+ * distinct events must remain observable (e.g. two identical queue-completion
+ * notices in a row), and the in-flow rail — not a short TTL — is what
+ * guarantees toasts cannot overlap content.
+ */
+const TOAST_TTL_MS = 6_000;
 
 export function useGame() {
   const [token, setToken] = useState<string | null>(
@@ -55,6 +134,7 @@ export function useGame() {
   const [expeditionStatus, setExpeditionStatus] = useState<any>(null);
   const [clueData, setClueData] = useState<any>(null);
   const [dragonObjectives, setDragonObjectives] = useState<Array<{ id: string; title: string; description: string; complete: boolean }>>([]);
+  const [livingDragons, setLivingDragons] = useState<any>(null);
   const [units, setUnits] = useState<UnitDef[]>([]);
   const [buildingDefs, setBuildingDefs] = useState<BuildingDef[]>([]);
   const [unlockDefs, setUnlockDefs] = useState<ResearchUnlock[]>([]);
@@ -74,11 +154,20 @@ export function useGame() {
   });
   const [tutorial, setTutorial] = useState<TutorialState | null>(null);
   const [dailyQuests, setDailyQuests] = useState<DailyQuest[]>([]);
+  const [shopCatalog, setShopCatalog] = useState<ShopItem[]>([]);
+  const [inventory, setInventory] = useState<Record<string, number>>({});
   const [allianceList, setAllianceList] = useState<AllianceSummary[]>([]);
   const [joinTag, setJoinTag] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [eventSince, setEventSince] = useState(0);
   const [unreadReports, setUnreadReports] = useState(0);
+  const [lastResult, setLastResult] = useState<{
+    message: string;
+    reportId: string | null;
+    type: string | null;
+    winner: string | null;
+    at: number;
+  } | null>(null);
   const [commanders, setCommanders] = useState<Commander[]>([]);
   const [commandersReady, setCommandersReady] = useState(false);
   const [marchLeaderId, setMarchLeaderId] = useState("");
@@ -90,6 +179,23 @@ export function useGame() {
 
   const factionMeta =
     FACTION_META[player?.faction ?? faction] ?? FACTION_META.northern_kingdom!;
+
+  // Keep the cross-tab HUD ledger in sync with the selected city.
+  useEffect(() => {
+    if (!city) {
+      publishFoodStatus(null);
+      return;
+    }
+    const foodPerHour = city.productionPerHour?.food ?? 0;
+    const upkeepPerHour = city.foodUpkeepPerHour ?? 0;
+    publishFoodStatus({
+      cityName: city.name,
+      foodPerHour,
+      upkeepPerHour,
+      netPerHour: foodPerHour - upkeepPerHour,
+      starving: Boolean(city.starving),
+    });
+  }, [city]);
 
   const refreshMe = useCallback(async (tok: string) => {
     const me = await api<{
@@ -109,6 +215,30 @@ export function useGame() {
     if (me.tutorial) setTutorial(me.tutorial);
     if (me.dailyQuests) setDailyQuests(me.dailyQuests);
     if (me.serverNow) setNow(me.serverNow);
+  }, []);
+
+  const refreshShop = useCallback(async (tok: string) => {
+    try {
+      const data = await api<{ catalog: ShopItem[] }>(
+        "/api/v1/shop/catalog",
+        tok,
+      );
+      setShopCatalog(data.catalog ?? []);
+    } catch {
+      /* the shop is optional at boot */
+    }
+  }, []);
+
+  const refreshInventory = useCallback(async (tok: string) => {
+    try {
+      const data = await api<{ items: Record<string, number> }>(
+        "/api/v1/inventory",
+        tok,
+      );
+      setInventory(data.items ?? {});
+    } catch {
+      /* inventory is optional at boot */
+    }
   }, []);
 
   const refreshQueues = useCallback(
@@ -166,12 +296,78 @@ export function useGame() {
   const pushToast = useCallback(
     (message: string, kind: Toast["kind"] = "info") => {
       const id = Date.now() + Math.floor(Math.random() * 1000);
-      setToasts((t) => [...t.slice(-4), { id, message, kind }]);
+      setToasts((t) => {
+        // Distinct events stack up to the cap. Do not collapse repeated
+        // messages: two identical completion notices are both real events.
+        return [...t.slice(-(TOAST_MAX_VISIBLE - 1)), { id, message, kind }];
+      });
       window.setTimeout(() => {
         setToasts((t) => t.filter((x) => x.id !== id));
-      }, 6000);
+      }, TOAST_TTL_MS);
     },
     [],
+  );
+
+  const buyShopItem = useCallback(
+    async (itemId: string) => {
+      if (!token) return;
+      const name =
+        shopCatalog.find((i) => i.id === itemId)?.name ?? "Steward's wares";
+      setError(null);
+      // Only the mutation is fatal; refreshes are best-effort so a successful
+      // purchase is never reported as a failure (which would invite a
+      // double-charging retry).
+      try {
+        await api<{ itemId: string; dracolith: number }>(
+          "/api/v1/shop/buy",
+          token,
+          { method: "POST", body: JSON.stringify({ itemId }) },
+        );
+      } catch (e) {
+        const msg = translateError(e);
+        setError(msg);
+        pushToast(msg, "err");
+        return;
+      }
+      setStatus(`Bought ${name}`);
+      pushToast(`Bought ${name}`, "ok");
+      void refreshInventory(token);
+      void refreshMe(token).catch(() => {});
+    },
+    [token, shopCatalog, refreshMe, refreshInventory, pushToast],
+  );
+
+  const useShopItem = useCallback(
+    async (itemId: string) => {
+      if (!token) return;
+      const name =
+        shopCatalog.find((i) => i.id === itemId)?.name ?? "Steward's wares";
+      // Scope the speedup to the selected settlement, matching the UI gate and
+      // copy ("here" / "in this settlement"). Falls back to player-wide when no
+      // city is selected, preserving the older behavior.
+      const selectedCityId = city?.id ?? cityId ?? undefined;
+      setError(null);
+      try {
+        await api<{
+          itemId: string;
+          effect: { type: string; seconds: number };
+          applied: { finishesAt?: number; protectionUntil?: number };
+        }>("/api/v1/shop/use", token, {
+          method: "POST",
+          body: JSON.stringify({ itemId, cityId: selectedCityId }),
+        });
+      } catch (e) {
+        const msg = translateError(e);
+        setError(msg);
+        pushToast(msg, "err");
+        return;
+      }
+      setStatus(`${name} applied`);
+      pushToast(`${name} applied`, "ok");
+      void refreshInventory(token);
+      void refreshMe(token).catch(() => {});
+    },
+    [token, shopCatalog, refreshMe, refreshInventory, pushToast, city?.id, cityId],
   );
 
   async function loadMap(focus = mapFocus) {
@@ -203,18 +399,20 @@ export function useGame() {
   async function refreshKnowledge() {
     if (!token) return;
     try {
-      const [readyResp, bestResp, expResp, clueResp, objectiveResp] = await Promise.all([
+      const [readyResp, bestResp, expResp, clueResp, objectiveResp, livingResp] = await Promise.all([
         api<any>("/api/v1/dragon/readiness", token),
         api<any>("/api/v1/dragon/bestiary", token),
         api<any>("/api/v1/dragon/expedition", token),
         api<any>("/api/v1/dragon/clues", token),
         api<any>("/api/v1/dragon/objectives", token),
+        api<any>("/api/v1/dragon/living", token),
       ]);
       setReadinessStatus(readyResp);
       setBestiaryEntries(bestResp.entries ?? []);
       setExpeditionStatus(expResp);
       setClueData(clueResp);
       setDragonObjectives(objectiveResp.objectives ?? []);
+      setLivingDragons(livingResp);
     } catch {
       // silently fail — knowledge is non-critical
     }
@@ -258,6 +456,13 @@ export function useGame() {
     if (!token) return;
     void loadCommanders(token);
   }, [token, loadCommanders]);
+
+  // Steward's Wares: catalog + owned items load once the player is signed in.
+  useEffect(() => {
+    if (!token) return;
+    void refreshShop(token);
+    void refreshInventory(token);
+  }, [token, refreshShop, refreshInventory]);
 
   useEffect(() => {
     if (!token) return;
@@ -340,6 +545,15 @@ export function useGame() {
             void loadReports().catch(() => undefined);
             void refreshMarches(token).catch(() => undefined);
           }
+          if (e.type === "report") {
+            setLastResult({
+              message: e.message,
+              reportId: (e.data?.reportId as string) ?? null,
+              type: (e.data?.type as string) ?? null,
+              winner: (e.data?.winner as string | null) ?? null,
+              at: e.at ?? Date.now(),
+            });
+          }
           if (e.type === "queue_complete" || e.type === "march_return") {
             void refreshMe(token).catch(() => undefined);
             void refreshQueues(token, cityId).catch(() => undefined);
@@ -370,6 +584,7 @@ export function useGame() {
   const actions = useGameActions({
     token,
     city,
+    loadMap,
     setError,
     setStatus,
     pushToast,
@@ -430,12 +645,15 @@ export function useGame() {
     expeditionStatus,
     clueData,
     dragonObjectives,
+    livingDragons,
     units,
     buildingDefs,
     unlockDefs,
     bestiaryDefs,
     tutorial,
     dailyQuests,
+    shopCatalog,
+    inventory,
     allianceList,
     commanders,
     commandersReady,
@@ -448,6 +666,7 @@ export function useGame() {
     now,
     unreadReports,
     setUnreadReports,
+    lastResult,
 
     // form state + setters
     displayName,
@@ -477,6 +696,8 @@ export function useGame() {
     loadCodex,
     refreshKnowledge,
     loadAlliances,
+    buyShopItem,
+    useShopItem,
 
     // actions
     ...actions,

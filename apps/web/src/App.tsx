@@ -68,6 +68,11 @@ export function App() {
         <CastleView
           city={city}
           cities={g.cities}
+          player={g.player}
+          shopCatalog={g.shopCatalog}
+          inventory={g.inventory}
+          buyShopItem={g.buyShopItem}
+          useShopItem={g.useShopItem}
           setCityId={g.setCityId}
           units={g.units}
           researchDefs={g.researchDefs}
@@ -85,6 +90,17 @@ export function App() {
           foundMarcherKeep={g.foundMarcherKeep}
           claimQuest={g.claimQuest}
           recallReinforcement={g.recallReinforcement}
+          livingDragons={g.livingDragons}
+          nameHatchling={g.nameHatchling}
+          observeLivingDragon={g.observeLivingDragon}
+          setDragonHarness={g.setDragonHarness}
+          growLivingDragon={g.growLivingDragon}
+          stationFenWyrm={g.stationFenWyrm}
+          beginFenRivalry={g.beginFenRivalry}
+          surveyFenCrossing={g.surveyFenCrossing}
+          yieldSpawningBank={g.yieldSpawningBank}
+          craftGuardHarness={g.craftGuardHarness}
+          pactFenWyrm={g.pactFenWyrm}
         />
       )}
 
@@ -117,6 +133,9 @@ export function App() {
           loadMap={g.loadMap}
           setError={g.setError}
           recruitCommander={g.recruitCommander}
+          onAbandonWild={g.abandonWild}
+          lastResult={g.lastResult}
+          onOpenReports={() => setTab("war")}
           sendMarch={g.sendMarch}
         />
       )}
@@ -181,6 +200,10 @@ export function App() {
           completeDragonStage={g.completeDragonStage}
           startDragonWarCouncil={g.startDragonWarCouncil}
           loadCodex={g.loadCodex}
+          livingDragons={g.livingDragons}
+          faceScarEncounter={g.faceScarEncounter}
+          cityStacks={city?.stacks ?? {}}
+          codifyDragonKnowledge={g.codifyDragonKnowledge}
         />
       )}
 

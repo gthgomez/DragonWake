@@ -114,8 +114,8 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
           ('tidegilt','crownmark'), ('coin','crownmark')
         ) AS m(old_name,new_name)
       LOOP
-        SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cities' AND column_name=r.old_name) INTO old_exists;
-        SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cities' AND column_name=r.new_name) INTO final_exists;
+        SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='cities' AND column_name=r.old_name) INTO old_exists;
+        SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='cities' AND column_name=r.new_name) INTO final_exists;
         IF old_exists AND NOT final_exists THEN
           EXECUTE format('ALTER TABLE cities RENAME COLUMN %I TO %I', r.old_name, r.new_name);
         ELSIF old_exists AND final_exists AND r.old_name <> r.new_name THEN
@@ -214,6 +214,29 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     ALTER TABLE cities ADD COLUMN IF NOT EXISTS pop_fraction DOUBLE PRECISION NOT NULL DEFAULT 0;
   `);
 
+  // 12. Living dragon individuals — not Presence. JSON payloads stay
+  //     evolvable without a column per future species.
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS dragon_individuals (
+      id               UUID PRIMARY KEY,
+      realm_id         SMALLINT NOT NULL REFERENCES realms(id),
+      owner_player_id  UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      payload          JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS dragon_individuals_owner_idx ON dragon_individuals(owner_player_id);
+    CREATE TABLE IF NOT EXISTS dragon_knowledge (
+      player_id    UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      question_id  TEXT NOT NULL,
+      payload      JSONB NOT NULL,
+      PRIMARY KEY (player_id, question_id)
+    );
+    CREATE TABLE IF NOT EXISTS dragon_world_verbs (
+      id       UUID PRIMARY KEY,
+      realm_id SMALLINT NOT NULL REFERENCES realms(id),
+      payload  JSONB NOT NULL
+    );
+  `);
+
   // 11. M4 — Sovereign deletion: drop the marches FK column first, then the
   //     table. Idempotent so it is safe on fresh and legacy volumes.
   await client.query(`
@@ -229,6 +252,51 @@ export async function migrateExistingSchema(client: pg.Client): Promise<void> {
     ALTER TABLE marches DROP CONSTRAINT IF EXISTS marches_status_check;
     ALTER TABLE marches ADD CONSTRAINT marches_status_check
       CHECK (status IN ('en_route','resolving','returning','stationed','completed','cancelled'));
+  `);
+
+  // 13. Vision Council Round 4 — pre-existing world features dragons change
+  //     (Alpha: the Fen Crossing). JSON payload stays evolvable.
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS map_features (
+      id       UUID PRIMARY KEY,
+      realm_id SMALLINT NOT NULL REFERENCES realms(id),
+      payload  JSONB NOT NULL
+    );
+  `);
+
+  // 14. Premium-currency rename: chronite → dracolith. Idempotent so fresh
+  //     databases (already on dracolith) and legacy volumes both converge.
+  //     Mirrors the resource-column cutover in step 4: a partial/manual
+  //     migration can leave BOTH columns, so when dracolith already exists we
+  //     fold any legacy chronite balance into it (never losing the larger
+  //     value, never summing aliases) and then drop chronite. Without this,
+  //     the app reads the empty dracolith column and silently orphans the
+  //     legacy balances.
+  await client.query(`
+    DO $$
+    DECLARE
+      old_exists BOOLEAN;
+      final_exists BOOLEAN;
+    BEGIN
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = 'players' AND column_name = 'chronite'
+      ) INTO old_exists;
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = 'players' AND column_name = 'dracolith'
+      ) INTO final_exists;
+      IF old_exists AND NOT final_exists THEN
+        ALTER TABLE players RENAME COLUMN chronite TO dracolith;
+      ELSIF old_exists AND final_exists THEN
+        UPDATE players
+          SET dracolith = GREATEST(COALESCE(dracolith, 0), COALESCE(chronite, 0));
+        ALTER TABLE players DROP COLUMN chronite;
+      END IF;
+    END
+    $$;
   `);
 }
 
