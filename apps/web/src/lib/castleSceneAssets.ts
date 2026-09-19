@@ -6,11 +6,16 @@
  * on a shared ground plane: normalized ground anchor, footprint, scene scale
  * and tier derivation.
  *
- * Sources are normalized runtime derivatives under
+ * Sources are candidate-derived runtime derivatives under
  * `/art/alpha/castle/buildings/` (see `atlas.json` for master provenance).
+ * They are NOT formally promoted production assets: the repository's
+ * governance rule (`ALPHA_VISUAL_CONTRACT_V1.md`) requires AGES promotion,
+ * and the local AGES provider is `BLOCKED_EXTERNAL`. They are used as the
+ * interim default under documented owner campaign authority; promotion and
+ * rollback verification remain an external prerequisite.
+ *
  * The quarantined imagine-explorations candidates remain accessible through
- * `alphaBuildings.ts` for before/after evidence; this module is the promoted
- * runtime path.
+ * `alphaBuildings.ts` for before/after evidence.
  */
 import atlas from "./castleSceneAtlas.json";
 
@@ -46,18 +51,18 @@ export const CASTLE_BUILDING_STEM: Record<string, string> = {
 
 /** Requested width of the sprite box as a % of the scene width, by stem. */
 const BASE_WIDTH: Record<string, number> = {
-  "bld-keep": 27,
-  "bld-homes": 21,
-  "bld-barracks": 19,
-  "bld-scriptorium": 18,
-  "bld-muster-yard": 20,
-  "bld-commanders-hall": 19,
+  "bld-keep": 25,
+  "bld-homes": 20,
+  "bld-barracks": 18,
+  "bld-scriptorium": 17,
+  "bld-muster-yard": 19,
+  "bld-commanders-hall": 18,
   "bld-watchtower": 12,
-  "bld-dragon-watch": 20,
-  "bld-storehouse": 19,
-  "bld-training-camp": 20,
+  "bld-dragon-watch": 17,
+  "bld-storehouse": 18,
+  "bld-training-camp": 19,
   "bld-walls": 40,
-  "bld-forge": 19,
+  "bld-forge": 18,
 };
 
 export type SceneArt = {

@@ -84,4 +84,15 @@ describe("castle scene atlas", () => {
       }
     }
   });
+
+  it("keeps the runtime atlas byte-identical to the provenance atlas", () => {
+    // The runtime copy is generated, never hand-edited; this binds the two so
+    // they cannot silently diverge.
+    const runtime = fs.readFileSync(path.join(process.cwd(), "src/lib/castleSceneAtlas.json"), "utf8");
+    const provenance = fs.readFileSync(
+      path.join(process.cwd(), "public/art/alpha/castle/atlas.json"),
+      "utf8",
+    );
+    expect(runtime).toBe(provenance);
+  });
 });

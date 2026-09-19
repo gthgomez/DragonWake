@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { City, QueueJob } from "../../../lib/types";
 import { buildingName } from "../../../lib/labels";
 import { fmtEta } from "../../../lib/format";
 import { castleBuildingArt, type SceneArt } from "../../../lib/castleSceneAssets";
 import { depthZ, sceneAnchorForSlot, type SceneAnchor } from "./castleSceneLayout";
+import { shouldRenderRoostDragon } from "./roostPresence";
 import { SceneTerrain } from "./SceneTerrain";
 
 type Building = City["buildings"][number];
@@ -26,14 +27,41 @@ type CastleSceneProps = {
   dragon?: RoostDragon | null;
 };
 
+/** A built structure whose asset is unknown or failed — never an empty plot. */
+function UnknownStructure() {
+  return (
+    <span className="scene-unknown" aria-hidden="true">
+      <svg viewBox="0 0 60 48" focusable="false">
+        <ellipse cx="30" cy="43" rx="20" ry="4.5" fill="rgba(0,0,0,.45)" />
+        <path d="M14 30 30 22 46 30 30 38Z" fill="#8a8271" />
+        <path d="M14 30v6l16 8V38Z" fill="#6b6455" />
+        <path d="M46 30v6l-16 8V38Z" fill="#5a5446" />
+        <path d="M18 24 30 14 42 24 30 30Z" fill="#7b5a34" />
+        <path d="M18 24v5l12 6V30Z" fill="#5f4526" />
+        <path d="M42 24v5l-12 6V30Z" fill="#4d3720" />
+        <path d="M30 14v-6" stroke="#3f2f1c" strokeWidth="1.6" />
+        <path d="M30 8h5l-1.4 2 1.4 2h-5Z" fill="#a2743a" />
+        <rect x="26" y="27" width="8" height="9" rx="1" fill="#2b2318" />
+      </svg>
+    </span>
+  );
+}
+
 function PlotArt({ art }: { art: SceneArt }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <UnknownStructure />;
   return (
     <img
       className="scene-building"
       src={art.src}
       alt=""
       draggable={false}
-      style={{ transform: `translateX(${(0.5 - art.anchor[0]) * 100 - 50}%)` }}
+      onError={() => setFailed(true)}
+      style={{
+        // Map the asset's normalized ground-contact anchor onto the button's
+        // bottom-centre: anchor[0] horizontally, anchor[1] vertically.
+        transform: `translate(${-art.anchor[0] * 100}%, ${(1 - art.anchor[1]) * 100}%)`,
+      }}
     />
   );
 }
@@ -85,8 +113,9 @@ export function CastleScene({
     return Array.from({ length: Math.max(12, max + 1) }, (_, i) => i);
   }, [city.buildings, jobs]);
 
-  const dragonAnchor: SceneAnchor | null =
-    dragon?.slot != null ? sceneAnchorForSlot(dragon.slot) : null;
+  const dragonAnchor: SceneAnchor | null = shouldRenderRoostDragon(dragon)
+    ? sceneAnchorForSlot(dragon!.slot!)
+    : null;
 
   return (
     <div
@@ -139,8 +168,8 @@ export function CastleScene({
                     left: `${a.x * 100}%`,
                     top: `${a.y * 100}%`,
                     width: `${12 * a.scale}%`,
-                    aspectRatio: "1.3",
-                    zIndex: depthZ(a) + 400,
+                    aspectRatio: b ? "1.2" : "1.3",
+                    zIndex: depthZ(a) + (b || job ? 0 : 400),
                   }
             }
             aria-label={aria}
@@ -152,7 +181,14 @@ export function CastleScene({
                 steal each other's clicks. Empty plots sit above neighbours so
                 a cleared foundation is always discoverable. */}
             <span className="scene-hit" aria-hidden="true" />
-            {art ? <PlotArt art={art} /> : <span className="scene-foundation" aria-hidden="true" />}
+            <span className="scene-contact" aria-hidden="true" />
+            {art ? (
+              <PlotArt art={art} />
+            ) : b ? (
+              <UnknownStructure />
+            ) : (
+              <span className="scene-foundation" aria-hidden="true" />
+            )}
             {isSel && <span className="scene-select-ring" aria-hidden="true" />}
             {job && <Scaffold pct={pct} />}
             {b && !job && <span className="scene-pip">{`L${b.level}`}</span>}
@@ -173,12 +209,12 @@ export function CastleScene({
             style={{
               left: `${(dragonAnchor.x + 0.085) * 100}%`,
               top: `${(dragonAnchor.y + 0.02) * 100}%`,
-              width: `${15 * dragonAnchor.scale}%`,
+              width: `${14 * dragonAnchor.scale}%`,
               zIndex: depthZ(dragonAnchor),
             }}
           />
           <img
-            className={`scene-dragon ${dragon.away ? "scene-dragon-away" : ""}`}
+            className="scene-dragon"
             src={dragon.imageSrc}
             alt={dragon.alt}
             draggable={false}
@@ -186,7 +222,7 @@ export function CastleScene({
             style={{
               left: `${(dragonAnchor.x + 0.085) * 100}%`,
               top: `${(dragonAnchor.y + 0.02) * 100}%`,
-              width: `${16 * dragonAnchor.scale}%`,
+              width: `${15 * dragonAnchor.scale}%`,
               zIndex: depthZ(dragonAnchor) + 1,
             }}
           />

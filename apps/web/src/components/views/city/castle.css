@@ -67,11 +67,39 @@
   bottom: 0;
   width: 82%;
   height: 52%;
+  min-width: 44px;
+  min-height: 44px;
   transform: translateX(-50%);
   border-radius: 46% / 34%;
   pointer-events: auto;
   cursor: pointer;
 }
+
+/* Per-structure contact shadow on the terrain — a consistent lower-right
+   cast shadow regardless of each asset's baked shadow. */
+.scene-contact {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 108%;
+  height: 30%;
+  transform: translateX(-50%) translateX(6%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0) 72%);
+  pointer-events: none;
+}
+
+/* A built structure with no usable asset must still read as built. */
+.scene-unknown {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.scene-unknown svg { display: block; width: 100%; height: 100%; }
 
 /* The scene plot is a world anchor, not a UI button: never inherit the
    global card button background/border on hover/focus/active. */
@@ -242,10 +270,6 @@
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 75%);
   pointer-events: none;
-}
-
-.scene-dragon-away {
-  opacity: 0.28;
 }
 
 /* ---------- scene footer ---------- */

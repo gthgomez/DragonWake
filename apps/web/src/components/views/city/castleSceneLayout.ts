@@ -21,8 +21,6 @@ export type SceneAnchor = {
   /** Composition scale multiplier applied on top of the asset footprint. */
   scale: number;
   kind: AnchorKind;
-  /** Terrain elevation in scene units (visual only; 0 = flood plain). */
-  elev: number;
 };
 
 /**
@@ -31,18 +29,18 @@ export type SceneAnchor = {
  * the lower town along the two approach roads.
  */
 const BASE_ANCHORS: SceneAnchor[] = [
-  { slot: 0, x: 0.37, y: 0.42, scale: 1.05, kind: "keep", elev: 46 },
-  { slot: 1, x: 0.16, y: 0.6, scale: 1.0, kind: "support", elev: 10 },
-  { slot: 2, x: 0.29, y: 0.63, scale: 0.98, kind: "support", elev: 14 },
-  { slot: 3, x: 0.43, y: 0.66, scale: 0.97, kind: "support", elev: 8 },
-  { slot: 4, x: 0.57, y: 0.63, scale: 1.0, kind: "support", elev: 12 },
-  { slot: 5, x: 0.71, y: 0.59, scale: 0.94, kind: "support", elev: 6 },
-  { slot: 6, x: 0.11, y: 0.76, scale: 0.92, kind: "outer", elev: 0 },
-  { slot: 7, x: 0.72, y: 0.4, scale: 1.0, kind: "rise", elev: 54 },
-  { slot: 8, x: 0.26, y: 0.79, scale: 0.94, kind: "outer", elev: 4 },
-  { slot: 9, x: 0.41, y: 0.81, scale: 0.96, kind: "outer", elev: 0 },
-  { slot: 10, x: 0.56, y: 0.79, scale: 0.94, kind: "outer", elev: 2 },
-  { slot: 11, x: 0.7, y: 0.75, scale: 0.92, kind: "outer", elev: 0 },
+  { slot: 0, x: 0.37, y: 0.42, scale: 1.02, kind: "keep" },
+  { slot: 1, x: 0.16, y: 0.6, scale: 1.0, kind: "support" },
+  { slot: 2, x: 0.29, y: 0.63, scale: 0.98, kind: "support" },
+  { slot: 3, x: 0.43, y: 0.66, scale: 0.97, kind: "support" },
+  { slot: 4, x: 0.57, y: 0.63, scale: 1.0, kind: "support" },
+  { slot: 5, x: 0.71, y: 0.59, scale: 0.94, kind: "support" },
+  { slot: 6, x: 0.11, y: 0.76, scale: 0.92, kind: "outer" },
+  { slot: 7, x: 0.72, y: 0.4, scale: 0.98, kind: "rise" },
+  { slot: 8, x: 0.26, y: 0.79, scale: 0.94, kind: "outer" },
+  { slot: 9, x: 0.41, y: 0.81, scale: 0.96, kind: "outer" },
+  { slot: 10, x: 0.56, y: 0.79, scale: 0.94, kind: "outer" },
+  { slot: 11, x: 0.7, y: 0.75, scale: 0.92, kind: "outer" },
 ];
 
 /** Deterministic outward arc for slots beyond the authored twelve. */
@@ -60,7 +58,6 @@ function outerAnchor(slot: number): SceneAnchor {
     y,
     scale: Math.max(0.72, 0.9 - row * 0.05),
     kind: "outer",
-    elev: 0,
   };
 }
 
@@ -73,12 +70,4 @@ export function sceneAnchorForSlot(slot: number): SceneAnchor {
 /** Depth key: larger y draws later (in front). */
 export function depthZ(anchor: SceneAnchor): number {
   return Math.round(anchor.y * 1000);
-}
-
-/** The anchor nearest a normalized scene point (for roost placement). */
-export function anchorForBuildingSlot(
-  slot: number,
-  present: boolean,
-): SceneAnchor | null {
-  return present ? sceneAnchorForSlot(slot) : null;
 }
