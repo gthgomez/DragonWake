@@ -41,8 +41,11 @@ Contract: [`../../design/DRAGONWAKE_NORTH_STAR_V2.md`](../../design/DRAGONWAKE_N
   was at `00c68a5`, an ancestor of `origin/main`.
 - Campaign implementation commits on `feat/castle-north-star-v2`
   (rebased onto `origin/main`): `68282e3` (scene), `613a447` (fail-closed
-  repairs — **frozen for the final review**), `b69a157` (evidence +
-  governance wording; code identical to `613a447`).
+  repairs — **app code frozen for the final review**), `b69a157` (capture
+  harness construction-wait + governance wording + fresh evidence; **no
+  `apps/web/src`, server or package change**), `d8a6ed9` (review matrix).
+  The independent review therefore ran on the same rendered app code as
+  `613a447`.
 - Assets at packet preparation matched; live source was inspected directly
   rather than trusting the packet.
 - The candidate-art MANIFEST still reports `status=ALPHA_TEST_CANDIDATES`,
@@ -251,6 +254,6 @@ Per the campaign's own rules the campaign therefore **remains open**.
 This is a truthful partial: 7 PASS / 5 PARTIAL / 0 FAIL on the frozen SHA,
 not a completion claim.
 
-- Campaign implementation head (frozen for review): `613a447`.
-- Review evidence SHA (docs/evidence, code identical to `613a447`):
-  `b69a157`; final reconciliation commit recorded in the PR.
+- App code frozen for review: `613a447` (unchanged by later commits).
+- Review/evidence commit: `b69a157` (harness construction-wait, docs,
+  evidence only); final matrix commit: `d8a6ed9`.
