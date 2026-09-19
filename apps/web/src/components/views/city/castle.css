@@ -1,0 +1,288 @@
+/*
+   Castle scene — North Star V2 settlement presentation.
+   Logical slots are mapped onto one continuous authored world plane;
+   the square-plot grid is deliberately not the dominant composition.
+*/
+
+.city-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0.5rem 0;
+}
+
+.city-scene {
+  position: relative;
+  width: 100%;
+  display: block;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #0d0b07;
+  box-shadow: var(--shadow-inset), var(--shadow-1);
+}
+
+.city-scene::before {
+  content: none;
+}
+
+.castle-scene {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 30% 0%, rgba(255, 224, 168, 0.16), transparent 60%),
+    linear-gradient(180deg, #4d5259 0%, #6f6a5c 34%, #3a3a2a 100%);
+}
+
+.castle-terrain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+/* ---------- plots ---------- */
+
+.scene-plot {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translate(-50%, -100%);
+  transform-origin: 50% 100%;
+  cursor: pointer;
+  transition: filter 140ms ease-out;
+  /* The sprite bounding box is not the hit target; the base hit region is. */
+  pointer-events: none;
+}
+
+.scene-hit {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 82%;
+  height: 52%;
+  transform: translateX(-50%);
+  border-radius: 46% / 34%;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* The scene plot is a world anchor, not a UI button: never inherit the
+   global card button background/border on hover/focus/active. */
+.scene-plot,
+.scene-plot:hover:not(:disabled),
+.scene-plot:focus,
+.scene-plot:active {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.scene-plot-empty .scene-hit {
+  width: 98%;
+  height: 74%;
+}
+
+.scene-plot:hover:not(:disabled) .scene-hit,
+.scene-plot:focus-visible .scene-hit {
+  box-shadow:
+    0 0 0 2px rgba(236, 200, 122, 0.55),
+    0 0 16px rgba(236, 200, 122, 0.35);
+}
+
+.scene-plot:focus-visible {
+  outline: 2px solid var(--faction-sky, #6fa8dc);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.scene-plot-selected {
+  outline: 2px solid var(--border-ornate-strong, #c9a227);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.scene-building {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  /* No CSS filter here: the derivatives carry baked contact shadows, and a
+     filter layer can composite as a tinted rectangle in headless captures. */
+}
+
+.scene-foundation {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 80%;
+  height: 44%;
+  transform: translateX(-50%);
+  border-radius: 48% / 40%;
+  /* A cleared, trodden plot — packed earth with a stake ring, not a UI decal. */
+  background:
+    radial-gradient(120% 100% at 50% 30%, rgba(120, 98, 62, 0.6), rgba(74, 60, 38, 0.55) 70%),
+    repeating-linear-gradient(74deg, rgba(52, 42, 28, 0.5) 0 4px, transparent 4px 9px);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(196, 176, 134, 0.28),
+    inset 0 6px 12px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+/* Subtle stake ticks around a cleared foundation — no UI-style ring. */
+.scene-foundation::before {
+  content: "";
+  position: absolute;
+  inset: 12% 8%;
+  border-radius: 46% / 40%;
+  background:
+    repeating-conic-gradient(from 0deg, rgba(74, 58, 38, 0.85) 0deg 2.5deg, transparent 2.5deg 45deg);
+  -webkit-mask: radial-gradient(closest-side, transparent 84%, #000 85% 100%);
+  mask: radial-gradient(closest-side, transparent 84%, #000 85% 100%);
+  opacity: 0.5;
+}
+
+.scene-plot-empty:hover .scene-foundation,
+.scene-plot-selected .scene-foundation,
+.scene-plot:focus-visible .scene-foundation {
+  background:
+    radial-gradient(120% 100% at 50% 30%, rgba(150, 122, 74, 0.7), rgba(92, 74, 46, 0.6) 70%),
+    repeating-linear-gradient(74deg, rgba(60, 48, 32, 0.5) 0 4px, transparent 4px 9px);
+  box-shadow:
+    inset 0 0 0 2px var(--border-ornate-strong, #c9a227),
+    inset 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.scene-select-ring {
+  position: absolute;
+  left: 50%;
+  bottom: -2%;
+  width: 88%;
+  height: 26%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--border-ornate-strong, #c9a227),
+    0 0 22px rgba(201, 162, 39, 0.5),
+    inset 0 0 18px rgba(201, 162, 39, 0.35);
+  animation: scene-ring-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes scene-ring-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.5; }
+}
+
+.scene-pip {
+  position: absolute;
+  right: 2%;
+  top: 0;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid rgba(214, 197, 164, 0.5);
+  background: rgba(20, 16, 10, 0.86);
+  color: var(--parchment-1, #f2e6c9);
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  line-height: 1.45;
+  pointer-events: none;
+  box-shadow: var(--shadow-1);
+}
+
+.scene-pip-building {
+  color: #e8c777;
+  font-variant-numeric: tabular-nums;
+}
+
+/* construction scaffold sits in the world, not on a card */
+.scene-plot .city-scaffold {
+  position: absolute;
+  inset: auto 20% 6% 20%;
+  height: 46%;
+  color: var(--tier-b, #b98a4a);
+  pointer-events: none;
+  animation: city-scaffold-sway 2.4s ease-in-out infinite;
+}
+.scene-plot .city-scaffold svg { width: 100%; height: 100%; }
+.scene-plot .city-build-progress {
+  left: 10%;
+  right: 10%;
+  bottom: -2%;
+  height: 6px;
+}
+
+.scene-plot-building .scene-building {
+  opacity: 0.5;
+  filter: saturate(0.6);
+}
+
+/* ---------- dragon as a physical inhabitant ---------- */
+
+.scene-dragon {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
+
+.scene-dragon-shadow {
+  position: absolute;
+  height: 7%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 75%);
+  pointer-events: none;
+}
+
+.scene-dragon-away {
+  opacity: 0.28;
+}
+
+/* ---------- scene footer ---------- */
+
+.city-scene-hint {
+  margin: 0.45rem 0 0;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.city-build-result {
+  margin: 0.45rem 0 0;
+}
+
+/* ---------- detail rail ---------- */
+
+.city-detail {
+  max-width: none;
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  /* Fit the world to the viewport; do not shrink targets below the touch
+     contract, and do not push landmarks off-screen behind a pan. */
+  .castle-scene {
+    min-width: 0;
+  }
+  .scene-hit { width: 92%; height: 62%; }
+  .scene-plot-empty .scene-hit { width: 100%; height: 82%; }
+  .scene-pip { font-size: 0.5rem; padding: 0 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-plot,
+  .scene-select-ring,
+  .scene-plot .city-scaffold {
+    animation: none;
+    transition: none;
+  }
+}

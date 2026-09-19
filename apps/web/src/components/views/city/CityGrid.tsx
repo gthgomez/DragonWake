@@ -2,17 +2,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 
 import "./city.css";
+import "./castle.css";
 
 import {
-  alphaBuildingArtEnabled,
-  alphaBuildingSrc,
   artTierOf as tierOf,
-} from "../../../lib/alphaBuildings";
+  castleBuildingArt,
+} from "../../../lib/castleSceneAssets";
 import { canAfford, fmtEta, fmtNum, shortfallText } from "../../../lib/format";
 import { buildingDef, buildingName, researchName, type BuildingLite } from "../../../lib/labels";
 import type { City, QueueJob, ResearchUnlock } from "../../../lib/types";
 import type { IconName } from "../../../ui/icons";
 import { Icon } from "../../../ui/icons";
+import { CastleScene, type RoostDragon } from "./CastleScene";
 
 type Building = City["buildings"][number];
 
@@ -22,10 +23,9 @@ type CityGridProps = {
   now: number;
   unlockDefs: ResearchUnlock[];
   doBuild: (buildingType: string, slotIndex?: number) => Promise<void>;
+  /** Living-dragon roost presence, rendered as a physical inhabitant. */
+  roostDragon?: RoostDragon | null;
 };
-
-const GRID_COLUMNS = 4;
-const MIN_SLOTS = 12;
 
 function costOf(def: BuildingLite, level: number): Record<string, number> {
   const out: Record<string, number> = {};
@@ -264,55 +264,34 @@ function BuildingGlyph({ type, level }: { type: string; level: number }) {
 function BuildingArt({
   type,
   level,
-  variant = "plot",
 }: {
   type: string;
   level: number;
-  variant?: "plot" | "thumb";
 }) {
-  const src = alphaBuildingArtEnabled() ? alphaBuildingSrc(type, level) : undefined;
+  const art = castleBuildingArt(type, level);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     setFailed(false);
-  }, [src]);
-  if (src && !failed) {
+  }, [art?.src]);
+  if (art && !failed) {
     return (
-      <span
-        className={
-          variant === "thumb"
-            ? `city-art-thumb city-tier-${tierOf(level)}`
-            : `city-sprite city-sprite-art city-tier-${tierOf(level)}`
-        }
-        aria-hidden="true"
-      >
-        <span className="city-sprite-inner">
-          {/* CSS sizes the raster; width/height reserve the square plot box. */}
-          <img
-            src={src}
-            alt=""
-            width={128}
-            height={128}
-            loading="lazy"
-            decoding="async"
-            draggable={false}
-            onError={() => setFailed(true)}
-          />
-        </span>
-      </span>
-    );
-  }
-  if (variant === "thumb") {
-    return (
-      <span className={`city-detail-glyph city-tier-${tierOf(level)}`} aria-hidden="true">
-        <BuildingGlyph type={type} level={level} />
+      <span className={`city-art-thumb city-tier-${tierOf(level)}`} aria-hidden="true">
+        <img
+          src={art.src}
+          alt=""
+          width={64}
+          height={64}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={() => setFailed(true)}
+        />
       </span>
     );
   }
   return (
-    <span className={`city-sprite city-tier-${tierOf(level)}`} aria-hidden="true">
-      <span className="city-sprite-inner">
-        <BuildingGlyph type={type} level={level} />
-      </span>
+    <span className={`city-detail-glyph city-tier-${tierOf(level)}`} aria-hidden="true">
+      <BuildingGlyph type={type} level={level} />
     </span>
   );
 }
@@ -353,7 +332,7 @@ function CostRow({
 /* City grid                                                           */
 /* ------------------------------------------------------------------ */
 
-export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps) {
+export function CityGrid({ city, jobs, now, unlockDefs, doBuild, roostDragon }: CityGridProps) {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 
   // F6: an in-place build result, not only a toast. CityGrid is remounted per
@@ -394,10 +373,11 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps
 
   useEffect(() => {
     if (selectedSlot !== null) return;
-    const dragonWatch = city.buildings.find(
-      (building) => building.buildingType === "skyreost",
-    );
-    if (dragonWatch) setSelectedSlot(dragonWatch.slotIndex);
+    // Default the inspector to the primary landmark, then the roost.
+    const primary =
+      city.buildings.find((building) => building.buildingType === "forge_heart") ??
+      city.buildings.find((building) => building.buildingType === "skyreost");
+    if (primary) setSelectedSlot(primary.slotIndex);
   }, [city.buildings, selectedSlot]);
 
   const bySlot = useMemo(() => {
@@ -434,96 +414,29 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps
     [],
   );
 
-  const slots = useMemo(() => {
-    let max = -1;
-    for (const b of city.buildings) max = Math.max(max, b.slotIndex);
-    const raw = Math.max(MIN_SLOTS, max + 1);
-    const count = Math.ceil(raw / GRID_COLUMNS) * GRID_COLUMNS;
-    return Array.from({ length: count }, (_, i) => i);
-  }, [city.buildings]);
-
   const selected: Building | null =
     selectedSlot === null ? null : (bySlot.get(selectedSlot) ?? null);
   const selectedJob =
     selectedSlot !== null ? (jobsBySlot.get(selectedSlot) ?? null) : null;
   const selectedDef = selected ? buildingDef(selected.buildingType) : null;
-  const buildSlot = selectedSlot ?? slots.find((slot) => !bySlot.has(slot) && !jobsBySlot.has(slot)) ?? 0;
+  const firstFreeSlot = useMemo(() => {
+    let i = 0;
+    while (bySlot.has(i) || jobsBySlot.has(i)) i++;
+    return i;
+  }, [bySlot, jobsBySlot]);
+  const buildSlot = selectedSlot ?? firstFreeSlot;
 
   return (
     <div className="city-layout">
       <div className="city-scene">
-        <div className="city-board">
-          <div
-            className="city-plane"
-            role="group"
-            aria-label={`${city.name} building plots`}
-          >
-            {slots.map((slot) => {
-              const b = bySlot.get(slot);
-              const isSel = slot === selectedSlot;
-              const job = jobsBySlot.get(slot);
-              const total = job ? Math.max(1, job.finishesAt - job.startedAt) : 1;
-              const pct = job
-                ? Math.min(
-                    100,
-                    Math.round(((total - Math.max(0, job.finishesAt - now)) / total) * 100),
-                  )
-                : 0;
-              return (
-                <button
-                  key={slot}
-                  type="button"
-                  className={[
-                    "city-tile",
-                    b ? "city-tile-built" : "city-tile-empty",
-                    isSel ? "city-selected" : "",
-                    job ? "city-tile-building" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  aria-label={
-                    job
-                      ? `${buildingName(String(job.payload.buildingType))} under construction, ${fmtEta(Math.max(0, job.finishesAt - now))} remaining`
-                      : b
-                        ? `${buildingName(b.buildingType)}, level ${b.level}`
-                        : `Empty plot ${slot}`
-                  }
-                  aria-pressed={isSel}
-                  onClick={() => setSelectedSlot(slot)}
-                >
-                  <span className="city-ground" aria-hidden="true" />
-                  {b && (
-                    <BuildingArt type={b.buildingType} level={b.level} />
-                  )}
-                  {job && (
-                    <span
-                      className="city-scaffold"
-                      aria-hidden="true"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-                        <path d="M5 20V9M19 20V9M5 12h14M5 16h14M9 9v11M15 9v11" />
-                      </svg>
-                    </span>
-                  )}
-                  {job && (
-                    <span className="city-build-progress">
-                      <span
-                        className="city-build-progress-fill"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </span>
-                  )}
-                  {b && !job && <span className="city-lvl">{`L${b.level}`}</span>}
-                  {job && (
-                    <span className="city-lvl city-lvl-building">
-                      {fmtEta(Math.max(0, job.finishesAt - now))}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <CastleScene
+          city={city}
+          jobs={jobs}
+          now={now}
+          selectedSlot={selectedSlot}
+          onSelectSlot={setSelectedSlot}
+          dragon={roostDragon}
+        />
         {lastBuildResult && (
           <p
             className="city-build-result"
@@ -536,7 +449,8 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps
           </p>
         )}
         <p className="city-scene-hint muted tiny">
-          Select a plot to inspect it, raise a structure, or improve it
+          Select a structure or foundation in the settlement to inspect it,
+          raise a structure, or improve it
         </p>
       </div>
 
@@ -547,7 +461,6 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps
               <BuildingArt
                 type={selected.buildingType}
                 level={selected.level}
-                variant="thumb"
               />
               <div>
                 <h4>{buildingName(selected.buildingType)}</h4>
@@ -598,7 +511,7 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps
                   />
                 </div>
               </>
-            ) : Number(selectedDef?.max_level ?? 10) > selected.level ? (
+            ) : selectedDef && Number(selectedDef.max_level ?? 10) > selected.level ? (
               <>
                 <p className="city-effect">
                   <strong>Next:</strong> level {selected.level + 1} —{" "}
@@ -629,7 +542,9 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps
               </>
             ) : (
               <p className="city-effect city-afford-ok">
-                This structure stands at its highest level.
+                {selectedDef
+                  ? "This structure stands at its highest level."
+                  : "Structure details are still loading."}
               </p>
             )}
           </div>
@@ -690,9 +605,7 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild }: CityGridProps
                   city.resources,
                   cost,
                 );
-                const artSrc = alphaBuildingArtEnabled()
-                  ? alphaBuildingSrc(def.id)
-                  : undefined;
+                const artSrc = castleBuildingArt(def.id)?.src;
                 const gate = unlockDefs.find(
                   (u) => u.kind === "building" && u.unlocks.includes(def.id),
                 );
