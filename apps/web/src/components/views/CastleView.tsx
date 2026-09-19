@@ -176,6 +176,22 @@ export function CastleView({
     signature.harness === "guard_harness" &&
     signature.physicalState === "healthy";
 
+  // The signature dragon is a physical inhabitant of the settlement: it is
+  // anchored to the Dragon Watch roost, not a detached content card.
+  const roostSlot =
+    city.buildings.find((b) => b.buildingType === "skyreost")?.slotIndex ?? null;
+  const roostDragon = signature
+    ? {
+        slot: roostSlot,
+        imageSrc:
+          signature.physicalState === "wounded"
+            ? "/art/dragons/vale_drake/vale_drake_injured.png"
+            : "/art/dragons/vale_drake/vale_drake_roost.png",
+        alt: `${signature.givenName} in the roost`,
+        away: Boolean(signature.roostEmpty),
+      }
+    : null;
+
   const charterEarned = Boolean(expeditionStatus?.charterEarned);
   const hasMarcherKeep = cities.some((c) => c.kind === "marcher_keep");
   const dragonWatchLevel =
@@ -616,7 +632,7 @@ export function CastleView({
           </p>
         </div>
       </div>
-      <CityGrid key={city.id} city={city} jobs={jobs} now={now} unlockDefs={unlockDefs} doBuild={doBuild} />
+      <CityGrid key={city.id} city={city} jobs={jobs} now={now} unlockDefs={unlockDefs} doBuild={doBuild} roostDragon={roostDragon} />
 
       <div className="castle-columns">
         <div>
