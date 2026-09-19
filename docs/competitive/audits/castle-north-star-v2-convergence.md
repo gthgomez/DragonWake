@@ -39,6 +39,8 @@ Contract: [`../../design/DRAGONWAKE_NORTH_STAR_V2.md`](../../design/DRAGONWAKE_N
 - `origin/main` at campaign start: `0ed592c26308c2307e09fc58971d9585bc3df681`
   (matches the packet). The working branch `feat/imagine-alpha-city-pack`
   was at `00c68a5`, an ancestor of `origin/main`.
+- Campaign implementation commit: `68282e3` on
+  `feat/castle-north-star-v2` (off `00c68a5`).
 - Assets at packet preparation matched; live source was inspected directly
   rather than trusting the packet.
 - The candidate-art MANIFEST still reports `status=ALPHA_TEST_CANDIDATES`,
@@ -165,12 +167,80 @@ Verdicts below combine the implementing developer review with an
 **independent blind visual review** (reviewer given only the reference,
 before/after images and the gate definitions).
 
-<!-- GATE-MATRIX -->
+Verdicts below are from an **independent blind visual review** (reviewer
+given only the reference, before/after images and the gate definitions,
+no implementation details), cross-checked against the implementing
+reviewer. "Dev" = implementation-aware; "Blind" = independent.
+
+| Gate | Blind | Dev | Evidence |
+| --- | --- | --- | --- |
+| G1 Kingdom not grid | PASS | PASS | BEFORE is a literal diamond grid of pads; AFTER reads as a continuous island settlement with organic terrain, a connected path network, varied building positions and an enclosing wall. |
+| G2 Shared world | PASS | PASS | One landmass links Keep, village, gatehouse, round tower; dragon/selection/construction all occur in the same world footprint. |
+| G3 Camera consistency | PASS | PARTIAL | AFTER set shares one fixed isometric camera and framing; residual per-asset drift remains (some secondary roofs read flatter; the roost art is a side-profile wyrm). Independent reviewer accepted internal consistency. |
+| G4 Scale consistency | PARTIAL | PARTIAL | Keep > towers > huts reads plausibly, but the left village cluster interpenetrates and the baked platform ellipses inflate Keep/Dragon Watch footprint; the dragon is tower-scale. |
+| G5 Lighting / grounding | PARTIAL | PARTIAL | One warm upper-left key and coherent contact shadows, but baked pale platform ellipses read as floating bases, some huts lack visible contact shadow, and the homes-gold derivative carries a dark shaded mass that reads as a blemish at small scale. |
+| G6 Landmark hierarchy | PASS | PASS | Keep is the dominant silhouette; Dragon Watch is the clear secondary; both readable before labels. |
+| G7 Visible progression | PASS | PASS | L1 thatch → L4 masonry/timber → L7 banner stone → L8 gold-crenellated Keep; material escalation, not pure scale. |
+| G8 Environmental cohesion | PARTIAL | PARTIAL | Island interior is coherent, but the flat vector backdrop differs in language from the painted structures and the terrain is sparse (few small trees; two bare pits). |
+| G9 Dragon integration | PARTIAL | PARTIAL | Dragon sits in-world beside the Dragon Watch with a ground shadow, but reads as a glossy static sculpture rather than a living perched animal, and is present only in the dragon state. |
+| G10 Interaction honesty | PASS | PASS | Selection brackets the real structure; construction is a translucent ghost of the actual Keep with scaffold and live countdown; build/select/upgrade operate on authoritative state (verified by journeys). |
+| G11 Default experience | PASS (dev) | PASS | The improved Castle is the default path (no art flag); the certified journeys run against it. Blind reviewer marked UNKNOWN (not judgeable from stills). |
+| G12 Responsive preservation | PARTIAL | PASS | After recomposition the 390x844 capture keeps the whole world, landmarks and labels with matching state; residual crowding/edge proximity remains. Blind reviewer saw the earlier cropped capture. |
+
+**HARD GATE TALLY (independent blind review): 6 PASS, 5 PARTIAL, 0 FAIL.**
+PARTIAL: G4, G5, G8, G9, G12. Per the campaign's acceptance rules a
+PARTIAL keeps the campaign open.
 
 ## Remaining defects (truthful)
 
-<!-- DEFECTS -->
+1. **Independent-sprites-on-vector-terrain residual (G4/G5).** Building
+   derivatives carry baked ground patches and shadows; on the authored
+   terrain several read as "placemats" rather than continuous streets. The
+   homes-gold meter has a dark shaded mass that reads as a blemish at
+   small scale. Fixing this well needs re-authored sprites with normalized
+   transparent canvases (the §6 production contract) — new art generation,
+   which is unavailable here (`BLOCKED_EXTERNAL`).
+2. **Backdrop language mismatch (G8).** The vector mountains/sky are flatter
+   than the painted structures. A painted backdrop master would close this.
+3. **Dragon as static sculpture (G9).** The roost uses static canonical art
+   because the animated Vale Drake package is `runtime_status =
+   PREVIEW_ONLY` with `walk = WARN_CONDITIONAL`. Exposing the accepted idle
+   animation requires package promotion (governance), not a code change.
+4. **Empty-plots / terrain sparsity (G8).** Terrain detail is intentionally
+   restrained; more environmental props would raise density toward the
+   reference but risk clutter.
+5. **Mobile composition (G12).** The world fits 390x844, but labels crowd and
+   edge structures sit close to the frame. A dedicated portrait composition
+   would help.
+6. **`rivetworks` (Roadworks) has no scene art.** It is canonical
+   `buildable:true`; the scene renders it as a foundation with the correct
+   accessible name (safe, but visually ambiguous).
+7. **Asset governance.** As recorded above, the derivatives are the default
+   under documented owner campaign authority; the formal AGES promotion and
+   rollback verification remain an external prerequisite. This is a
+   governance residual, not a rendering one.
+8. **Evidence resolution.** BEFORE captures are lower resolution than AFTER
+   (different source captures), which weakens direct comparison slightly.
 
 ## Rendered verdict
 
-<!-- VERDICT -->
+**Does the running default DragonWake Castle now read as one coherent,
+fortified medieval kingdom shaped by dragons before the viewer reads the
+UI? — Partly; not yet fully.**
+
+The default running game no longer reads as a grid of plots: it renders as
+one continuous, walled, road-connected island settlement with a clear Keep
+and Dragon Watch hierarchy, visible material progression, and an
+in-world dragon at the roost. That is a decisive improvement and clears
+G1, G2, G3, G6, G7, G10, G11.
+
+It does **not** yet clear G4, G5, G8, G9, G12. The remaining gap is
+dominated by *asset-inherent* limits (independent sprites with baked
+ground patches, a glossy static dragon, a flat vector backdrop) rather
+than the compositor. Closing it requires new normalized art generation
+and, for the dragon, AGES package promotion — both unavailable in this
+environment. Per the campaign's own rules, the campaign therefore
+**remains open**; this is a truthful partial, not a completion claim.
+
+Campaign implementation head: commit `68282e3` on
+`feat/castle-north-star-v2` (reconciliation commit follows).

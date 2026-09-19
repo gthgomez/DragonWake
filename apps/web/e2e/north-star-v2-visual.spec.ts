@@ -95,14 +95,8 @@ test.describe("North Star V2 — Castle settlement", () => {
     await page.waitForTimeout(800);
     await page.getByTestId("castle-scene").screenshot({ path: `${OUT}/after_building-selected_desktop.png` });
 
-    // Construction presentation: a real keep-upgrade job targets slot 0 and
-    // runs long enough under dev pacing to be observed in the world.
-    await api(page, token, "post", `/cities/${cityId}/keep/upgrade`).catch(() => {});
-    await page.waitForTimeout(500);
-    await page.getByTestId("castle-scene").screenshot({ path: `${OUT}/after_construction_desktop.png` });
-    await drain(page, token, cityId);
-
-    // Mobile must remain the same world, pannable, with usable targets.
+    // Mobile must remain the same world at the SAME state, pannable/fit, with
+    // usable targets — captured before any further construction.
     const mobile = await page.context().browser()!.newContext({
       viewport: { width: 390, height: 844 },
       deviceScaleFactor: 2,
@@ -122,5 +116,13 @@ test.describe("North Star V2 — Castle settlement", () => {
     await mp.getByRole("button", { name: /^Barracks, level 4/ }).first().click({ force: true });
     await expect(mp.locator(".city-detail").getByRole("heading", { name: "Barracks", exact: true })).toBeVisible();
     await mobile.close();
+
+    // Construction presentation: a real keep-upgrade job targets slot 0 and
+    // runs long enough under dev pacing to be observed in the world. Captured
+    // last so it does not change the state of the other frames.
+    await api(page, token, "post", `/cities/${cityId}/keep/upgrade`).catch(() => {});
+    await page.waitForTimeout(500);
+    await page.getByTestId("castle-scene").screenshot({ path: `${OUT}/after_construction_desktop.png` });
+    await drain(page, token, cityId);
   });
 });

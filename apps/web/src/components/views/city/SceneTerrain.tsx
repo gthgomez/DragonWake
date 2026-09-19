@@ -132,6 +132,11 @@ export const SceneTerrain = memo(function SceneTerrain() {
           <stop offset="0%" stopColor="#5b7482" />
           <stop offset="100%" stopColor="#31434f" />
         </linearGradient>
+        <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgba(196,186,160,0)" />
+          <stop offset="55%" stopColor="rgba(198,184,152,.22)" />
+          <stop offset="100%" stopColor="rgba(150,146,128,.4)" />
+        </linearGradient>
         <pattern id="cobble" width="28" height="24" patternUnits="userSpaceOnUse">
           <rect width="28" height="24" fill="#7b7362" />
           <circle cx="7" cy="7" r="5" fill="#8a8271" />
@@ -175,6 +180,9 @@ export const SceneTerrain = memo(function SceneTerrain() {
       <path d="M0 470C160 430 300 470 420 520 560 578 700 600 860 580 1020 560 1200 520 1400 560V880H0Z" fill="url(#water)" />
       <path d="M0 500C160 462 300 500 420 548 560 604 700 624 860 604 1020 584 1200 546 1400 584" fill="none" stroke="rgba(240,248,255,.25)" strokeWidth="3" />
       <path d="M180 640c40-10 70-6 110 6M980 660c50-12 90-6 140 6" stroke="rgba(240,248,255,.16)" strokeWidth="2.4" fill="none" />
+
+      {/* atmospheric haze tying the island to the backdrop */}
+      <rect x="0" y="250" width="1400" height="380" fill="url(#haze)" />
 
       {/* drop shadow the island casts onto the water — removes the float-plate read */}
       <ellipse cx="700" cy="700" rx="650" ry="230" fill="rgba(6,10,9,.5)" filter="url(#softLow)" />
@@ -275,6 +283,13 @@ export const SceneTerrain = memo(function SceneTerrain() {
       <Trees x={300} y={306} s={0.8} o={0.8} />
       <Trees x={1010} y={762} s={0.78} o={0.78} />
       <Trees x={176} y={706} s={0.82} o={0.82} />
+      <Trees x={420} y={690} s={0.6} o={0.8} />
+      <Trees x={540} y={770} s={0.55} o={0.75} />
+      <Trees x={760} y={330} s={0.55} o={0.75} />
+      <Trees x={940} y={720} s={0.6} o={0.8} />
+      <Trees x={240} y={380} s={0.5} o={0.7} />
+      <Trees x={1150} y={640} s={0.62} o={0.8} />
+      <Trees x={620} y={300} s={0.5} o={0.7} />
       <Rock x={122} y={588} s={1.2} />
       <Rock x={1276} y={430} s={0.85} />
       <Rock x={1046} y={704} s={0.9} />
