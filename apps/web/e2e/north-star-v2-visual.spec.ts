@@ -221,7 +221,21 @@ test.describe("North Star V2 — Castle settlement", () => {
     // Construction last, so it does not change any earlier frame's state.
     const city = await getCity(page, token);
     await api(page, token, "post", `/cities/${city.id}/keep/upgrade`);
-    await page.waitForTimeout(500);
+    // Wait until the authoritative queue actually reports the running job,
+    // then let the client observe it — fail closed if it never appears.
+    let running = false;
+    for (let i = 0; i < 40; i++) {
+      const q = (await api(page, token, "get", `/cities/${city.id}/queues`)) as {
+        jobs?: { status: string; kind?: string; payload?: { slotIndex?: number } }[];
+      };
+      running = (q.jobs ?? []).some(
+        (j) => j.status === "running" && j.kind === "build" && Number(j.payload?.slotIndex) === 0,
+      );
+      if (running) break;
+      await page.waitForTimeout(250);
+    }
+    expect(running, "keep upgrade is not running on slot 0").toBe(true);
+    await page.waitForTimeout(2000);
     await page.getByTestId("castle-scene").screenshot({ path: `${OUT}/after_construction_desktop.png` });
     await drain(page, token, city.id);
   });
