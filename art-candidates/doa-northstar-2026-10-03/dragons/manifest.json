@@ -1,0 +1,217 @@
+{
+  "id": "dragonwake-doa-northstar-dragons-2026-10-03",
+  "canon": "four-legged green-gold wyrm, torn gold-family membranes, amber eyes, late-medieval paint",
+  "references": [
+    "docs/design/reference-art/DragonWake-AlphaDesign.png",
+    "apps/web/e2e/artifacts/north-star-v2/after_dragon_scene_desktop.png"
+  ],
+  "key": {
+    "method": "euclidean distance to sampled magenta; border-connected background and enclosed pockets removed; speck holes under 160px filled; largest component kept; 2px alpha ramp; magenta unmix on the fringe",
+    "note": "generator field was a dull painted magenta, not literal #FF00FF"
+  },
+  "assets": [
+    {
+      "id": "adult-perch",
+      "role": "adult wyrm perched on a small stone pad",
+      "file": "png/adult-perch.png",
+      "raw": "raw/adult-perch.jpg",
+      "chained_from": "docs/design/reference-art/DragonWake-AlphaDesign.png",
+      "source_px": [
+        1280,
+        720
+      ],
+      "canvas": [
+        2048,
+        2048
+      ],
+      "opaque_bbox": [
+        529,
+        684,
+        1517,
+        1370
+      ],
+      "opaque_pixels": 417082,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "key_rgb": [
+        161.0,
+        45.0,
+        108.0
+      ],
+      "threshold": 50,
+      "enclosed_hole_sizes_desc": [
+        4678,
+        1055,
+        890,
+        533,
+        436,
+        162,
+        134,
+        94
+      ],
+      "largest_component_px": 420654,
+      "source_touched_border": false,
+      "opaque_magenta_pixels": 2,
+      "near_key_leaked_into_mask": 68,
+      "sha256": "1878faf401dfcf4fb65460df4da50668c16bb7edef28e3c7cd261e4c8161178d",
+      "fringe_chroma_cleared": 665,
+      "edge_haze_cleared": 2670
+    },
+    {
+      "id": "adult-wounded",
+      "role": "same adult, torn membrane, bound foreleg",
+      "file": "png/adult-wounded.png",
+      "raw": "raw/adult-wounded.jpg",
+      "chained_from": "adult-perch",
+      "source_px": [
+        1280,
+        720
+      ],
+      "canvas": [
+        2048,
+        2048
+      ],
+      "opaque_bbox": [
+        525,
+        685,
+        1522,
+        1375
+      ],
+      "opaque_pixels": 426972,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "key_rgb": [
+        140.0,
+        45.0,
+        88.0
+      ],
+      "threshold": 52,
+      "enclosed_hole_sizes_desc": [
+        3984,
+        535,
+        382,
+        212,
+        149,
+        128,
+        94,
+        85
+      ],
+      "largest_component_px": 429432,
+      "source_touched_border": false,
+      "opaque_magenta_pixels": 1,
+      "near_key_leaked_into_mask": 284,
+      "sha256": "572cc9a4caa5b8bb3787fa8bbab0fce741fb6227275ae30fd4a91335f5af4871",
+      "fringe_chroma_cleared": 1,
+      "edge_haze_cleared": 1471
+    },
+    {
+      "id": "hatchling",
+      "role": "juvenile of the same species",
+      "file": "png/hatchling.png",
+      "raw": "raw/hatchling.jpg",
+      "chained_from": "adult-perch",
+      "source_px": [
+        1280,
+        720
+      ],
+      "canvas": [
+        2048,
+        2048
+      ],
+      "opaque_bbox": [
+        531,
+        691,
+        1515,
+        1371
+      ],
+      "opaque_pixels": 431803,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "key_rgb": [
+        146.0,
+        43.0,
+        96.0
+      ],
+      "threshold": 62,
+      "enclosed_hole_sizes_desc": [
+        171,
+        107,
+        40,
+        15,
+        3,
+        3,
+        2,
+        2
+      ],
+      "largest_component_px": 434736,
+      "source_touched_border": false,
+      "opaque_magenta_pixels": 58,
+      "near_key_leaked_into_mask": 74,
+      "sha256": "dcf2c8939311e8dc3c82a7fef57e7401939c7c5cee3e4f91cde98b93e41ffd89",
+      "fringe_chroma_cleared": 0,
+      "edge_haze_cleared": 2738
+    },
+    {
+      "id": "scene-token",
+      "role": "isometric roost token of the same adult",
+      "file": "png/scene-token.png",
+      "raw": "raw/scene-token.jpg",
+      "chained_from": "adult-perch",
+      "source_px": [
+        1024,
+        1024
+      ],
+      "canvas": [
+        1024,
+        1024
+      ],
+      "opaque_bbox": [
+        100,
+        134,
+        923,
+        891
+      ],
+      "opaque_pixels": 411805,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "key_rgb": [
+        153.0,
+        48.0,
+        105.0
+      ],
+      "threshold": 50,
+      "enclosed_hole_sizes_desc": [
+        6487,
+        5007,
+        276,
+        172,
+        91,
+        2,
+        1
+      ],
+      "largest_component_px": 413400,
+      "source_touched_border": false,
+      "opaque_magenta_pixels": 0,
+      "near_key_leaked_into_mask": 40,
+      "sha256": "fe53ba4afca894e737e0c68354a544749abc91d9b28cbab040bcc7029e0d23d8",
+      "fringe_chroma_cleared": 146,
+      "edge_haze_cleared": 1355
+    }
+  ]
+}

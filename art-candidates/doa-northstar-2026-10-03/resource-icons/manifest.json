@@ -1,0 +1,247 @@
+{
+  "set": "dragonwake-resource-icons",
+  "style": "weathered late-medieval HUD icons: ochre grain sack, split timber bundle, dressed limestone, dark iron ore, round wax-and-lead seal with a small dragon-head stamp; warm upper-left light; muted earth, charcoal, iron, ochre, parchment; no sticker outline and no UI chrome",
+  "order_left_to_right": [
+    "food",
+    "wood",
+    "stone",
+    "ore",
+    "crownmark"
+  ],
+  "resources": {
+    "food": "tied grain sack with wheat at the neck",
+    "wood": "split timber bundle with one dark strap",
+    "stone": "cut limestone block",
+    "ore": "dark iron ore chunk",
+    "crownmark": "round wax-and-lead seal with a tiny dragon-head impression"
+  },
+  "background_key_rgb": [
+    175.25,
+    13.25,
+    126.25
+  ],
+  "source_sheet": "/home/linuxuser/.grok/sessions/%2Fhome%2Flinuxuser/01a103c5-b0a4-7b42-a889-87edca75da18/images/1.jpg",
+  "source_sheet_size": [
+    1280,
+    720
+  ],
+  "references": [
+    "/home/linuxuser/DragonWake/docs/design/reference-art/DragonWake-AlphaDesign.png",
+    "/home/linuxuser/DragonWake/apps/web/e2e/artifacts/north-star-v2/after_scene_desktop.png"
+  ],
+  "key": {
+    "method": "euclidean distance to corner mean, 8-connected components, component-owned alpha, magenta unmixed by projecting fringe onto the nearest core color",
+    "core_threshold": 90.0,
+    "spill_reject": "B > G+18 and G < 125 and R > 110",
+    "fringe_px": 2,
+    "fringe_alpha_min": 0.42,
+    "speck_min_px": 460.79999999999995
+  },
+  "canvas": [
+    512,
+    512
+  ],
+  "canvas_note": "one shared power-of-two canvas; each icon centered at native sheet scale, not rescaled",
+  "files": [
+    {
+      "id": "food",
+      "file": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/resource-icons/food.png",
+      "preview_64": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/resource-icons/preview-64/food.png",
+      "canvas": [
+        512,
+        512
+      ],
+      "source_bbox": [
+        59,
+        230,
+        282,
+        480
+      ],
+      "content_px": [
+        224,
+        251
+      ],
+      "placed": {
+        "left": 144,
+        "top": 130,
+        "width": 224,
+        "height": 251
+      },
+      "opaque_pixels": 37883,
+      "opaque_bbox": [
+        144,
+        130,
+        367,
+        380
+      ],
+      "transparent_corners": true,
+      "border_alpha_sum": 0,
+      "sha256": "f434649a53993a3caafb65ea314474d9a2683b5fd781e528600e13899b8fe07d",
+      "preview_sha256": "5b8cf654d147a67a0af62c21649ab7e3347e7de02356239850b44609fd397b34",
+      "preview_size": [
+        64,
+        64
+      ]
+    },
+    {
+      "id": "wood",
+      "file": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/resource-icons/wood.png",
+      "preview_64": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/resource-icons/preview-64/wood.png",
+      "canvas": [
+        512,
+        512
+      ],
+      "source_bbox": [
+        307,
+        277,
+        585,
+        450
+      ],
+      "content_px": [
+        279,
+        174
+      ],
+      "placed": {
+        "left": 116,
+        "top": 169,
+        "width": 279,
+        "height": 174
+      },
+      "opaque_pixels": 29371,
+      "opaque_bbox": [
+        116,
+        169,
+        394,
+        342
+      ],
+      "transparent_corners": true,
+      "border_alpha_sum": 0,
+      "sha256": "cbf10a8f335001aea3f49ae89680777ef10df5aa355b019316a4ef741083fc79",
+      "preview_sha256": "c48e6e2c5d852e1d73f1b4beb4e02d0e3d34be3ea79e3532611967291add2166",
+      "preview_size": [
+        64,
+        64
+      ]
+    },
+    {
+      "id": "stone",
+      "file": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/resource-icons/stone.png",
+      "preview_64": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/resource-icons/preview-64/stone.png",
+      "canvas": [
+        512,
+        512
+      ],
+      "source_bbox": [
+        614,
+        242,
+        797,
+        479
+      ],
+      "content_px": [
+        184,
+        238
+      ],
+      "placed": {
+        "left": 164,
+        "top": 137,
+        "width": 184,
+        "height": 238
+      },
+      "opaque_pixels": 40343,
+      "opaque_bbox": [
+        164,
+        137,
+        347,
+        374
+      ],
+      "transparent_corners": true,
+      "border_alpha_sum": 0,
+      "sha256": "6f575c54bbd67f5dbac0881652aa7db0f2f6e5687a2cb1c2796f639a29f52d9d",
+      "preview_sha256": "a0a8ec70e6f9f10c4667d73778fb53dd3249fd6f2132d25ce78552c44fceb006",
+      "preview_size": [
+        64,
+        64
+      ]
+    },
+    {
+      "id": "ore",
+      "file": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/resource-icons/ore.png",
+      "preview_64": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/resource-icons/preview-64/ore.png",
+      "canvas": [
+        512,
+        512
+      ],
+      "source_bbox": [
+        827,
+        257,
+        1052,
+        465
+      ],
+      "content_px": [
+        226,
+        209
+      ],
+      "placed": {
+        "left": 143,
+        "top": 151,
+        "width": 226,
+        "height": 209
+      },
+      "opaque_pixels": 34835,
+      "opaque_bbox": [
+        143,
+        151,
+        368,
+        359
+      ],
+      "transparent_corners": true,
+      "border_alpha_sum": 0,
+      "sha256": "ef76ade48a6db6b2f4771732fc845f6f9d041749dc921861db928a066e1a5776",
+      "preview_sha256": "45a03d526dc6034d8d61661c5102323a3942a56e50c1caac13a1679eeef7d376",
+      "preview_size": [
+        64,
+        64
+      ]
+    },
+    {
+      "id": "crownmark",
+      "file": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/resource-icons/crownmark.png",
+      "preview_64": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/resource-icons/preview-64/crownmark.png",
+      "canvas": [
+        512,
+        512
+      ],
+      "source_bbox": [
+        1080,
+        286,
+        1225,
+        434
+      ],
+      "content_px": [
+        146,
+        149
+      ],
+      "placed": {
+        "left": 183,
+        "top": 181,
+        "width": 146,
+        "height": 149
+      },
+      "opaque_pixels": 15329,
+      "opaque_bbox": [
+        183,
+        181,
+        328,
+        329
+      ],
+      "transparent_corners": true,
+      "border_alpha_sum": 0,
+      "sha256": "c26135dc325aed9cf1d1897adfb72f8e1ad0c7f54d37c485abb4583514181418",
+      "preview_sha256": "255b9df0a38c4c0ff40714535a70d47592633da350ee6079e8b01ebf7302571e",
+      "preview_size": [
+        64,
+        64
+      ]
+    }
+  ]
+}
