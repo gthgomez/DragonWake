@@ -1052,6 +1052,7 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
       d.daily.size > 0 ||
       d.alliances.size > 0 ||
       d.allianceMembers.size > 0 ||
+      world.deletedSessions.size > 0 ||
       world.chatPersistedCount < world.chat.length;
     if (!hasWork) return;
 
@@ -1076,6 +1077,7 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
       daily: [...d.daily],
       alliances: [...d.alliances],
       allianceMembers: [...d.allianceMembers],
+      deletedSessions: [...world.deletedSessions],
       chatFrom: world.chatPersistedCount,
     };
 
@@ -1096,6 +1098,11 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
       for (const id of snap.sessions) {
         const s = world.sessionsById.get(id);
         if (s) await this.upsertSession(client, s);
+      }
+      // Revoked sessions: drop rows so a logged-out token stays dead after
+      // restart (logout must be durable, not just in-memory).
+      for (const id of snap.deletedSessions) {
+        await client.query("DELETE FROM sessions WHERE id = $1", [id]);
       }
       for (const id of snap.cities) {
         const c = world.cities.get(id);
@@ -1196,6 +1203,7 @@ private async upsertMarch(client: pg.PoolClient, m: March): Promise<void> {
       for (const pid of snap.daily) d.daily.delete(pid);
       for (const id of snap.alliances) d.alliances.delete(id);
       for (const aid of snap.allianceMembers) d.allianceMembers.delete(aid);
+      for (const id of snap.deletedSessions) world.deletedSessions.delete(id);
       world.chatPersistedCount = Math.max(world.chatPersistedCount, world.chat.length);
     } catch (e) {
       await client.query("ROLLBACK");
