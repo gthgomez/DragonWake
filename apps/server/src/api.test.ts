@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "./app.js";
 import { World } from "./world.js";
 
@@ -472,5 +472,117 @@ describe("Shop API (catalog, buy, use)", () => {
     });
     expect(unusable.res.status).toBe(400);
     expect(unusable.body.error.code).toBe("ITEM_UNUSABLE");
+  });
+});
+
+describe("Auth session revocation", () => {
+  it("logout revokes the session so the old token is rejected", async () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const app = createApp(world);
+    const guest = await json(app, "/api/v1/auth/guest", {
+      method: "POST",
+      body: JSON.stringify({ displayName: "RevokeMe", faction: "northern_kingdom" }),
+    });
+    expect(guest.res.status).toBe(200);
+    const token = guest.body.token as string;
+    const playerId = guest.body.player.id as string;
+    const sessionId = world.sessions.get(token)!.id;
+
+    // Token authenticates before logout.
+    const before = await json(app, "/api/v1/me", { token });
+    expect(before.res.status).toBe(200);
+
+    const out = await json(app, "/api/v1/auth/logout", { method: "POST", token });
+    expect(out.res.status).toBe(204);
+
+    // Old token is dead.
+    const after = await json(app, "/api/v1/me", { token });
+    expect(after.res.status).toBe(401);
+
+    // Removed from every in-memory index…
+    expect(world.sessions.has(token)).toBe(false);
+    expect(
+      [...world.sessionsById.values()].some((s) => s.playerId === playerId),
+    ).toBe(false);
+    expect(
+      [...world.sessionsByHash.values()].some((s) => s.playerId === playerId),
+    ).toBe(false);
+    // …and recorded so the persistence layer drops the row.
+    expect(world.deletedSessions.has(sessionId)).toBe(true);
+  });
+
+  it("logout revokes the session presented via cookie", async () => {
+    const world = new World({ devFastTime: true, skipTutorial: true });
+    const app = createApp(world);
+    const guestRes = await app.request("/api/v1/auth/guest", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ displayName: "CookieLogout", faction: "northern_kingdom" }),
+    });
+    expect(guestRes.status).toBe(200);
+    const guest = await guestRes.json();
+    const token = guest.token as string;
+    const cookie = (guestRes.headers.get("set-cookie") ?? "").split(";")[0]!;
+    expect(cookie).toContain("dragonwake_session=");
+
+    const out = await app.request("/api/v1/auth/logout", {
+      method: "POST",
+      headers: { cookie },
+    });
+    expect(out.status).toBe(204);
+
+    const after = await app.request("/api/v1/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(after.status).toBe(401);
+    expect(world.sessions.has(token)).toBe(false);
+  });
+
+  it("revokeSession returns false for unknown tokens and is idempotent", () => {
+    const world = new World();
+    expect(world.revokeSession("missing-token")).toBe(false);
+    const { token } = world.createGuest("RevUnit", "northern_kingdom");
+    expect(world.sessionPlayer(token)).not.toBeNull();
+    expect(world.revokeSession(token)).toBe(true);
+    expect(world.sessionPlayer(token)).toBeNull();
+    // Second revoke finds nothing.
+    expect(world.revokeSession(token)).toBe(false);
+  });
+});
+
+describe("Session cookie flags", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  async function guestSetCookie(app: ReturnType<typeof createApp>, name: string) {
+    const res = await app.request("/api/v1/auth/guest", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ displayName: name, faction: "northern_kingdom" }),
+    });
+    return res.headers.get("set-cookie") ?? "";
+  }
+
+  it("sets Secure in production but not for localhost dev; always HttpOnly + SameSite=Lax", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const prodCookie = await guestSetCookie(
+      createApp(new World({ skipTutorial: true })),
+      "CookieProd",
+    );
+    expect(prodCookie).toContain("dragonwake_session=");
+    expect(prodCookie).toContain("HttpOnly");
+    expect(prodCookie).toContain("SameSite=Lax");
+    expect(prodCookie).toContain("Secure");
+
+    vi.stubEnv("NODE_ENV", "development");
+    const devCookie = await guestSetCookie(
+      createApp(new World({ skipTutorial: true })),
+      "CookieDev",
+    );
+    expect(devCookie).toContain("dragonwake_session=");
+    expect(devCookie).toContain("HttpOnly");
+    expect(devCookie).toContain("SameSite=Lax");
+    expect(devCookie).not.toContain("Secure");
   });
 });

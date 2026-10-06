@@ -621,7 +621,17 @@ export function useGameActions(deps: UseGameActionsDeps) {
     });
   }
 
-  function logout() {
+  async function logout() {
+    // Revoke the session server-side before dropping local state. Best-effort:
+    // if the server is unreachable the player must still be able to log out.
+    const tok = token;
+    if (tok) {
+      try {
+        await api("/api/v1/auth/logout", tok, { method: "POST" });
+      } catch {
+        // Network/server failure — local state clears regardless.
+      }
+    }
     localStorage.removeItem("dragonwake_token");
     setToken(null);
     setPlayer(null);
