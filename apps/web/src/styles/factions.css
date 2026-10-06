@@ -83,18 +83,18 @@
    owned elsewhere: linkish/danger (base), tutorial CTA (hud), map and city
    tiles plus city build/pick CTAs (their own layers). */
 
-.shell.faction-brine main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
-.shell.faction-ash main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
-.shell.faction-sky main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
-.shell.faction-moss main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button) {
+.shell.faction-brine main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.scene-plot):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-ash main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.scene-plot):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-sky main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.scene-plot):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-moss main .card:not(.hud-tutorial) button:not(.linkish):not(.danger):not(.scene-plot):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button) {
   outline: 1px solid color-mix(in srgb, var(--fx) 38%, transparent);
   outline-offset: -2px;
 }
 
-.shell.faction-brine main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
-.shell.faction-ash main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
-.shell.faction-sky main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
-.shell.faction-moss main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button) {
+.shell.faction-brine main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.scene-plot):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-ash main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.scene-plot):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-sky main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.scene-plot):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button),
+.shell.faction-moss main .card:not(.hud-tutorial) button:hover:not(:disabled):not(.linkish):not(.danger):not(.scene-plot):not(.city-tile):not(.map-tile):not(.city-build-btn):not(.city-pick-grid button) {
   outline: 2px solid color-mix(in srgb, var(--fx) 72%, transparent);
   outline-offset: -2px;
 }

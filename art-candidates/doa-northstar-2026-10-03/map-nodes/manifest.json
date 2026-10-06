@@ -1,0 +1,90 @@
+{
+  "set": "map-nodes",
+  "date": "2026-10-03",
+  "method": "image_edit from both DragonWake references (north-star settlement screenshot and AlphaDesign painting), then Pillow+numpy plate key. No rembg. Not promoted into apps/web/public.",
+  "canvas": [1024, 1024],
+  "assets": [
+    {
+      "name": "wilderness-camp",
+      "source": "raw/wilderness-camp.jpg",
+      "png": "png/wilderness-camp.png",
+      "canvas": [1024, 1024],
+      "plate_key_rgb": [233, 22, 241],
+      "prompt_summary": "Single isolated wilderness camp: sharpened timber palisade, two weathered canvas tents, cook fire with iron pot, mud and moss. Three-quarter isometric, warm upper-left light, small contact shadow, flat magenta plate. Materials and light of the references, not a copy of the castle poster or the UI screenshot.",
+      "defects": [
+        "Irregular mud-and-moss footprint instead of a hard plot plinth.",
+        "Long plate-cast shadow removed with the key; only shading inside the mud remains.",
+        "Extra camp props (crate, small stump) inside the ring; palisade has an entrance gap.",
+        "Ground edge is a warm brown feather. Measured edge magenta-excess p90 is 0 after despill."
+      ]
+    },
+    {
+      "name": "timber-stand",
+      "source": "raw/timber-stand.jpg",
+      "png": "png/timber-stand.png",
+      "canvas": [1024, 1024],
+      "plate_key_rgb": [245, 15, 226],
+      "prompt_summary": "Single isolated worked woodlot: stacked felled logs, axe-marked stump, cut rounds, timber sawhorse, mud and muted moss. Three-quarter isometric, warm upper-left light, flat magenta plate. Materials and light of the references, not a copy of the castle poster or the UI screenshot.",
+      "defects": [
+        "Sawhorse can read as a low bench.",
+        "Mossy ground disc is wide relative to the logs.",
+        "Long plate-cast shadow removed; contact shading stays in the dirt.",
+        "Faint warm rim on the moss edge, not a magenta matte (edge magenta-excess p90 is 0)."
+      ]
+    },
+    {
+      "name": "ore-outcrop",
+      "source": "raw/ore-outcrop.jpg",
+      "png": "png/ore-outcrop.png",
+      "canvas": [1024, 1024],
+      "plate_key_rgb": [165, 53, 107],
+      "prompt_summary": "Single isolated iron outcrop: dark rust-streaked rock, iron pickaxe with wooden haft, two woven baskets of ore on mud. Three-quarter isometric, warm upper-left light, flat magenta plate. Materials and light of the references, not a copy of the castle poster or the UI screenshot. One retry: first pass had a blade-like tool on a rose plate.",
+      "defects": [
+        "Retry plate is still rose ~(165, 53, 107), not pure #FF00FF. Keyed from the sampled corner with a chroma-ratio band 0.30–0.46 plus a rose-excess gate above ~32. A pure-magenta distance would not have removed the plate.",
+        "Charcoal ore was not eaten; low-luminance pixels far from the plate were protected.",
+        "Long cast shadow removed. Mud footprint kept."
+      ]
+    },
+    {
+      "name": "stone-quarry",
+      "source": "raw/stone-quarry.jpg",
+      "png": "png/stone-quarry.png",
+      "canvas": [1024, 1024],
+      "plate_key_rgb": [239, 26, 235],
+      "prompt_summary": "Single isolated stone quarry: cut weathered block face, stacked dressed blocks, dark timber brace, chips and mud. Three-quarter isometric, warm upper-left light, flat magenta plate. Materials and light of the references, not a copy of the castle poster or the UI screenshot.",
+      "defects": [
+        "Reads as a braced stack of cut blocks more than a deep excavated pit.",
+        "Gray stone was not eaten (subject magenta-excess stayed near or below 0).",
+        "Long plate-cast shadow removed; thin warm fringe on the gravel edge only."
+      ]
+    },
+    {
+      "name": "grain-plot",
+      "source": "raw/grain-plot.jpg",
+      "png": "png/grain-plot.png",
+      "canvas": [1024, 1024],
+      "plate_key_rgb": [198, 23, 196],
+      "prompt_summary": "Single isolated fenced grain plot with tied golden-ochre shocks on muddy paths. Three-quarter isometric, warm upper-left light, flat magenta plate. Materials and light of the references, not a copy of the castle poster or the UI screenshot. One retry: first pass was standing grain rows, not shocks.",
+      "defects": [
+        "Plate sampled ~(198, 23, 196), darker than pure #FF00FF. Keyed by magenta-excess (opaque below ~16, gone above ~40), not by distance to #FF00FF.",
+        "Nine repetitive shock silhouettes; awn tips are slightly rosy but are not a plate leak.",
+        "Near fence corner is open, like a gap rather than a closed gate.",
+        "Long plate-cast shadow removed."
+      ]
+    },
+    {
+      "name": "watch-outpost",
+      "source": "raw/watch-outpost.jpg",
+      "png": "png/watch-outpost.png",
+      "canvas": [1024, 1024],
+      "plate_key_rgb": [246, 15, 251],
+      "prompt_summary": "Single isolated ruined watch shed of weathered stone and dark timber, sagging roof, torn green banner rag, empty of creatures. Three-quarter isometric, warm upper-left light, flat magenta plate. Materials and light of the references, not a copy of the castle poster or the UI screenshot.",
+      "defects": [
+        "No coast or water in the frame (water was disallowed on the plate), so it reads as a ruined shed rather than a cliffside watch.",
+        "Open roof and missing walls are transparent holes. That is the plate showing through the ruin, not deleted geometry.",
+        "Green rag is dull olive, not a saturated faction banner.",
+        "No dragon. Long plate-cast shadow removed. Gray stone was not eaten."
+      ]
+    }
+  ]
+}

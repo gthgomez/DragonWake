@@ -155,7 +155,7 @@ test("alpha r1: complete the first kingdom-to-marcher-keep journey with player U
 
   await buildOnPlot(page, 3, "Dragon Watch");
   await waitForBuilding(page, /^Dragon Watch, level 1$/);
-  const dragonWatchTile = page.locator('button.city-tile[aria-label="Dragon Watch, level 1"]');
+  const dragonWatchTile = page.locator('button.scene-plot[aria-label="Dragon Watch, level 1"]');
   await expect(dragonWatchTile).toHaveCount(1);
   const dragonWatchDetail = page.locator(".city-detail").getByRole("heading", { name: "Dragon Watch", exact: true });
   if (!(await dragonWatchDetail.isVisible().catch(() => false))) {

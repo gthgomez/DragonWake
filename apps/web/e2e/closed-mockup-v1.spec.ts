@@ -300,13 +300,24 @@ test("CLOSED_MOCKUP_V1 journey", async ({ page }) => {
   await page
     .getByRole("button", { name: /Found the Marcher Keep/ })
     .click({ force: true });
-  await expect(page.getByText("Marcher Keep founded").first()).toBeVisible({
-    timeout: 30_000,
-  });
+  // The success toast is intentionally transient. Verify the persistent
+  // settlement state instead: founding succeeded, and the new settlement is
+  // available to select from the server-refreshed city list.
+  await expect(
+    page.getByText(/Your Marcher Keep stands/),
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(
+    page.getByLabel("Settlements").getByRole("option", {
+      name: "Marcher Keep — Marcher Keep",
+      exact: true,
+    }),
+  ).toBeAttached({ timeout: 30_000 });
   await shot("13-keep-founded");
 
   // 14. switch to the keep; it is its own place
-  await page.getByLabel("Settlements").selectOption({ index: 1 });
+  await page
+    .getByLabel("Settlements")
+    .selectOption({ label: "Marcher Keep — Marcher Keep" });
   await expect(page.getByText(/Forward march\./)).toBeVisible();
   await expect(page.getByText(/Marcher Keep/).first()).toBeVisible();
   await shot("14-marcher-keep");

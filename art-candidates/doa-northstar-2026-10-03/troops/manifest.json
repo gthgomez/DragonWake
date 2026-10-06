@@ -1,0 +1,128 @@
+{
+  "id": "dragonwake-troops-levy-porter-scout-bowman",
+  "source_sheet": "sheets/lineup.jpg",
+  "sheet_sha256": "a1df4a5eec1f084826f06ea6549f2255cca7444a978e08a52e9b50813506056f",
+  "sheet_px": [
+    1280,
+    720
+  ],
+  "key": {
+    "sampled_background_rgb": [
+      219.36,
+      15.28,
+      237.71
+    ],
+    "method": "distance to corner-mean magenta, reject high magenta-axis spill, merge the detached bow limb, 1px interior-colored fringe, RGB cleared where alpha is 0",
+    "solid_distance": 150,
+    "magenta_axis_max": 70
+  },
+  "canvas": [
+    1024,
+    1024
+  ],
+  "foot_baseline_y": 991,
+  "order_left_to_right": [
+    "levy",
+    "porter",
+    "scout",
+    "bowman"
+  ],
+  "units": [
+    {
+      "id": "levy",
+      "name": "Levy Spearman",
+      "file": "png/levy.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "opaque_bbox": [
+        310,
+        452,
+        713,
+        992
+      ],
+      "foot_y": 991,
+      "opaque_pixels": 71859,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sha256": "4990b418113db81eb701db6f8e77192b14a58a9ca0069223c2f8b9548f4e37cc"
+    },
+    {
+      "id": "porter",
+      "name": "Porter",
+      "file": "png/porter.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "opaque_bbox": [
+        392,
+        461,
+        631,
+        992
+      ],
+      "foot_y": 991,
+      "opaque_pixels": 86468,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sha256": "d2ba45b2f1901ea841d1e28df7c250f6e0700a7efd6389d4c5ddab71f73b40e8"
+    },
+    {
+      "id": "scout",
+      "name": "Scout",
+      "file": "png/scout.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "opaque_bbox": [
+        434,
+        479,
+        589,
+        992
+      ],
+      "foot_y": 991,
+      "opaque_pixels": 49836,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sha256": "7fe20482303134dc599d903544a8edf61d1e96fb9df217889a8cec583c121296"
+    },
+    {
+      "id": "bowman",
+      "name": "Bowman",
+      "file": "png/bowman.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "opaque_bbox": [
+        366,
+        465,
+        657,
+        992
+      ],
+      "foot_y": 991,
+      "opaque_pixels": 67477,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sha256": "8e2ef1cf05490133734c83ed2e4ebf494abf36aa9e8c7da02941821e2812ebf5"
+    }
+  ]
+}

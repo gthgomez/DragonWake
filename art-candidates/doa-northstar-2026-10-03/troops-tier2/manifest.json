@@ -1,0 +1,167 @@
+{
+  "set": "dragonwake-troops-tier2",
+  "style": "grounded late-medieval company tokens, wool leather dull iron, muted green accent, warm upper-left light",
+  "background_key_rgb": [
+    156,
+    52,
+    101
+  ],
+  "source_sheet": "/home/linuxuser/.grok/sessions/%2Fhome%2Flinuxuser/01a103c5-b0a4-7b42-a889-87ca718fd52c/images/1.jpg",
+  "source_sheet_size": [
+    1280,
+    720
+  ],
+  "references": [
+    "/home/linuxuser/DragonWake/apps/web/e2e/artifacts/north-star-v2/after_scene_desktop.png",
+    "/home/linuxuser/DragonWake/docs/design/reference-art/DragonWake-AlphaDesign.png"
+  ],
+  "units": [
+    "pikeman",
+    "man_at_arms",
+    "longbowman",
+    "light_cavalry"
+  ],
+  "canvas": "1024x1024 RGBA, feet on a shared baseline, native sheet scale, no rescale",
+  "files": [
+    {
+      "id": "pikeman",
+      "file": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/troops-tier2/pikeman.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "source_bbox": [
+        88,
+        44,
+        334,
+        660
+      ],
+      "placed": {
+        "left": 388,
+        "top": 344,
+        "width": 247,
+        "height": 617
+      },
+      "foot_baseline_y": 960,
+      "opaque_pixels": 66231,
+      "transparent_corners": true,
+      "border_alpha_sum": 0,
+      "opaque_bbox": [
+        388,
+        344,
+        634,
+        960
+      ],
+      "sha256": "7993e3525630e18229495059a121514bd8c598e5ce81af3bc129b893652b6940",
+      "bytes": 182877
+    },
+    {
+      "id": "man_at_arms",
+      "file": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/troops-tier2/man_at_arms.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "source_bbox": [
+        396,
+        161,
+        608,
+        660
+      ],
+      "placed": {
+        "left": 405,
+        "top": 461,
+        "width": 213,
+        "height": 500
+      },
+      "foot_baseline_y": 960,
+      "opaque_pixels": 59493,
+      "transparent_corners": true,
+      "border_alpha_sum": 0,
+      "opaque_bbox": [
+        405,
+        461,
+        617,
+        960
+      ],
+      "sha256": "8d1fd0eed9e42f5cf05f5a2ed0e50b8259e89807ea70a1f98b349a2490736096",
+      "bytes": 172432
+    },
+    {
+      "id": "longbowman",
+      "file": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/troops-tier2/longbowman.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "source_bbox": [
+        667,
+        129,
+        877,
+        660
+      ],
+      "placed": {
+        "left": 406,
+        "top": 429,
+        "width": 211,
+        "height": 532
+      },
+      "foot_baseline_y": 960,
+      "opaque_pixels": 56864,
+      "transparent_corners": true,
+      "border_alpha_sum": 0,
+      "opaque_bbox": [
+        406,
+        429,
+        616,
+        960
+      ],
+      "sha256": "ae4b2efc25d37a8abfbe13b930e8f07885c5647493617fe33bc7d1d68e2ccd18",
+      "bytes": 153895
+    },
+    {
+      "id": "light_cavalry",
+      "file": "/home/linuxuser/DragonWake/art-candidates/doa-northstar-2026-10-03/troops-tier2/light_cavalry.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "source_bbox": [
+        912,
+        97,
+        1247,
+        660
+      ],
+      "placed": {
+        "left": 344,
+        "top": 397,
+        "width": 336,
+        "height": 564
+      },
+      "foot_baseline_y": 960,
+      "opaque_pixels": 91191,
+      "transparent_corners": true,
+      "border_alpha_sum": 0,
+      "opaque_bbox": [
+        344,
+        397,
+        679,
+        960
+      ],
+      "sha256": "fb02af412da486b229e9b102872f85c0523f9c400d72633718ac4a75327d75a3",
+      "bytes": 243642
+    }
+  ],
+  "postprocess": "magenta keyed, edge unmix, 5px fringe attach, light alpha soften, edge despill",
+  "defects": [
+    "Infantry read mostly frontal rather than three-quarter facing screen-right. The horse faces screen-right; the rider is still nearly frontal.",
+    "Studio semi-realism, not a small map-token silhouette. Detail will collapse if these are dropped onto a march at icon scale.",
+    "Faint warm-pink key spill remains on some silhouette edges after unmix and despill. No fully saturated magenta pixels.",
+    "On the sheet the longbowman and light cavalry bounding boxes were about 35px apart. They did not touch and were segmented separately.",
+    "Four similar bearded adult faces; weak individual identity.",
+    "Muted green accent is concentrated on the pikeman gambeson. The other three are brown wool and dull iron.",
+    "Pikeman weapon is a long spear/pike, not a formation pike several body-lengths long.",
+    "Man-at-arms has a drawn one-hand sword plus a second sheathed sidearm."
+  ],
+  "retry": "Not retried. Sheet had no castle, UI, text, or ground line, and the four figures did not touch."
+}

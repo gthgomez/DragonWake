@@ -1,0 +1,69 @@
+{
+  "set": "dragonwake-logistics-siege-tokens",
+  "date": "2026-10-03",
+  "status": "candidate",
+  "canonical": false,
+  "committed": false,
+  "style_sources": [
+    "/home/linuxuser/DragonWake/apps/web/e2e/artifacts/north-star-v2/after_scene_desktop.png",
+    "/home/linuxuser/DragonWake/docs/design/reference-art/DragonWake-AlphaDesign.png"
+  ],
+  "content_source": "/home/linuxuser/DragonWake/packages/content/data/units.json",
+  "lineup": {
+    "file": "lineup.jpg",
+    "size": [1280, 720],
+    "sha256": "4473c184bc7d36b3319c509581c4087478460796e2606bf5dcec025c23520573",
+    "key_rgb": [178, 44, 124],
+    "note": "Second image_edit. Flat rose-magenta field, not pure #FF00FF. Wagon tongue meets the ballista; split in segmentation."
+  },
+  "canvas": {
+    "size": [512, 512],
+    "mode": "RGBA",
+    "alignment": "centered",
+    "padding": "about 6% of each item's longer side, then placed on one shared power-of-two square",
+    "border_alpha": 0
+  },
+  "view": "three-quarter, facing screen-right, warm light from the upper left",
+  "assets": [
+    {
+      "id": "supply_wagon",
+      "file": "supply_wagon.png",
+      "unit_name": "Supply Wagon",
+      "tier": 2,
+      "role": "logistics",
+      "sheet_bbox": [73, 238, 421, 540],
+      "sha256": "5143e2bd325918b5dd1d917d45d25a44f7c30372ea9ec705aec7f6471c89794e",
+      "bytes": 145064
+    },
+    {
+      "id": "ballista",
+      "file": "ballista.png",
+      "unit_name": "Ballista",
+      "tier": 3,
+      "role": "range",
+      "sheet_bbox": [406, 243, 691, 538],
+      "sha256": "492609275ddc167ccb821b6e42000de1fd0a5b572dd4a9665a1d32e3a576a1d1",
+      "bytes": 101995
+    },
+    {
+      "id": "knight",
+      "file": "knight.png",
+      "unit_name": "Knight",
+      "tier": 3,
+      "role": "speed",
+      "sheet_bbox": [728, 101, 972, 543],
+      "sha256": "195d8f6e616b5c4cf165e5abd0870d51ea99404d67fcb8c95fb7afe4c0eee310",
+      "bytes": 112032
+    },
+    {
+      "id": "sapper",
+      "file": "sapper.png",
+      "unit_name": "Sapper",
+      "tier": 3,
+      "role": "melee",
+      "sheet_bbox": [1001, 234, 1205, 543],
+      "sha256": "69235c8d5888d65242dea72cf3c554e547751382171ff11f1b94fb89f0dc2fe1",
+      "bytes": 79370
+    }
+  ]
+}
