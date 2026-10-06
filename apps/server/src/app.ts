@@ -265,6 +265,8 @@ export function createApp(world: World) {
         path: "/",
         httpOnly: true,
         sameSite: "Lax",
+        // Secure only in production — localhost dev serves over plain HTTP.
+        secure: process.env.NODE_ENV === "production",
         maxAge: 7 * 24 * 3600,
       });
       return c.json({
@@ -280,6 +282,12 @@ export function createApp(world: World) {
   });
 
   api.post("/auth/logout", (c) => {
+    // Revoke server-side so the token dies here, not just in the browser.
+    // Same token extraction as the auth middleware (cookie or Bearer).
+    const token =
+      getCookie(c, "dragonwake_session") ??
+      c.req.header("Authorization")?.replace(/^Bearer\s+/i, "");
+    if (token) world.revokeSession(token);
     deleteCookie(c, "dragonwake_session", { path: "/" });
     return c.body(null, 204);
   });

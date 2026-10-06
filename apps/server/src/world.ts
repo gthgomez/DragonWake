@@ -891,6 +891,8 @@ export class World {
   sessions = new Map<string, Session>(); // by raw token (in-process only)
   sessionsByHash = new Map<string, Session>(); // by sha256(token) — survives PG reload
   sessionsById = new Map<string, Session>();
+  /** Session ids revoked since the last delta flush (row deletions for PG). */
+  deletedSessions = new Set<string>();
   jobs = new Map<string, QueueJob>();
   marches = new Map<string, March>();
   reports = new Map<string, BattleReport>();
@@ -1319,6 +1321,24 @@ export class World {
       this.sessions.get(token) ?? this.sessionsByHash.get(hashToken(token));
     if (!s || s.expiresAt < this.now()) return null;
     return this.players.get(s.playerId) ?? null;
+  }
+
+  /**
+   * Revoke a session by raw token. Removes it from every in-memory index
+   * (sessions, sessionsByHash, sessionsById) and records the deletion so the
+   * persistence layer can drop the row on the next delta flush. Returns true
+   * when a session was actually revoked. Lookup mirrors sessionPlayer: any
+   * token that would authenticate is found and removed.
+   */
+  revokeSession(token: string): boolean {
+    const session =
+      this.sessions.get(token) ?? this.sessionsByHash.get(hashToken(token));
+    if (!session) return false;
+    this.sessions.delete(session.token);
+    this.sessionsByHash.delete(session.tokenHash);
+    this.sessionsById.delete(session.id);
+    this.deletedSessions.add(session.id);
+    return true;
   }
 
   citiesForPlayer(playerId: string): City[] {
