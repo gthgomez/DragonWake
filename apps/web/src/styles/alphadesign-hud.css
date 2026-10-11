@@ -1,0 +1,822 @@
+/*
+ * DragonWake — AlphaDesign Visual Reconstruction Stylesheet
+ * Authority: docs/design/reference-art/DragonWake-AlphaDesign.png (1672×941)
+ *
+ * Implements high-fidelity DOM HUD overlays matching the AlphaDesign target:
+ * R01: Full-bleed 16:9 canvas
+ * R07: Brand Crest & Logotype (top-left)
+ * R08: 5-Resource Ribbon with food upkeep indicator (top-center)
+ * R09: Upper-right controls (Profile, Alliance, Mail, Menu)
+ * R10: Left Portrait & Action Rail (Portrait, Realm Lv, Deeds, Objectives, Settings, Faction)
+ * R11: Right Objective Card & Dragon Watch panel
+ * R12: Bottom 5-Dock (Build, Muster, Forge, Roost, Map)
+ * R13: Bottom-Left Message Strip ("A greater realm rises.")
+ * Drawer overlays and responsive adaptation (1672×941, 1440×900, 390×844)
+ */
+
+/* ── Full-Bleed Viewport Stage ────────────────────────────────────────── */
+
+.castle-viewport-stage {
+  position: relative;
+  width: 100%;
+  max-width: 1672px;
+  aspect-ratio: 1672 / 941;
+  margin: 0 auto;
+  overflow: hidden;
+  background: #08090b;
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(185, 141, 74, 0.25);
+  user-select: none;
+}
+
+/* Base scene inside the stage fills 100% */
+.castle-viewport-stage .castle-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── HUD Overlay Container ───────────────────────────────────────────── */
+
+.castle-hud-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 500;
+  font-family: var(--font-display, "Cinzel", "Georgia", serif);
+  color: #e8dcc4;
+}
+
+.castle-hud-overlay * {
+  box-sizing: border-box;
+}
+
+.castle-hud-interactive {
+  pointer-events: auto;
+}
+
+/* ── R07: Brand / Logo HUD (Top-Left) ─────────────────────────────────── */
+
+.hud-brand {
+  position: absolute;
+  left: calc(18 / 1672 * 100%);
+  top: calc(12 / 941 * 100%);
+  display: flex;
+  align-items: flex-start;
+  gap: calc(14 / 1672 * 100%);
+  z-index: 560;
+}
+
+.hud-brand-crest {
+  width: calc(124 / 1672 * 100vw);
+  max-width: 124px;
+  min-width: 58px;
+  height: auto;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.7));
+  display: block;
+}
+
+.hud-brand-copy {
+  display: flex;
+  flex-direction: column;
+  margin-top: calc(8 / 941 * 100%);
+}
+
+.hud-brand-title {
+  margin: 0;
+  font-family: var(--font-display, "Cinzel", "Georgia", serif);
+  font-size: clamp(1.2rem, 2.3vw, 2.15rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f7e1a0;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.9),
+    0 0 16px rgba(220, 180, 80, 0.35);
+  background: linear-gradient(180deg, #fff7d6 0%, #ecd07e 50%, #b8862d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hud-brand-subtitle {
+  margin: 0.15rem 0 0;
+  font-size: clamp(0.55rem, 0.8vw, 0.78rem);
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: #cfb987;
+  text-transform: uppercase;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+.hud-brand-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.hud-brand-tab {
+  background: rgba(18, 14, 10, 0.85);
+  border: 1px solid rgba(185, 141, 74, 0.4);
+  border-radius: 4px;
+  color: #dec89c;
+  font-family: var(--font-display, "Cinzel", "Georgia", serif);
+  font-size: clamp(0.55rem, 0.7vw, 0.72rem);
+  font-weight: 600;
+  padding: 0.2rem 0.45rem;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: all 140ms ease-out;
+  backdrop-filter: blur(4px);
+}
+
+.hud-brand-tab:hover {
+  background: rgba(45, 33, 20, 0.95);
+  border-color: #f0c975;
+  color: #fff1c7;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
+.hud-brand-tab.active {
+  background: linear-gradient(180deg, rgba(82, 60, 27, 0.95), rgba(42, 30, 14, 0.95));
+  border-color: #f2cb73;
+  color: #ffe699;
+  box-shadow: inset 0 0 6px rgba(245, 210, 115, 0.35);
+}
+
+.hud-brand-city-picker {
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+}
+
+.hud-brand-city-picker select {
+  background: rgba(15, 12, 8, 0.9);
+  border: 1px solid rgba(185, 141, 74, 0.5);
+  color: #e6ce9e;
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: 0.72rem;
+}
+
+/* ── R08: Top Resource Bar (Top-Center) ───────────────────────────────── */
+
+.hud-resources-wrap {
+  position: absolute;
+  left: 50%;
+  top: calc(14 / 941 * 100%);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 520;
+  pointer-events: none;
+}
+
+.hud-resource-ribbon {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(
+    180deg,
+    rgba(28, 24, 20, 0.94) 0%,
+    rgba(14, 11, 8, 0.97) 100%
+  );
+  border: 1.5px solid rgba(190, 148, 77, 0.7);
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem 0.2rem 0.8rem;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 235, 180, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  gap: clamp(0.4rem, 1.1vw, 1.4rem);
+}
+
+.hud-res-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-body, "EB Garamond", serif);
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.15vw, 1.05rem);
+  color: #f7eed7;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.hud-res-icon {
+  width: clamp(20px, 2.2vw, 32px);
+  height: clamp(20px, 2.2vw, 32px);
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+.hud-res-val {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.hud-res-plus {
+  background: linear-gradient(180deg, #d4a742 0%, #8c6318 100%);
+  border: 1px solid #ffd466;
+  border-radius: 50%;
+  width: clamp(22px, 2vw, 28px);
+  height: clamp(22px, 2vw, 28px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a1205;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: transform 120ms ease-out, filter 120ms ease-out;
+  padding: 0;
+  line-height: 1;
+}
+
+.hud-res-plus:hover {
+  transform: scale(1.1);
+  filter: brightness(1.2);
+}
+
+/* Upkeep indicator under resource bar */
+.hud-upkeep-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.65rem;
+  background: rgba(12, 10, 8, 0.85);
+  border: 1px solid rgba(185, 141, 74, 0.35);
+  border-radius: 999px;
+  font-family: var(--font-body, "EB Garamond", serif);
+  font-size: clamp(0.72rem, 0.85vw, 0.82rem);
+  color: #dfceb0;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.hud-upkeep-ribbon .hud-upkeep-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.hud-upkeep-ribbon .hud-upkeep-net {
+  color: #7ee081;
+  font-weight: 700;
+}
+
+.hud-upkeep-ribbon.hud-upkeep-negative .hud-upkeep-net {
+  color: #ff9b71;
+}
+
+.hud-upkeep-ribbon.hud-upkeep-starving {
+  border-color: #e63946;
+  background: rgba(45, 10, 10, 0.9);
+}
+
+/* ── R09: Upper-Right Controls ────────────────────────────────────────── */
+
+.hud-controls-right {
+  position: absolute;
+  right: calc(20 / 1672 * 100%);
+  top: calc(14 / 941 * 100%);
+  display: flex;
+  align-items: center;
+  gap: clamp(0.35rem, 0.8vw, 0.9rem);
+  z-index: 520;
+}
+
+.hud-ctrl-btn {
+  position: relative;
+  width: clamp(34px, 3.4vw, 48px);
+  height: clamp(34px, 3.4vw, 48px);
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: transform 140ms ease-out, filter 140ms ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hud-ctrl-btn:hover {
+  transform: scale(1.08);
+  filter: brightness(1.2);
+}
+
+.hud-ctrl-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.7));
+}
+
+.hud-ctrl-btn .badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #c92a2a;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid #ffd43b;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* ── R10: Left Portrait & Action Rail ─────────────────────────────────── */
+
+.hud-left-rail {
+  position: absolute;
+  left: calc(18 / 1672 * 100%);
+  top: calc(195 / 941 * 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(10 / 941 * 100%);
+  z-index: 510;
+}
+
+.hud-portrait-frame {
+  position: relative;
+  width: clamp(75px, 8vw, 130px);
+  height: auto;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.8));
+}
+
+.hud-portrait-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.hud-realm-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: -0.25rem;
+}
+
+.hud-realm-label {
+  font-size: clamp(0.6rem, 0.75vw, 0.78rem);
+  font-weight: 700;
+  color: #f7e09e;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.hud-realm-bar {
+  width: 85%;
+  height: 4px;
+  background: rgba(20, 15, 10, 0.85);
+  border: 1px solid rgba(185, 141, 74, 0.5);
+  border-radius: 999px;
+  margin-top: 2px;
+  overflow: hidden;
+}
+
+.hud-realm-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d4a742, #ffd466);
+}
+
+.hud-rail-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 0.6vw, 10px);
+  margin-top: 0.3rem;
+}
+
+.hud-rail-btn {
+  width: clamp(34px, 3.5vw, 50px);
+  height: clamp(34px, 3.5vw, 50px);
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: transform 120ms ease-out, filter 120ms ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hud-rail-btn:hover {
+  transform: scale(1.08);
+  filter: brightness(1.2);
+}
+
+.hud-rail-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+}
+
+/* ── R11: Right Objective Card ────────────────────────────────────────── */
+
+.hud-right-stack {
+  position: absolute;
+  right: calc(20 / 1672 * 100%);
+  top: calc(90 / 941 * 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.6rem;
+  z-index: 510;
+  max-width: clamp(170px, 16vw, 240px);
+}
+
+.hud-objective-card {
+  width: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(24, 20, 16, 0.92) 0%,
+    rgba(12, 10, 8, 0.96) 100%
+  );
+  border: 1.5px solid rgba(190, 148, 77, 0.65);
+  border-radius: 8px;
+  padding: 0.5rem;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 235, 180, 0.15);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hud-obj-thumb {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid rgba(185, 141, 74, 0.4);
+  display: block;
+}
+
+.hud-obj-title {
+  margin: 0;
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: clamp(0.72rem, 0.88vw, 0.88rem);
+  font-weight: 700;
+  color: #f7e09e;
+  letter-spacing: 0.04em;
+}
+
+.hud-obj-desc {
+  margin: 0;
+  font-family: var(--font-body, "EB Garamond", serif);
+  font-size: clamp(0.68rem, 0.78vw, 0.78rem);
+  color: #d1c1a5;
+  line-height: 1.3;
+}
+
+.hud-obj-btn {
+  background: linear-gradient(180deg, #996e27 0%, #593f12 100%);
+  border: 1px solid #d4a742;
+  border-radius: 4px;
+  color: #fff1c7;
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: clamp(0.65rem, 0.74vw, 0.76rem);
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: filter 120ms ease-out, transform 120ms ease-out;
+  text-align: center;
+}
+
+.hud-obj-btn:hover {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+}
+
+/* Dragon Watch panel right under objective card */
+.hud-dragon-watch-card {
+  width: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(22, 18, 14, 0.9) 0%,
+    rgba(10, 8, 6, 0.95) 100%
+  );
+  border: 1px solid rgba(185, 141, 74, 0.45);
+  border-radius: 6px;
+  padding: 0.4rem 0.55rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  backdrop-filter: blur(6px);
+}
+
+.hud-dragon-watch-mark {
+  color: #d4a742;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.hud-dragon-watch-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-dragon-watch-copy strong {
+  font-size: clamp(0.7rem, 0.8vw, 0.82rem);
+  color: #f7e09e;
+}
+
+.hud-dragon-watch-copy p {
+  margin: 0;
+  font-family: var(--font-body, "EB Garamond", serif);
+  font-size: clamp(0.65rem, 0.72vw, 0.74rem);
+  color: #c2b093;
+}
+
+/* ── R12: Bottom Dock ─────────────────────────────────────────────────── */
+
+.hud-bottom-dock {
+  position: absolute;
+  left: 50%;
+  bottom: calc(20 / 941 * 100%);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1.8vw, 2.2rem);
+  z-index: 520;
+}
+
+.hud-dock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.hud-dock-btn {
+  width: clamp(52px, 5.8vw, 92px);
+  height: clamp(52px, 5.8vw, 92px);
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: transform 140ms cubic-bezier(0.2, 0.8, 0.3, 1), filter 140ms ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.hud-dock-btn:hover {
+  transform: translateY(-4px) scale(1.08);
+  filter: brightness(1.2);
+}
+
+.hud-dock-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.8));
+}
+
+.hud-dock-label {
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: clamp(0.6rem, 0.75vw, 0.82rem);
+  font-weight: 700;
+  color: #f2cb73;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95);
+  text-transform: uppercase;
+}
+
+/* ── R13: Bottom-Left Message Strip ───────────────────────────────────── */
+
+.hud-message-strip {
+  position: absolute;
+  left: calc(18 / 1672 * 100%);
+  bottom: calc(24 / 941 * 100%);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: linear-gradient(
+    90deg,
+    rgba(22, 18, 14, 0.94) 0%,
+    rgba(14, 11, 8, 0.85) 100%
+  );
+  border: 1.5px solid rgba(185, 141, 74, 0.55);
+  border-radius: 6px;
+  padding: 0.35rem 0.85rem 0.35rem 0.65rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  z-index: 510;
+  max-width: clamp(240px, 30vw, 440px);
+}
+
+.hud-message-icon {
+  width: clamp(16px, 1.6vw, 24px);
+  height: clamp(16px, 1.6vw, 24px);
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
+  flex: 0 0 auto;
+}
+
+.hud-message-text {
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: clamp(0.68rem, 0.8vw, 0.85rem);
+  font-weight: 600;
+  color: #eeddbb;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* ── Slide-Over Drawers ────────────────────────────────────────────────── */
+
+.hud-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 600;
+  pointer-events: auto;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 150ms ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.hud-drawer-panel {
+  width: clamp(340px, 45vw, 680px);
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(25, 20, 16, 0.98) 0%,
+    rgba(12, 9, 7, 0.99) 100%
+  );
+  border-left: 2px solid rgba(190, 148, 77, 0.65);
+  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.85);
+  overflow-y: auto;
+  padding: 1.5rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  position: relative;
+  animation: slideInRight 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.hud-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(185, 141, 74, 0.35);
+  padding-bottom: 0.8rem;
+}
+
+.hud-drawer-title {
+  margin: 0;
+  font-family: var(--font-display, "Cinzel", serif);
+  font-size: 1.35rem;
+  color: #f7e09e;
+  letter-spacing: 0.05em;
+}
+
+.hud-drawer-close {
+  background: transparent;
+  border: 1px solid rgba(185, 141, 74, 0.4);
+  color: #dec89c;
+  font-size: 1.1rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 120ms ease-out;
+}
+
+.hud-drawer-close:hover {
+  background: rgba(80, 20, 20, 0.8);
+  border-color: #ff6b6b;
+  color: #fff;
+}
+
+/* ── Full Ledger Below Canvas ─────────────────────────────────────────── */
+
+.castle-scroll-ledger {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Responsive Rules (1440x900, 1024x768, 390x844 mobile) ───────────── */
+
+@media (max-width: 1024px) {
+  .hud-brand-subtitle {
+    display: none;
+  }
+  .hud-brand-crest {
+    max-width: 72px;
+  }
+  .hud-brand-nav {
+    gap: 0.15rem 0.25rem;
+  }
+  .hud-brand-tab {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.35rem;
+  }
+  .hud-resource-ribbon {
+    gap: 0.45rem;
+    padding: 0.2rem 0.5rem;
+  }
+  .hud-res-item {
+    font-size: 0.8rem;
+    gap: 0.25rem;
+  }
+  .hud-res-icon {
+    width: 20px;
+    height: 20px;
+  }
+  .hud-dock-label {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .castle-viewport-stage {
+    aspect-ratio: auto;
+    height: auto;
+    min-height: 520px;
+  }
+  .hud-brand {
+    left: 8px;
+    top: 8px;
+  }
+  .hud-brand-crest {
+    width: 48px;
+  }
+  .hud-resource-ribbon {
+    gap: 0.4rem;
+    padding: 0.15rem 0.4rem;
+  }
+  .hud-res-item {
+    font-size: 0.75rem;
+    gap: 0.2rem;
+  }
+  .hud-res-icon {
+    width: 18px;
+    height: 18px;
+  }
+  .hud-left-rail {
+    display: none;
+  }
+  .hud-right-stack {
+    display: flex;
+    position: absolute;
+    right: 8px;
+    top: 56px;
+    max-width: 165px;
+    z-index: 520;
+    pointer-events: auto;
+  }
+  .hud-objective-card {
+    display: none;
+  }
+  .hud-dragon-watch-card {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.68rem;
+    gap: 0.35rem;
+  }
+  .hud-bottom-dock {
+    gap: 0.8rem;
+    bottom: 8px;
+  }
+  .hud-dock-btn {
+    width: 48px;
+    height: 48px;
+  }
+  .hud-message-strip {
+    display: none;
+  }
+}

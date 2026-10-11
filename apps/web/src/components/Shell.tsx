@@ -84,81 +84,83 @@ export function Shell({
   const food = useFoodStatus();
 
   return (
-    <div className={`shell faction-${factionMeta.accent}`}>
-      <header className="topbar hud-topbar">
-        <div>
-          <p className="eyebrow">{factionMeta.label}</p>
-          <h1>Dragon Wake</h1>
-          <p className="tag">
-            {player.displayName} · Dracoliths {player.dracolith}
-            {player.protectionUntil
-              ? ` · protected until ${new Date(player.protectionUntil).toLocaleString()}`
-              : ""}
-          </p>
-          {food ? (
-            <p
-              className={`hud-upkeep${food.netPerHour < 0 ? " hud-upkeep-negative" : ""}${
-                food.starving ? " hud-upkeep-starving" : ""
-              }`}
-              data-testid="upkeep-indicator"
-            >
-              <span className="hud-upkeep-item">
-                <Icon name="food" size={13} /> Food +{fmtNum(food.foodPerHour)}/h
-              </span>
-              <span className="hud-upkeep-sep" aria-hidden="true">
-                ·
-              </span>
-              <span className="hud-upkeep-item">
-                Upkeep −{fmtNum(food.upkeepPerHour)}/h
-              </span>
-              <span className="hud-upkeep-sep" aria-hidden="true">
-                ·
-              </span>
-              <span className="hud-upkeep-item hud-upkeep-net">
-                Net {food.netPerHour >= 0 ? "+" : "−"}
-                {fmtNum(Math.abs(food.netPerHour))}/h
-              </span>
-              {food.starving ? (
-                <span className="hud-upkeep-warning" data-testid="upkeep-warning">
-                  The stores run dry — the host goes hungry
-                </span>
-              ) : food.netPerHour < 0 ? (
-                <span className="hud-upkeep-warning hud-upkeep-warning-soft">
-                  The host eats more than the fields yield
-                </span>
-              ) : null}
+    <div className={`shell faction-${factionMeta.accent} ${activeTab === "castle" ? "shell-castle-active" : ""}`}>
+      {activeTab !== "castle" && (
+        <header className="topbar hud-topbar">
+          <div>
+            <p className="eyebrow">{factionMeta.label}</p>
+            <h1>Dragon Wake</h1>
+            <p className="tag">
+              {player.displayName} · Dracoliths {player.dracolith}
+              {player.protectionUntil
+                ? ` · protected until ${new Date(player.protectionUntil).toLocaleString()}`
+                : ""}
             </p>
-          ) : null}
-        </div>
-        <nav className="tabs hud-tabs" aria-label="Main">
-          {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
-            <button
-              key={t}
-              type="button"
-              className={activeTab === t ? "active" : ""}
-              onClick={() => {
-                onTabChange(t);
-                if (t === "realm") void loadMap().catch((e) => setError(String(e)));
-                if (t === "war") {
-                  setUnreadReports(0);
-                  void loadReports().catch((e) => setError(String(e)));
-                }
-                if (t === "knowledge") {
-                  void loadCodex().catch((e) => setError(String(e)));
-                  void refreshKnowledge();
-                }
-                if (t === "alliance")
-                  void loadAlliances().catch((e) => setError(String(e)));
-              }}
-            >
-              {TAB_LABELS[t]}
-              {t === "war" && unreadReports > 0 ? (
-                <span className="badge">{unreadReports}</span>
-              ) : null}
-            </button>
-          ))}
-        </nav>
-      </header>
+            {food ? (
+              <p
+                className={`hud-upkeep${food.netPerHour < 0 ? " hud-upkeep-negative" : ""}${
+                  food.starving ? " hud-upkeep-starving" : ""
+                }`}
+                data-testid="upkeep-indicator"
+              >
+                <span className="hud-upkeep-item">
+                  <Icon name="food" size={13} /> Food +{fmtNum(food.foodPerHour)}/h
+                </span>
+                <span className="hud-upkeep-sep" aria-hidden="true">
+                  ·
+                </span>
+                <span className="hud-upkeep-item">
+                  Upkeep −{fmtNum(food.upkeepPerHour)}/h
+                </span>
+                <span className="hud-upkeep-sep" aria-hidden="true">
+                  ·
+                </span>
+                <span className="hud-upkeep-item hud-upkeep-net">
+                  Net {food.netPerHour >= 0 ? "+" : "−"}
+                  {fmtNum(Math.abs(food.netPerHour))}/h
+                </span>
+                {food.starving ? (
+                  <span className="hud-upkeep-warning" data-testid="upkeep-warning">
+                    The stores run dry — the host goes hungry
+                  </span>
+                ) : food.netPerHour < 0 ? (
+                  <span className="hud-upkeep-warning hud-upkeep-warning-soft">
+                    The host eats more than the fields yield
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
+          </div>
+          <nav className="tabs hud-tabs" aria-label="Main">
+            {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={activeTab === t ? "active" : ""}
+                onClick={() => {
+                  onTabChange(t);
+                  if (t === "realm") void loadMap().catch((e) => setError(String(e)));
+                  if (t === "war") {
+                    setUnreadReports(0);
+                    void loadReports().catch((e) => setError(String(e)));
+                  }
+                  if (t === "knowledge") {
+                    void loadCodex().catch((e) => setError(String(e)));
+                    void refreshKnowledge();
+                  }
+                  if (t === "alliance")
+                    void loadAlliances().catch((e) => setError(String(e)));
+                }}
+              >
+                {TAB_LABELS[t]}
+                {t === "war" && unreadReports > 0 ? (
+                  <span className="badge">{unreadReports}</span>
+                ) : null}
+              </button>
+            ))}
+          </nav>
+        </header>
+      )}
 
       <main>
         {/* F3: in-flow notice rail — structurally cannot overlap the content

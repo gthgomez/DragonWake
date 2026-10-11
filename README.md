@@ -18,9 +18,8 @@ content breadth and visual polish are partial and no completeness is claimed.
   retained evidence, not current claims)
 - Documentation index: [`docs/README.md`](docs/README.md)
 
-**Note on unmerged draft work:** PR #18 (`feat/castle-north-star-v2`) is an
-open **draft** for a new settlement scene compositor. Its visual captures are
-preview/draft only, do not certify main, and are not shipped product imagery.
+**Settlement compositor status:** PR #18 (`feat/castle-north-star-v2`, Castle North Star V2) has merged to `main`. Visual reconstruction toward the authoritative AlphaDesign specification is active.
+
 
 ## Design and architecture references
 

@@ -1,10 +1,9 @@
 # Current status — main branch
 
-> Scope: this file describes **current `main`** of DragonWake. It does not
-> describe unmerged draft branches. In particular, PR #18
-> (`feat/castle-north-star-v2`, "DRAFT: Castle North Star V2 — settlement
-> scene compositor") is an **open draft**; its visual captures and scene work
-> are **preview/draft only, not shipped**, and nothing on it certifies main.
+> Scope: this file describes **current `main`** of DragonWake. PR #18
+> (`feat/castle-north-star-v2`, "Castle North Star V2 — settlement scene compositor")
+> was merged to `main` at `c6ecca99ef85a928868ba85cfe824d9e8e012ab1`. Active work
+> is now executing the AlphaDesign visual reconstruction.
 
 ## One-sentence identity
 
@@ -54,15 +53,15 @@ No pass/fail totals are asserted on this page; totals go stale. CI
 (`.github/workflows/ci.yml`) runs the server suite with `REQUIRE_PG=1`
 against PostgreSQL 16, so persistence coverage is required there.
 
-## Current main versus draft PR #18 — unmistakably distinct
+## Current main baseline
+ 
+| Surface | Current main (PR #18 merged) |
+|---|---|
+| Settlement scene | Castle North Star V2 compositor merged; AlphaDesign reconstruction active |
+| Visual captures | `apps/web/e2e/artifacts/north-star-v2/` baseline captures on main |
 
-| Surface | Current main | PR #18 (draft) |
-|---|---|---|
-| Settlement scene | Current Castle presentation per `docs/design/CLOSED_MOCKUP_V1.md` | Castle North Star V2 compositor — **draft, open, unmerged** |
-| Visual captures | Any captures from main are current-main only | PR #18 captures are **preview/draft**; they do not certify main and are not shipped product imagery |
-
-Main head at the time this page was last reviewed: `0ed592c26308c2307e09fc58971d9585bc3df681`
-(2026-09-29). Update this pointer when the status is re-qualified.
+Main head at the time this page was last reviewed: `c6ecca99ef85a928868ba85cfe824d9e8e012ab1`
+(2026-10-06). Update this pointer when the status is re-qualified.
 
 ## Open limitations (honest, current)
 

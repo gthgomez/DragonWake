@@ -160,6 +160,7 @@ async function setupCapital(page: Page, token: string, name: string) {
 }
 
 async function openScene(page: Page, token: string) {
+  await page.setViewportSize({ width: 1672, height: 941 });
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Castle", exact: true }).waitFor();
   await page.getByTestId("castle-scene").scrollIntoViewIfNeeded();
@@ -175,7 +176,7 @@ test.describe("North Star V2 — Castle settlement", () => {
     await setupCapital(page, token, name);
 
     await openScene(page, token);
-    await page.screenshot({ path: `${OUT}/after_desktop.png`, fullPage: true });
+    await page.screenshot({ path: `${OUT}/after_desktop.png` });
     await page.getByTestId("castle-scene").screenshot({ path: `${OUT}/after_scene_desktop.png` });
 
     await page.getByRole("button", { name: /^Homes, level/ }).first().click({ force: true });
