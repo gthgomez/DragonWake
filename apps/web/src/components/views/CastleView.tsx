@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import "../../styles/remediation-castle.css";
+import "../../styles/alphadesign-hud.css";
+import { CastleHUD } from "./city/CastleHUD";
+import type { Tab } from "../../lib/gameConfig";
 
 import {
   ALPHA_HATCHLING_ART,
@@ -83,6 +86,9 @@ type CastleViewProps = {
   yieldSpawningBank?: () => Promise<void>;
   craftGuardHarness?: () => Promise<void>;
   pactFenWyrm?: () => Promise<void>;
+  activeTab?: Tab;
+  onTabChange?: (tab: Tab) => void;
+  unreadReports?: number;
 };
 
 const RES_LABELS: Record<string, string> = {
@@ -158,6 +164,9 @@ export function CastleView({
   yieldSpawningBank,
   craftGuardHarness,
   pactFenWyrm,
+  activeTab,
+  onTabChange,
+  unreadReports,
 }: CastleViewProps) {
   const rates = city.productionPerHour;
   const foodUpkeep = city.foodUpkeepPerHour ?? 0;
@@ -271,9 +280,69 @@ export function CastleView({
     if (result) setLastResearch({ cityId: city.id, ...result });
   }, [city.research, city.id]);
 
+  const [activeDrawer, setActiveDrawer] = useState<string | null>(null);
+
+  const handleToggleDrawer = (drawer: string) => {
+    setActiveDrawer((prev) => (prev === drawer ? null : drawer));
+    if (drawer === "roost") {
+      const el = document.getElementById("capital-roost") ?? document.querySelector('[data-testid="capital-roost"]');
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (drawer === "muster") {
+      const el = document.getElementById("castle-muster");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (drawer === "forge") {
+      const el = document.getElementById("castle-forge");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (drawer === "deeds") {
+      goToDailyDeeds();
+    } else if (drawer === "shop") {
+      const el = document.getElementById("shop-panel") ?? document.querySelector('[data-testid="shop-panel"]');
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (drawer === "objectives") {
+      const el = document.getElementById("castle-objectives");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (drawer === "build") {
+      const el = document.querySelector(".city-detail");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
-    <section className="card castle-view">
-      <header className="castle-head">
+    <section className="castle-view-container card castle-view">
+      {/* 1. HERO VIEWPORT STAGE: authoritative 1672×941 AlphaDesign reconstruction */}
+      <CityGrid
+        key={city.id}
+        city={city}
+        jobs={jobs}
+        now={now}
+        unlockDefs={unlockDefs}
+        doBuild={doBuild}
+        roostDragon={roostDragon}
+      >
+        <CastleHUD
+          city={city}
+          cities={cities}
+          player={player}
+          setCityId={setCityId}
+          activeTab={activeTab ?? "castle"}
+          onTabChange={onTabChange ?? (() => undefined)}
+          activeDrawer={activeDrawer}
+          onToggleDrawer={handleToggleDrawer}
+          unreadReports={unreadReports ?? 0}
+          food={{
+            foodPerHour: rates?.food ?? 0,
+            upkeepPerHour: foodUpkeep,
+            netPerHour: foodNet,
+            starving: Boolean(city.starving),
+          }}
+          dragonWatchLevel={dragonWatchLevel}
+          upgradeKeep={upgradeKeep}
+        />
+      </CityGrid>
+
+      {/* 2. STEWARD'S LEDGER BELOW THE CANVAS */}
+      <div className="castle-scroll-ledger">
+        <header className="castle-head">
         <div>
           <h2>
             {city.name}{" "}
@@ -341,7 +410,7 @@ export function CastleView({
       </section>
 
       {city.kind === "capital" && (
-        <section className="roost-panel" data-testid="capital-roost" aria-label="Capital roost">
+        <section className="roost-panel" data-testid="capital-roost" id="capital-roost" aria-label="Capital roost">
           <div className="eyebrow">The roost</div>
           {signature ? (
             <div className="roost-content-layout">
@@ -581,7 +650,7 @@ export function CastleView({
         ))}
         {/* F7: Dracoliths are not a realm resource — they are earned, and the
             row says so here as well as in the Steward's Wares. */}
-        <li className="res-premium" data-testid="res-dracolith">
+        <li className="res-premium" data-testid="res-dracolith-ledger">
           <strong className="res-head">
             <Icon name="crown" size={16} />
             {DRACOLITH_LABEL}
@@ -593,7 +662,7 @@ export function CastleView({
       <p className="muted tiny res-blurb">{currencyBlurb()}</p>
 
       <h3>The Settlement</h3>
-      <section className="keep-progression" aria-label="Keep progression">
+      <section className="keep-progression" id="castle-forge" aria-label="Keep progression">
         <div>
           <strong>Forge-Heart · Keep level {city.keepLevel ?? 1}</strong>
           <p className="muted tiny">
@@ -619,22 +688,8 @@ export function CastleView({
           {(city.keepLevel ?? 1) >= 10 ? "Keep mastered" : `Upgrade to L${(city.keepLevel ?? 1) + 1}`}
         </button>
       </section>
-      <div className="dragon-watch-panel" data-testid="dragon-watch-panel">
-        <div className="dragon-watch-mark" aria-hidden="true">
-          <Icon name="dragon" size={28} />
-        </div>
-        <div>
-          <strong>Dragon Watch</strong>
-          <p className="muted tiny">
-            {dragonWatchLevel > 0
-              ? `Level ${dragonWatchLevel} · the watch records every sign brought home.`
-              : "Raise this tower from an empty plot to turn rumors into evidence."}
-          </p>
-        </div>
-      </div>
-      <CityGrid key={city.id} city={city} jobs={jobs} now={now} unlockDefs={unlockDefs} doBuild={doBuild} roostDragon={roostDragon} />
 
-      <div className="castle-columns">
+      <div className="castle-columns" id="castle-muster">
         <div>
           <h3>Population &amp; Manpower</h3>
           <div className="pop-bar-container">
@@ -906,7 +961,7 @@ export function CastleView({
           </div>
         )
       ) : (
-        <div className="charter-card">
+        <div className="charter-card" id="castle-objectives">
           <p>
             <strong>Found a Marcher Keep.</strong> A settlement charter is
             required — earn it by completing the Dragon Expedition.
@@ -990,6 +1045,7 @@ export function CastleView({
           </ul>
         )}
       </section>
+      </div>
     </section>
   );
 }

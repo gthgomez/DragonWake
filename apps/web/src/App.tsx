@@ -101,6 +101,9 @@ export function App() {
           yieldSpawningBank={g.yieldSpawningBank}
           craftGuardHarness={g.craftGuardHarness}
           pactFenWyrm={g.pactFenWyrm}
+          activeTab={tab}
+          onTabChange={setTab}
+          unreadReports={g.unreadReports}
         />
       )}
 

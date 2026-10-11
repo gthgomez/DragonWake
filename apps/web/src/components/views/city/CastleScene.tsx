@@ -3,7 +3,7 @@ import type { City, QueueJob } from "../../../lib/types";
 import { buildingName } from "../../../lib/labels";
 import { fmtEta } from "../../../lib/format";
 import { castleBuildingArt, type SceneArt } from "../../../lib/castleSceneAssets";
-import { depthZ, sceneAnchorForSlot, type SceneAnchor } from "./castleSceneLayout";
+import { depthZ, sceneAnchorForSlot } from "./castleSceneLayout";
 import { shouldRenderRoostDragon } from "./roostPresence";
 import { SceneTerrain } from "./SceneTerrain";
 
@@ -113,17 +113,15 @@ export function CastleScene({
     return Array.from({ length: Math.max(12, max + 1) }, (_, i) => i);
   }, [city.buildings, jobs]);
 
-  const dragonAnchor: SceneAnchor | null = shouldRenderRoostDragon(dragon)
-    ? sceneAnchorForSlot(dragon!.slot!)
-    : null;
+  const hasDragon = shouldRenderRoostDragon(dragon);
 
   return (
     <div
       className="castle-scene"
-      style={{ aspectRatio: "1400 / 880" }}
+      style={{ aspectRatio: "1672 / 941" }}
       data-testid="castle-scene"
     >
-      <SceneTerrain />
+      <SceneTerrain emptyRoost={!hasDragon} />
 
       {slots.map((slot) => {
         const b = bySlot.get(slot);
@@ -201,29 +199,29 @@ export function CastleScene({
         );
       })}
 
-      {dragon && dragonAnchor && (
+      {dragon && hasDragon && (
         <>
           <span
             className="scene-dragon-shadow"
             aria-hidden="true"
             style={{
-              left: `${(dragonAnchor.x + 0.085) * 100}%`,
-              top: `${(dragonAnchor.y + 0.02) * 100}%`,
-              width: `${14 * dragonAnchor.scale}%`,
-              zIndex: depthZ(dragonAnchor),
+              left: "67%",
+              top: "29.5%",
+              width: "22%",
+              zIndex: 350,
             }}
           />
           <img
             className="scene-dragon"
-            src={dragon.imageSrc}
+            src="/art/alpha/castle/dragon_roost_perch.png"
             alt={dragon.alt}
             draggable={false}
             data-testid="scene-dragon"
             style={{
-              left: `${(dragonAnchor.x + 0.085) * 100}%`,
-              top: `${(dragonAnchor.y + 0.02) * 100}%`,
-              width: `${15 * dragonAnchor.scale}%`,
-              zIndex: depthZ(dragonAnchor) + 1,
+              left: "67%",
+              top: "29.5%",
+              width: "24%",
+              zIndex: 351,
             }}
           />
         </>

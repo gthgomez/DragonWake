@@ -7,9 +7,9 @@
  * No JSX carries ad-hoc offsets; everything derives from this table.
  */
 
-/** Logical scene canvas. All anchors are normalized to this box. */
-export const SCENE_W = 1400;
-export const SCENE_H = 880;
+/** Logical scene canvas (AlphaDesign specification 1672×941). */
+export const SCENE_W = 1672;
+export const SCENE_H = 941;
 
 export type AnchorKind = "keep" | "rise" | "support" | "outer";
 
@@ -24,23 +24,23 @@ export type SceneAnchor = {
 };
 
 /**
- * Authored anchors for the canonical twelve slots. Slot 0 is the Keep bailey;
- * slot 7 is the rocky rise the Dragon Watch reads best on. Other slots form
- * the lower town along the two approach roads.
+ * Authored anchors for the canonical twelve slots aligned to AlphaDesign.
+ * Slot 0 is the Citadel keep gate; slot 7 is the Dragon Watch fortress rise.
+ * Slots 1..6, 8..11 inhabit the dense medieval quarter along the stone streets.
  */
 const BASE_ANCHORS: SceneAnchor[] = [
-  { slot: 0, x: 0.37, y: 0.42, scale: 1.02, kind: "keep" },
-  { slot: 1, x: 0.16, y: 0.6, scale: 1.0, kind: "support" },
-  { slot: 2, x: 0.29, y: 0.63, scale: 0.98, kind: "support" },
-  { slot: 3, x: 0.43, y: 0.66, scale: 0.97, kind: "support" },
-  { slot: 4, x: 0.57, y: 0.63, scale: 1.0, kind: "support" },
-  { slot: 5, x: 0.71, y: 0.59, scale: 0.94, kind: "support" },
-  { slot: 6, x: 0.11, y: 0.76, scale: 0.92, kind: "outer" },
-  { slot: 7, x: 0.72, y: 0.4, scale: 0.98, kind: "rise" },
-  { slot: 8, x: 0.26, y: 0.79, scale: 0.94, kind: "outer" },
-  { slot: 9, x: 0.41, y: 0.81, scale: 0.96, kind: "outer" },
-  { slot: 10, x: 0.56, y: 0.79, scale: 0.94, kind: "outer" },
-  { slot: 11, x: 0.7, y: 0.75, scale: 0.92, kind: "outer" },
+  { slot: 0, x: 0.341, y: 0.404, scale: 1.05, kind: "keep" },
+  { slot: 1, x: 0.150, y: 0.500, scale: 0.95, kind: "support" },
+  { slot: 2, x: 0.102, y: 0.563, scale: 0.95, kind: "support" },
+  { slot: 3, x: 0.221, y: 0.542, scale: 0.95, kind: "support" },
+  { slot: 4, x: 0.173, y: 0.638, scale: 0.98, kind: "support" },
+  { slot: 5, x: 0.287, y: 0.616, scale: 0.96, kind: "support" },
+  { slot: 6, x: 0.377, y: 0.520, scale: 0.94, kind: "support" },
+  { slot: 7, x: 0.646, y: 0.436, scale: 1.00, kind: "rise" },
+  { slot: 8, x: 0.251, y: 0.733, scale: 0.96, kind: "outer" },
+  { slot: 9, x: 0.341, y: 0.733, scale: 0.98, kind: "outer" },
+  { slot: 10, x: 0.467, y: 0.659, scale: 0.98, kind: "outer" },
+  { slot: 11, x: 0.526, y: 0.786, scale: 0.95, kind: "outer" },
 ];
 
 /** Deterministic outward arc for slots beyond the authored twelve. */

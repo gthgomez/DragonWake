@@ -1,8 +1,7 @@
 # DragonWake documentation index
 
 - **Current status** — [`qualification/current-status.md`](qualification/current-status.md):
-  what main actually is today (prototype alpha), how to verify it, and the
-  main-versus-draft boundary for PR #18.
+  what main actually is today (prototype alpha), how to verify it, and baseline qualification.
 - **History** — [`history/README.md`](history/README.md): dated records of
   past certifications, campaigns and research provenance. Retained evidence,
   not current claims.

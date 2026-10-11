@@ -25,6 +25,8 @@ type CityGridProps = {
   doBuild: (buildingType: string, slotIndex?: number) => Promise<void>;
   /** Living-dragon roost presence, rendered as a physical inhabitant. */
   roostDragon?: RoostDragon | null;
+  /** AlphaDesign HUD overlay or other stage decorations. */
+  children?: ReactNode;
 };
 
 function costOf(def: BuildingLite, level: number): Record<string, number> {
@@ -332,7 +334,7 @@ function CostRow({
 /* City grid                                                           */
 /* ------------------------------------------------------------------ */
 
-export function CityGrid({ city, jobs, now, unlockDefs, doBuild, roostDragon }: CityGridProps) {
+export function CityGrid({ city, jobs, now, unlockDefs, doBuild, roostDragon, children }: CityGridProps) {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 
   // F6: an in-place build result, not only a toast. CityGrid is remounted per
@@ -428,7 +430,7 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild, roostDragon }: 
 
   return (
     <div className="city-layout">
-      <div className="city-scene">
+      <div className="city-scene castle-viewport-stage" data-testid="castle-viewport-stage">
         <CastleScene
           city={city}
           jobs={jobs}
@@ -437,6 +439,8 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild, roostDragon }: 
           onSelectSlot={setSelectedSlot}
           dragon={roostDragon}
         />
+        {children}
+      </div>
         {lastBuildResult && (
           <p
             className="city-build-result"
@@ -452,7 +456,6 @@ export function CityGrid({ city, jobs, now, unlockDefs, doBuild, roostDragon }: 
           Select a structure or foundation in the settlement to inspect it,
           raise a structure, or improve it
         </p>
-      </div>
 
       <aside className="city-detail" aria-live="polite">
         {selected ? (

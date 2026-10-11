@@ -1,0 +1,73 @@
+{
+  "canvas": {
+    "width": 1672,
+    "height": 941
+  },
+  "regions": {
+    "full_bleed_world": {
+      "name": "Full-Bleed World Canvas",
+      "box": [0, 0, 1672, 941],
+      "description": "Entire game canvas is a rich continuous landscape behind HUD reaching all 4 edges"
+    },
+    "main_citadel": {
+      "name": "Main Citadel",
+      "box": [365, 50, 895, 390],
+      "description": "Huge vertical gothic/medieval stone castle with slender towers, lower terraces, warm torch/window lights, green-gold dragon banners, arched bridges"
+    },
+    "dragon_roost": {
+      "name": "Dragon Roost",
+      "box": [920, 65, 1320, 435],
+      "description": "Massive perched olive/bronze dragon, long neck angled profile, torn gold-green wing membranes, perched atop substantial stone tower fortress on cliff"
+    },
+    "settlement": {
+      "name": "Dense Medieval Settlement Quarter",
+      "box": [90, 345, 1050, 750],
+      "description": "Dense inhabited quarter with timber/stone roofs, winding lanes, stairs, central cloaked monument statue, forge glow, fields, market, smoke, trees"
+    },
+    "fortifications": {
+      "name": "Foreground Fortifications",
+      "box": [0, 590, 1250, 845],
+      "description": "Articulated foreground crenellated stone walls with buttresses, towers, gatehouses integrated with cliffs"
+    },
+    "natural_environment": {
+      "name": "Natural Environment & Harbor",
+      "box": [0, 0, 1672, 941],
+      "description": "Snow-capped alpine mountains, pine forests, atmospheric mist, waterfalls, right-side sea inlet/harbor, arched bridge and ships"
+    },
+    "brand_logo_hud": {
+      "name": "Brand / Logo HUD",
+      "box": [0, 0, 445, 170],
+      "description": "Carved dark-metal dragon standard, DragonWake gold logotype, 'A STRONGER TOMORROW' subtitle"
+    },
+    "top_resources": {
+      "name": "Top Resource Bar",
+      "box": [455, 0, 1180, 70],
+      "description": "Black/aged-metal beveled horizontal bar with gold coin, wood, stone, ingot, red crystal, plus button"
+    },
+    "upper_right_controls": {
+      "name": "Upper-Right Controls",
+      "box": [1290, 0, 1672, 75],
+      "description": "Ornamented icon row: helmet profile, alliance, mail with notification dot, menu"
+    },
+    "left_rail": {
+      "name": "Left Portrait & Rail",
+      "box": [0, 180, 155, 660],
+      "description": "Painted commander portrait, Realm Lv. indicator with progress bar, stacked square ornamental buttons"
+    },
+    "right_objective_card": {
+      "name": "Right Objective Card",
+      "box": [1460, 85, 1660, 250],
+      "description": "Inset illustrated castle tile and 'Forges Stronger Realms >' interactive objective card"
+    },
+    "bottom_dock": {
+      "name": "Bottom Dock",
+      "box": [530, 785, 1300, 941],
+      "description": "Five round embossed icon buttons: Build, Muster, Forge, Roost, Map"
+    },
+    "bottom_message_strip": {
+      "name": "Bottom Message / Quest Strip",
+      "box": [0, 860, 560, 941],
+      "description": "Ornate message strip with scroll icon: 'A greater realm rises.'"
+    }
+  }
+}
