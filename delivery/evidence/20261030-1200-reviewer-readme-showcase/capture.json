@@ -1,0 +1,25 @@
+{
+  "revision": "096ed2a1f22c6b93bbead48fef50d0ef62ecb5d8",
+  "capturedAt": "2026-10-30T12:09:45.915Z",
+  "browser": "154.0.8037.57",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "pageErrors": [],
+  "health": {
+    "ok": true,
+    "service": "dragonwake-server",
+    "version": "0.3.0-s1-stonekeel",
+    "time": "2026-10-30T12:09:45.886Z",
+    "db": "memory"
+  },
+  "playerName": "Showcase Steward mvuxj75z",
+  "fixture": "Fresh guest; DEV_FAST_TIME=1, DEV_SKIP_TUTORIAL=0; in-memory local server; default artwork without opt-in flags; no admin grants",
+  "verified": [
+    "guest entered through UI",
+    "Homes construction completed",
+    "farmland claimed",
+    "Realm opened"
+  ]
+}

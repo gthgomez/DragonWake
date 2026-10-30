@@ -2,6 +2,35 @@
 
 Multiplayer web MMORTS **prototype alpha** (async city builder + map combat).
 
+## From an empty plot to a growing realm
+
+[![Recorded gameplay preview — click to open the full clip](docs/showcase/preview.gif)](docs/showcase/gameplay.mp4)
+
+Watch an AI-operated browser enter as a fresh guest, build Homes, claim Farmland, and open the Realm map against the real local API. Development queues run with `DEV_FAST_TIME=1`; this is a prototype alpha with an in-memory server, not production multiplayer.
+
+[Open or download the full silent recording](docs/showcase/gameplay.mp4) · [Capture notes and reproduction](docs/showcase/README.md)
+
+<details>
+<summary>Explore four screenshots and feature captions</summary>
+
+**Enter the keep.** The actual settlement viewport and resource HUD.
+
+![Enter the keep: The actual settlement viewport and resource HUD.](delivery/evidence/20261030-1200-reviewer-readme-showcase/screenshots/01-castle.png)
+
+**Build Homes.** The server confirms the new structure and exposes its next upgrade.
+
+![Build Homes: The server confirms the new structure and exposes its next upgrade.](delivery/evidence/20261030-1200-reviewer-readme-showcase/screenshots/02-homes-built.png)
+
+**Grow the estate.** A land claim adds farmland and its food production.
+
+![Grow the estate: A land claim adds farmland and its food production.](delivery/evidence/20261030-1200-reviewer-readme-showcase/screenshots/03-farmland.png)
+
+**Inspect the Realm.** The live map is reachable through normal navigation; no battles are claimed here.
+
+![Inspect the Realm: The live map is reachable through normal navigation; no battles are claimed here.](delivery/evidence/20261030-1200-reviewer-readme-showcase/screenshots/04-realm.png)
+
+</details>
+
 ## Current status
 
 This is a **playable prototype alpha on `main`** — the full first-session

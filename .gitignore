@@ -14,3 +14,9 @@ coverage
 # docs/competitive/evidence/README.md (the run MANIFEST.md stays tracked)
 delivery/evidence/*/screenshots/
 e2e/artifacts/
+
+# Raw showcase recordings are regenerated locally.
+/docs/showcase/raw/
+/delivery/evidence/20261030-1200-reviewer-readme-showcase/raw/
+# Four selected, small captures serve as durable README evidence.
+!/delivery/evidence/20261030-1200-reviewer-readme-showcase/screenshots/
