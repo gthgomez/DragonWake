@@ -22,7 +22,7 @@ DEV_FAST_TIME=1 DEV_SKIP_TUTORIAL=0 PORT=3001 pnpm --filter @dragonwake/server s
 # Second terminal:
 pnpm --filter @dragonwake/web dev --host 127.0.0.1 --port 5173 --strictPort
 # Third terminal, repository root:
-export PLAYWRIGHT_BROWSERS_PATH=../.browsers
+export PLAYWRIGHT_BROWSERS_PATH="$PWD/../.browsers"
 pnpm --filter @dragonwake/web exec playwright install ffmpeg
 CHROMIUM_PATH=/usr/bin/chromium node apps/web/scripts/capture-showcase.mjs
 bash scripts/encode-showcase.sh
